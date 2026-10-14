@@ -2418,9 +2418,6 @@
           ]
         ],
         "currentAnchors": "ZrViewportEventV1::new 35-56; viewport_metrics 73-87",
-        "provenRelationships": [
-          "new:31-51 使用0尺寸/scale1/空payload占位；viewport_metrics:69-83 原样存三项metrics并physical_size复制到event.size。"
-        ],
         "relationshipReuse": "Fresh read and before-byte reconstruction required because physical SHA changed",
         "shaGuardReceipt": {
           "execCell": "47",
@@ -2461,7 +2458,15 @@
           "currentSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
           "reviewedSha256": null
         },
-        "scopeLimit": "events.rs remains an external readonly caller, not an additional source write/audit claim. Fresh read covered the session-relevant 1-90 region, not all 659 source lines."
+        "scopeLimit": "events.rs remains an external readonly caller, not an additional source write/audit claim. Fresh read covered the session-relevant 1-90 region, not all 659 source lines.",
+        "historicalProvenRelationshipsWithOriginalLineAnchors": [
+          "new:31-51 使用0尺寸/scale1/空payload占位；viewport_metrics:69-83 原样存三项metrics并physical_size复制到event.size。"
+        ],
+        "provenRelationships": [
+          "ZrViewportEventV1::new at current lines 35-56 retains its original caller-visible scalar/default/payload construction contract without validation.",
+          "ZrViewportEventV1::viewport_metrics at current lines 73-87 retains physical_size projection and supplied metrics through Self::new(VIEWPORT_RESIZED), without validation.",
+          "The old relationship text is retained separately with explicitly historical line anchors; fresh current ranges are 1-90 and mapped original read range is 4-88."
+        ]
       },
       {
         "id": "TRANSLATED",
@@ -3540,6 +3545,15 @@
         "exitCode": 0,
         "scope": "Compact exact historical authority, raw metadata pins and original unresolved-native status extraction",
         "writes": 0
+      },
+      {
+        "execCell": "55",
+        "finalChunkId": "706e88",
+        "exitCode": 0,
+        "scope": "Last guards of nine frozen source pins, all 47 caller records and six readonly metadata/evidence inputs; exclusive new evidence creation and JSON readback",
+        "sourceWrites": 0,
+        "oldMetadataWrites": 0,
+        "exclusiveEvidenceWrites": 1
       }
     ],
     "originalHistoricalStatus": {
@@ -3614,6 +3628,27 @@
       "status": "pending",
       "accepted": false,
       "formalAcceptance": false
+    },
+    "currentTrackedSourceStatusObservation": {
+      "method": "git --no-optional-locks status --porcelain=v1 -- exact nine source paths plus events caller",
+      "exitCode": 0,
+      "allTenTrackedPathsXY": " M",
+      "readWarning": "Git could not access C:/Users/HeJiahui/.config/git/ignore; the command still returned 0 and produced tracked exact-path status. This warning is not treated as permission-enforcement proof or a source mutation."
+    },
+    "canonicalTransferEvidenceSelfCheck": {
+      "checkedAtUtc": "2026-10-13T13:18:35.645104+00:00",
+      "sourcePathsUnique": true,
+      "eachCurrentMatchesHistoricalFinal": true,
+      "exactCallerCounts": {
+        "core": 37,
+        "budget": 10
+      },
+      "historicalIndependentReviewEvidenceBound": 2,
+      "jsonReadback": true,
+      "sourceMutations": 0,
+      "oldMetadataMutations": 0,
+      "formalAcceptance": false,
+      "limits": "Evidence structure and pinned raw inputs only. No Cargo, Rustdoc, Jenkins acceptance, old native-request termination or commit is inferred."
     }
   },
   "commit": {

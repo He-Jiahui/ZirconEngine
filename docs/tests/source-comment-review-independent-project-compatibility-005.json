@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "project-compatibility-005",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewer": "/root",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignmentBaseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "observedHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+  "observedAtUtc": "2026-10-13T14:51:08.962716+00:00",
+  "state": "independently-reviewed-awaiting-coordinator",
+  "agentEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+    "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+    "bytes": 58498,
+    "sectionsReviewed": [
+      "objectEvidence",
+      "callerEvidence",
+      "files",
+      "issues",
+      "validation",
+      "notes"
+    ]
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+      "initialSha256": "41addd6a747103a111633b78d8df0f5b3be51c7462141a8ad458b28c3702c6ab",
+      "reviewedSha256": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+      "objectEvidenceRefs": [
+        "PROJ05-002"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07",
+        "CALL-09"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs",
+      "initialSha256": "b6294f438635a05c81bb4a374c7bf758158961cd268967396f2ba32c4c7dc875",
+      "reviewedSha256": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+      "objectEvidenceRefs": [
+        "PROJ05-003"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-04",
+        "CALL-05",
+        "CALL-09"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs",
+      "initialSha256": "c479d66433dc8cdeea4108cb5ea0e967c70e5eb272b6eb7105f060abf391c4dd",
+      "reviewedSha256": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+      "objectEvidenceRefs": [
+        "PROJ05-006"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
+      "initialSha256": "951f32f2961e78ccae557d0d7d96f50b5b651214fe8919dfc182652956dd5519",
+      "reviewedSha256": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21",
+      "objectEvidenceRefs": [
+        "PROJ05-004"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-05",
+        "CALL-09"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/error.rs",
+      "initialSha256": "385612ca3f52e76d0e303978abc506682dee84eafe172e9c7bf16a859c98e532",
+      "reviewedSha256": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+      "objectEvidenceRefs": [
+        "PROJ05-005"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/mod.rs",
+      "initialSha256": "9c3ec597207598738a8ccd5ed42ca68f5945bcbe36f979033254b7a02dba3c61",
+      "reviewedSha256": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+      "objectEvidenceRefs": [
+        "PROJ05-001"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-02"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/version.rs",
+      "initialSha256": "9cfbb0e9e1cf35b73182c805466e0569afb7d4b8e0a7238f23e5fbc7395e48e2",
+      "reviewedSha256": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+      "objectEvidenceRefs": [
+        "PROJ05-007"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-05",
+        "CALL-09"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs",
+      "initialSha256": "57a293798df385dfe6c249bdde6480013f8e7ff7d07864f86bf559a35d3730f6",
+      "reviewedSha256": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+      "objectEvidenceRefs": [
+        "PROJ05-008"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-05",
+        "CALL-09"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+      "initialSha256": "5b15f17701c8b9db6958092a8622eb362b483e9811ae598fffc9a31e439e0eca",
+      "reviewedSha256": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+      "objectEvidenceRefs": [
+        "PROJ05-009"
+      ],
+      "callerEvidenceRefs": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07",
+        "CALL-09"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+      "initialSha256": "10fd4caac570863568a901ba388b8cfca1779b794e1acef149e383796740e9d4",
+      "reviewedSha256": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09",
+      "objectEvidenceRefs": [
+        "PROJ05-010"
+      ],
+      "callerEvidenceRefs": []
+    }
+  ],
+  "independentFindings": [
+    {
+      "subject": "预检结论的边界",
+      "finding": "None 无要求返回 Compatible；Some 交给 semver parser，先用 VersionReq::matches 判定匹配，再对不匹配进行方向归约。保存的结果可 serde 构造，不能单独证明可信来源或激活准入。",
+      "callers": [
+        "ProjectPreflightReceipt::evaluate_engine_compatibility",
+        "validate_launch_receipt",
+        "ProjectTemplateDescriptor::assess_engine_compatibility",
+        "ProjectTemplateReceipt::try_new"
+      ]
+    },
+    {
+      "subject": "方向分类",
+      "finding": "比较器求交集，采用更严格端点，等值端点只在双方闭合时闭合。运行版本低于/高于端点或等于排除端点时才证明方向；空区间、预发布语义、无法归约和整数递增溢出保守返回一般不兼容。所有原测试及断言保持不变。",
+      "tests": [
+        "project/tests/engine_compatibility.rs",
+        "project/tests/directional_range.rs"
+      ]
+    },
+    {
+      "subject": "文档纠正",
+      "finding": "公共说明现明确原要求快照、Some 解析失败、与身份/迁移/provider/其他宿主准入分离、serde不提供权限，以及排他端点相等的两个方向。原英文/中文总结全部保留，章节位于原summary之后。"
+    }
+  ],
+  "coverage": {
+    "sourceFiles": 10,
+    "agentObjectGroups": 10,
+    "agentStatementBlocks": 33,
+    "countMeaning": "对象组成员和语句块证据为逐项导航；不把计数当全仓完成。"
+  },
+  "independentChecks": {
+    "actualSourceReads": "Root prior cell44完整10原实现/测试及 actual Editor/template consumer；cell54新增文档复核，cell58补足被截断的directional_range新文档及最后disposition两句。",
+    "physicalInsertions": {
+      "rootNativeChunks": [
+        "f6f4d7",
+        "ab2d74"
+      ],
+      "all10BeforeMatchAssignedPhysicalPins": true,
+      "all10FinalMatchAgentPins": true,
+      "originalRawLinesAndEolPreserved": true,
+      "insertedStandaloneCommentOrBlankLines": 165,
+      "sourceTokensExcludingDocumentationEqual": true,
+      "compilerFacingTokensEqual": false,
+      "method": "SequenceMatcher byte-lines only permits standalone // or blank insertions; explicitly mask rust_lexical_evidence doc_comment_spans before lexical token comparison. rust_non_doc_tokens has historical name but actually preserves compiler doc attrs; its raw false comparisons are expected and are not the non-doc proof.",
+      "noLineSensitiveOrSourceEmbeddingMacros": true,
+      "noRustcDirectiveComments": true
+    },
+    "changeGuard": {
+      "rootNativeTerminalChunk": "8485bf",
+      "exitCode": 0,
+      "paths": 10,
+      "correctedTestPath": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+      "patchDigest": "055c07c9b3f0b8a68b22702e899061e1068a4924116ddc10bea215a921264bbd",
+      "writeGrantCheck": true,
+      "errors": 0,
+      "warnings": 0,
+      "earlier9FileGuardNotReused": true
+    },
+    "callerPins": {
+      "rootNativeTerminalChunk": "8485bf",
+      "records": 9,
+      "matched": 9,
+      "observedAt": "before manifest-summary-006 source edits; parse.rs new batch dependency changes require reconciliation",
+      "immutablePins": [
+        {
+          "id": "CALL-01",
+          "path": "zircon_runtime_interface/src/lib.rs",
+          "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+          "symbol": "project public module export",
+          "relationship": "crate exposes project contracts"
+        },
+        {
+          "id": "CALL-02",
+          "path": "zircon_runtime_interface/src/project/mod.rs",
+          "sha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+          "symbol": "engine_compatibility module and reexports",
+          "relationship": "exposes evaluator and value types"
+        },
+        {
+          "id": "CALL-03",
+          "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+          "sha256": "88ddd9f9c55c2811cf74c8f67c879c74805ad3ca1b46c21072acb9d28157a239",
+          "symbol": "SummaryDocument validation and validate_engine_version_req",
+          "relationship": "parses supplied requirement before summary admission; None passes through"
+        },
+        {
+          "id": "CALL-04",
+          "path": "zircon_editor/src/core/project/project_preflight/preflight_receipt.rs",
+          "sha256": "b9af148d5d48b1f24fc7543cc275e15136566ab46707a4e80fbf61ac7261e705",
+          "symbol": "ProjectPreflightReceipt::evaluate_engine_compatibility",
+          "relationship": "forwards summary requirement and selected engine"
+        },
+        {
+          "id": "CALL-05",
+          "path": "zircon_editor/src/core/project/authority/preflight.rs",
+          "sha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+          "symbol": "validate_launch_receipt",
+          "relationship": "checks migration, engine disposition, identity, and provider requirements in sequence"
+        },
+        {
+          "id": "CALL-06",
+          "path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs",
+          "sha256": "6f8ff52e973d2de3d9931dbb80ead297198f5db29ec452450ad79a872b5fa10c",
+          "symbol": "ProjectTemplateDescriptor::assess_engine_compatibility",
+          "relationship": "passes template requirement to shared assessor"
+        },
+        {
+          "id": "CALL-07",
+          "path": "zircon_runtime_interface/src/project/template_pack/receipt.rs",
+          "sha256": "2308a0d5b502a9ba09089d4ce012ec989374271c714d48fdf68af6972a665927",
+          "symbol": "ProjectTemplateReceipt::try_new",
+          "relationship": "refuses an incompatible creator before receipt construction"
+        },
+        {
+          "id": "CALL-08",
+          "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+          "sha256": "79c1c13d78440f2308c53d8ae1b44a036b87b0dae683732ab6df04e590101bb5",
+          "symbol": "template descriptor compatibility assertions",
+          "relationship": "tests compatible and incompatible engine values",
+          "worktreeStatus": "M (preexisting staged change; read-only, owner not established)"
+        },
+        {
+          "id": "CALL-09",
+          "path": "zircon_editor/src/core/project/tests/preflight.rs",
+          "sha256": "678194c06912b8a62c325ba878c56d425c6a2de092de7aa0080ab18030ffa038",
+          "symbol": "project_preflight_exposes_the_engine_compatibility_receipt_without_runtime_activation",
+          "relationship": "tests receipt result and absence of runtime-created directories"
+        }
+      ]
+    },
+    "formatting": {
+      "status": "passed; same-final-source native evidence reused",
+      "edition": "2021 workspace inheritance",
+      "scope": "exact10; rustfmt --check --config skip_children=true",
+      "nativeReceipts": [
+        {
+          "nativeTool": "exec_command",
+          "chunkId": "6ceb92",
+          "exitCode": 0,
+          "command": "rustfmt --edition 2021 --config skip_children=true --check zircon_runtime_interface/src/project/engine_compatibility/assessment.rs zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs zircon_runtime_interface/src/project/engine_compatibility/disposition.rs zircon_runtime_interface/src/project/engine_compatibility/error.rs zircon_runtime_interface/src/project/engine_compatibility/mod.rs zircon_runtime_interface/src/project/engine_compatibility/version.rs zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs zircon_runtime_interface/src/project/tests/engine_compatibility.rs zircon_runtime_interface/src/project/tests/directional_range.rs",
+          "coverage": "原批次十路径检查；仅复用当前字节仍匹配的九个未变路径。",
+          "sourcePins": {
+            "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+            "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+            "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+            "zircon_runtime_interface/src/project/engine_compatibility/error.rs": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+            "zircon_runtime_interface/src/project/engine_compatibility/mod.rs": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+            "zircon_runtime_interface/src/project/engine_compatibility/version.rs": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+            "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+            "zircon_runtime_interface/src/project/tests/engine_compatibility.rs": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+            "zircon_runtime_interface/src/project/tests/directional_range.rs": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09"
+          }
+        },
+        {
+          "nativeTool": "exec_command",
+          "chunkId": "65aeaa",
+          "exitCode": 0,
+          "command": "rustfmt --edition 2021 --config skip_children=true --check zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
+          "coverage": "针对本次修订后的单一路径检查。",
+          "sourcePins": {
+            "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21"
+          }
+        }
+      ]
+    },
+    "diffWhitespace": {
+      "status": "passed",
+      "nativeReceipts": [
+        {
+          "nativeTool": "exec_command",
+          "chunkId": "87b76e",
+          "exitCode": 0,
+          "command": "git --no-optional-locks diff --check -- zircon_runtime_interface/src/project/engine_compatibility/assessment.rs zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs zircon_runtime_interface/src/project/engine_compatibility/disposition.rs zircon_runtime_interface/src/project/engine_compatibility/error.rs zircon_runtime_interface/src/project/engine_compatibility/mod.rs zircon_runtime_interface/src/project/engine_compatibility/version.rs zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs zircon_runtime_interface/src/project/tests/engine_compatibility.rs zircon_runtime_interface/src/project/tests/directional_range.rs",
+          "coverage": "原批次十路径检查；仅复用当前字节仍匹配的九个未变路径。",
+          "sourcePins": {
+            "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+            "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+            "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+            "zircon_runtime_interface/src/project/engine_compatibility/error.rs": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+            "zircon_runtime_interface/src/project/engine_compatibility/mod.rs": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+            "zircon_runtime_interface/src/project/engine_compatibility/version.rs": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+            "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+            "zircon_runtime_interface/src/project/tests/engine_compatibility.rs": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+            "zircon_runtime_interface/src/project/tests/directional_range.rs": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09"
+          }
+        },
+        {
+          "nativeTool": "exec_command",
+          "chunkId": "bf5ef5",
+          "exitCode": 0,
+          "command": "git --no-optional-locks diff --check -- zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
+          "coverage": "针对本次修订后的单一路径检查。",
+          "sourcePins": {
+            "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21"
+          }
+        }
+      ]
+    },
+    "issueTags": [],
+    "newIssues": [],
+    "cargoOrRustdocRunByRoot": false
+  },
+  "formalRequirements": {
+    "status": "pending",
+    "actualClassification": "New Rust doc attributes are documentation_comment semantic per tools/jenkins/workflow/classification.py:410-412 and handler.py:324-327. Supplemental macro tracing does not force comments_only or waive a registered required workflow.",
+    "requiredChecks": "Supported source-owner/hash-bound language parser/format + scope classification + actual selected flow validation/acceptance receipts; no self-invented Cargo doc/macro-test gate. Actual bounded checks required by admitted semantic flow remain pending.",
+    "stageCommit": "Jenkins exact remaining attributable delta; most10 bytes already in external1041-path commit, which is not audit scoped stage acceptance. Do not replay or reset.",
+    "notification": "Attached WeCom auto notification authorized; real receipt pending.",
+    "requestId": "source-comment-audit-20261012",
+    "attempt": 1,
+    "originalIntakeBuild": 25
+  },
+  "artifactLifecycle": {
+    "ownedBuildProducts": 0,
+    "sourceTreeCopies": 0,
+    "temporaryHelpers": 0,
+    "releasedBytes": 0,
+    "taskManifest": "pending Jenkins generation",
+    "closureClaimed": false
+  },
+  "formalAcceptance": false,
+  "wholeRepositoryComplete": false
+}

@@ -6,8 +6,8 @@ use crate::settings::{HubConfig, HubLanguage};
 use crate::state::{HubActionKind, HubActionStatus, TaskExecutionOutcome};
 
 use super::{
-    super::{action_tasks::BackgroundTaskContext, HubRuntimeSession},
-    resolve_device_install_stage, BackgroundTask, PendingDeviceInstall,
+    super::{HubRuntimeSession, action_tasks::BackgroundTaskContext},
+    BackgroundTask, PendingDeviceInstall, resolve_device_install_stage,
 };
 
 #[test]
@@ -47,21 +47,27 @@ fn background_package_completion_records_success_after_copy_result() {
     assert_eq!(record.action, HubActionKind::PackageProject);
     assert_eq!(record.status, HubActionStatus::Success);
     assert_eq!(session.task_status.label, "Package created");
-    assert!(record
-        .output_dir
-        .as_ref()
-        .unwrap()
-        .join("zircon-package.toml")
-        .is_file());
-    assert!(record
-        .command_line
-        .iter()
-        .any(|part| part == "package-project"));
+    assert!(
+        record
+            .output_dir
+            .as_ref()
+            .unwrap()
+            .join("zircon-package.toml")
+            .is_file()
+    );
+    assert!(
+        record
+            .command_line
+            .iter()
+            .any(|part| part == "package-project")
+    );
     assert!(record.command_line.iter().any(|part| part == "--project"));
-    assert!(record
-        .command_line
-        .iter()
-        .any(|part| part == &project.to_string_lossy()));
+    assert!(
+        record
+            .command_line
+            .iter()
+            .any(|part| part == &project.to_string_lossy())
+    );
     assert!(record.log_excerpt.contains("2 files"));
 
     fs::remove_dir_all(temp).unwrap();
@@ -97,13 +103,17 @@ fn package_action_uses_explicit_target_project_instead_of_selected_project() {
         .output_dir
         .as_ref()
         .expect("target package should record output dir");
-    assert!(output_dir
-        .file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name.starts_with("target-")));
-    assert!(fs::read_to_string(output_dir.join("zircon-package.toml"))
-        .unwrap()
-        .contains("package_name = \"Target\""));
+    assert!(
+        output_dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("target-"))
+    );
+    assert!(
+        fs::read_to_string(output_dir.join("zircon-package.toml"))
+            .unwrap()
+            .contains("package_name = \"Target\"")
+    );
 
     fs::remove_dir_all(temp).unwrap();
 }
@@ -164,21 +174,27 @@ fn background_install_runs_package_then_device_copy_before_recording_history() {
     assert_eq!(install.action, HubActionKind::InstallProject);
     assert_eq!(package.action, HubActionKind::PackageProject);
     assert_eq!(session.task_status.label, "Installed to device");
-    assert!(install
-        .output_dir
-        .as_ref()
-        .unwrap()
-        .join("zircon-package.toml")
-        .is_file());
-    assert!(package
-        .command_line
-        .iter()
-        .any(|part| part == "package-project"));
+    assert!(
+        install
+            .output_dir
+            .as_ref()
+            .unwrap()
+            .join("zircon-package.toml")
+            .is_file()
+    );
+    assert!(
+        package
+            .command_line
+            .iter()
+            .any(|part| part == "package-project")
+    );
     assert!(package.log_excerpt.contains("2 files"));
-    assert!(install
-        .command_line
-        .iter()
-        .any(|part| part == "install-device"));
+    assert!(
+        install
+            .command_line
+            .iter()
+            .any(|part| part == "install-device")
+    );
     assert!(install.command_line.iter().any(|part| part == "--device"));
     assert!(install.log_excerpt.contains("3 files"));
 

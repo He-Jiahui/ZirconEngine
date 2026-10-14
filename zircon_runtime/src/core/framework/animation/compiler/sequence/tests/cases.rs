@@ -74,8 +74,8 @@ fn sequence_compiler_rejects_time_type_and_write_conflicts() {
         AnimationChannelAsset {
             interpolation: AnimationInterpolationAsset::Linear,
             keys: vec![
-                key(0.5, AnimationChannelValueAsset::Scalar(0.0)),
-                key(0.25, AnimationChannelValueAsset::Bool(true)),
+                key(0.5, AnimationChannelValueAsset::Bool(true)),
+                key(0.25, AnimationChannelValueAsset::Scalar(0.0)),
             ],
         },
     );

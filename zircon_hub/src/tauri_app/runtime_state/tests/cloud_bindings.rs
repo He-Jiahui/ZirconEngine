@@ -85,14 +85,16 @@ fn selected_binding_survives_reopen_but_never_follows_other_account_path_or_mani
         local.guid
     );
     assert!(session.selected_cloud_binding(&account).is_none());
-    assert!(session
-        .attach_cloud_binding(
-            account.clone(),
-            &local,
-            "00000000-0000-4000-8000-000000000001".into(),
-            "00000000-0000-4000-8000-000000000002".into(),
-        )
-        .is_err());
+    assert!(
+        session
+            .attach_cloud_binding(
+                account.clone(),
+                &local,
+                "00000000-0000-4000-8000-000000000001".into(),
+                "00000000-0000-4000-8000-000000000002".into(),
+            )
+            .is_err()
+    );
     session.config.recent_projects[0].path = reopened.selected_project_path.clone().unwrap();
     session.selected_project_path = reopened.selected_project_path.clone();
     let manifest = session

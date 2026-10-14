@@ -725,9 +725,13 @@ fn shutdown_waits_for_a_late_writer_before_returning() {
     old_writer.wait_until_entered();
 
     let (finished_tx, finished_rx) = mpsc::channel();
+    let shutdown_writer = Arc::clone(&old_writer);
     let shutdown = std::thread::spawn(move || {
         drop(old_manager);
-        let _ = finished_tx.send(());
+        // Save the state before notifying the parent; its cleanup cannot change this result.
+        let writer_completed_at_shutdown_return = shutdown_writer.is_completed();
+        let _ = finished_tx.send(writer_completed_at_shutdown_return);
+        writer_completed_at_shutdown_return
     });
     let cancellation = cancelled_rx.recv_timeout(TEST_FLUSH_TIMEOUT);
     // A completed Drop must be observable while the writer is still held; an immediate peek
@@ -736,13 +740,12 @@ fn shutdown_waits_for_a_late_writer_before_returning() {
     // Always release and join before assertions, including a failed cancellation observation.
     old_writer.release();
     let shutdown_result = shutdown.join();
-    let writer_completed_at_shutdown_return = old_writer.is_completed();
 
     let stale_write_was_rejected = !path.exists();
     let remaining_files = std::fs::read_dir(&root).unwrap().count();
     std::fs::remove_dir_all(root).unwrap();
 
-    shutdown_result.unwrap();
+    let writer_completed_at_shutdown_return = shutdown_result.unwrap();
     assert!(!cancellation.unwrap(), "the staged write was not admitted");
     assert!(
         matches!(&completion_while_held, Err(mpsc::RecvTimeoutError::Timeout)),
@@ -781,9 +784,13 @@ fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running()
     // This writer signals only from inside the already-admitted commit closure.
     old_writer.wait_until_entered();
     let (finished_tx, finished_rx) = mpsc::channel();
+    let shutdown_writer = Arc::clone(&old_writer);
     let shutdown = std::thread::spawn(move || {
         drop(old_manager);
-        let _ = finished_tx.send(());
+        // Save the state before notifying the parent; its cleanup cannot change this result.
+        let writer_completed_at_shutdown_return = shutdown_writer.is_completed();
+        let _ = finished_tx.send(writer_completed_at_shutdown_return);
+        writer_completed_at_shutdown_return
     });
     let cancellation = cancelled_rx.recv_timeout(TEST_FLUSH_TIMEOUT);
     let completion_while_held = finished_rx.recv_timeout(TEST_JOIN_OBSERVATION_TIMEOUT);
@@ -801,16 +808,10 @@ fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running()
 
     old_writer.release();
     let shutdown_result = shutdown.join();
-    let writer_completed_at_shutdown_return = old_writer.is_completed();
-    shutdown_result.unwrap();
     assert!(cancellation.unwrap(), "the old commit was admitted");
     assert!(
         matches!(&completion_while_held, Err(mpsc::RecvTimeoutError::Timeout)),
         "shutdown returned while the admitted commit was held: {completion_while_held:?}"
-    );
-    assert!(
-        writer_completed_at_shutdown_return,
-        "shutdown returned before the admitted writer completed"
     );
     assert!(activation_elapsed < Duration::from_millis(500));
     assert!(activation
@@ -839,6 +840,11 @@ fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running()
 
     drop(new_manager);
     std::fs::remove_dir_all(root).unwrap();
+    let writer_completed_at_shutdown_return = shutdown_result.unwrap();
+    assert!(
+        writer_completed_at_shutdown_return,
+        "shutdown returned before the admitted writer completed"
+    );
 }
 
 #[cfg(windows)]

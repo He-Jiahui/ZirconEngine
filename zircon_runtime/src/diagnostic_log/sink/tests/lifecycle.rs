@@ -7,7 +7,8 @@ use super::super::worker::SinkRuntime;
 use super::super::{DiagnosticLogState, ProcessLogController};
 use super::fixtures::{BlockingOutput, FailingOutput, SharedOutput};
 use crate::diagnostic_log::{
-    DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel, DiagnosticLogSinkSettings,
+    DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel, DiagnosticLogSettings,
+    DiagnosticLogSinkSettings,
 };
 
 #[test]
@@ -162,6 +163,63 @@ fn process_shutdown_without_an_active_sink_is_already_complete() {
     let controller = ProcessLogController::default();
 
     assert!(controller.shutdown_when_idle(Duration::from_millis(1)));
+}
+
+#[test]
+fn process_shutdown_explicitly_disabled_outputs_completes_without_worker() {
+    let controller = ProcessLogController::default();
+    let state = controller.initialize(
+        DiagnosticLogSettings::new("disabled-shutdown")
+            .with_filter(DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Verbose))
+            .with_console_enabled(false)
+            .with_file_enabled(false),
+    );
+    let evaluated = AtomicBool::new(false);
+    state.write_lazy(DiagnosticLogLevel::Log, "runtime", || {
+        evaluated.store(true, Ordering::Relaxed);
+        "unused"
+    });
+
+    let stopped = controller.shutdown_when_idle(Duration::ZERO);
+    let completed_result = controller.lock_lifecycle().completed_output_result;
+
+    assert!(state.sink.is_none());
+    assert!(state.file_path.is_none());
+    assert!(state.snapshot().is_none());
+    assert!(!evaluated.load(Ordering::Relaxed));
+    assert!(stopped);
+    assert!(controller.active_state_for_test().is_none());
+    assert_eq!(completed_result, Some(true));
+    assert!(controller.shutdown_when_idle(Duration::ZERO));
+    assert!(controller.shutdown_when_idle(Duration::from_millis(1)));
+}
+
+#[test]
+fn process_shutdown_missing_requested_sink_remains_failed() {
+    for (console_enabled, file_enabled) in [(true, false), (false, true), (true, true)] {
+        let controller = ProcessLogController::default();
+        let mut missing_sink = DiagnosticLogState::for_test(DiagnosticLogFilterConfig::new(
+            DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Verbose),
+        ));
+        // Reproduce the postcondition of requested outputs failing to create a worker.
+        missing_sink.console_enabled = console_enabled;
+        missing_sink.file_enabled = file_enabled;
+        let state = controller.publish_state(missing_sink, &mut controller.lock_lifecycle());
+
+        let stopped = controller.shutdown_when_idle(Duration::ZERO);
+        let completed_result = controller.lock_lifecycle().completed_output_result;
+
+        assert!(state.sink.is_none());
+        assert!(state.shutdown_for_library_unload(Duration::ZERO));
+        assert!(controller.active_state_for_test().is_none());
+        assert!(
+            !stopped,
+            "missing requested outputs must fail: console={console_enabled} file={file_enabled}"
+        );
+        assert_eq!(completed_result, Some(false));
+        assert!(!controller.shutdown_when_idle(Duration::ZERO));
+        assert!(!controller.shutdown_when_idle(Duration::from_millis(1)));
+    }
 }
 
 #[test]

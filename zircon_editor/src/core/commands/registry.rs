@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{btree_map::Values, BTreeMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
@@ -49,6 +49,41 @@ impl PartialEq for EditorCommandRegistry {
             && self.generation == other.generation
     }
 }
+
+/// Retains an exact descriptor bound for the catalog's seed and enablement allocations.
+struct PaletteCommandDescriptors<'a> {
+    commands: Values<'a, EditorOperationPath, EditorCommandDescriptor>,
+    remaining: usize,
+}
+
+impl<'a> PaletteCommandDescriptors<'a> {
+    fn new(commands: Values<'a, EditorOperationPath, EditorCommandDescriptor>) -> Self {
+        let remaining = commands
+            .clone()
+            .filter(|command| command.palette_visible())
+            .count();
+        Self {
+            commands,
+            remaining,
+        }
+    }
+}
+
+impl<'a> Iterator for PaletteCommandDescriptors<'a> {
+    type Item = &'a EditorCommandDescriptor;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let command = self.commands.find(|command| command.palette_visible())?;
+        self.remaining -= 1;
+        Some(command)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.remaining, Some(self.remaining))
+    }
+}
+
+impl ExactSizeIterator for PaletteCommandDescriptors<'_> {}
 
 impl EditorCommandRegistry {
     pub fn new(commands: Vec<EditorCommandDescriptor>) -> Result<Self, EditorCommandRegistryError> {
@@ -288,7 +323,7 @@ impl EditorCommandRegistry {
         Arc::clone(self.palette_catalog.get_or_init(|| {
             Arc::new(EditorCommandPaletteCatalog::from_descriptors(
                 self.generation,
-                self.commands(),
+                PaletteCommandDescriptors::new(self.commands.values()),
             ))
         }))
     }

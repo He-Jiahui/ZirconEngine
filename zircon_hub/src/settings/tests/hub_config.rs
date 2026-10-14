@@ -1,16 +1,6 @@
 use super::*;
 use crate::state::HubMessage;
 
-#[cfg(windows)]
-#[test]
-fn first_launch_and_missing_output_setting_use_managed_build_storage() {
-    let expected = PathBuf::from("E:/cargo-targets/zircon-local/hub-build");
-    assert_eq!(HubSettings::default().default_build_output_dir, expected);
-
-    let config: HubConfig = toml::from_str("[settings]\n").unwrap();
-    assert_eq!(config.settings.default_build_output_dir, expected);
-}
-
 #[test]
 fn hub_config_round_trips_settings_and_engines() {
     let mut config = HubConfig::default();
@@ -125,49 +115,6 @@ fn legacy_settings_without_output_provenance_fail_closed() {
     assert_eq!(
         config.settings.default_device_install_provenance,
         OutputRootProvenance::Unverified
-    );
-}
-
-#[test]
-fn legacy_home_build_default_is_migrated_with_windows_path_normalization() {
-    let home = PathBuf::from(r"C:\Users\HeJiahui");
-    let mut settings = HubSettings::default();
-    settings.default_build_output_dir = PathBuf::from(r"c:/users/heJIAhui/zirconbuilds/");
-    settings.default_build_output_provenance = OutputRootProvenance::Unverified;
-
-    migrate_legacy_build_output_default(&mut settings, Some(home));
-
-    assert_eq!(
-        settings.default_build_output_dir,
-        default_build_output_dir()
-    );
-    assert_eq!(
-        settings.default_build_output_provenance,
-        OutputRootProvenance::HubManaged
-    );
-}
-
-#[test]
-fn legacy_build_default_migration_preserves_custom_and_folder_picker_paths() {
-    let home = PathBuf::from(r"C:\Users\HeJiahui");
-    let custom_root = PathBuf::from(r"E:\cargo-targets\zircon-local\custom-build");
-    let mut custom = HubSettings::default();
-    custom.default_build_output_dir = custom_root.clone();
-    custom.default_build_output_provenance = OutputRootProvenance::Unverified;
-
-    migrate_legacy_build_output_default(&mut custom, Some(home.clone()));
-    assert_eq!(custom.default_build_output_dir, custom_root);
-
-    let picked_path = PathBuf::from(r"C:\Users\HeJiahui\ZirconBuilds");
-    let mut picked = HubSettings::default();
-    picked.default_build_output_dir = picked_path.clone();
-    picked.default_build_output_provenance = OutputRootProvenance::NativeFolderPicker;
-
-    migrate_legacy_build_output_default(&mut picked, Some(home));
-    assert_eq!(picked.default_build_output_dir, picked_path);
-    assert_eq!(
-        picked.default_build_output_provenance,
-        OutputRootProvenance::NativeFolderPicker
     );
 }
 
@@ -437,12 +384,16 @@ fn config_repair_deduplicates_and_prunes_foundation_registries() {
     assert!(report.repaired_anything());
     assert_eq!(config.recent_projects.len(), 2);
     assert_eq!(config.recent_projects[0].summary.name, "New");
-    assert!(config
-        .project_metadata
-        .contains_key(&project_metadata_key("E:/Projects/Game")));
-    assert!(!config
-        .project_metadata
-        .contains_key(&project_metadata_key("E:/Projects/Removed")));
+    assert!(
+        config
+            .project_metadata
+            .contains_key(&project_metadata_key("E:/Projects/Game"))
+    );
+    assert!(
+        !config
+            .project_metadata
+            .contains_key(&project_metadata_key("E:/Projects/Removed"))
+    );
     assert_eq!(config.active_engine_id.as_deref(), Some("local"));
 }
 

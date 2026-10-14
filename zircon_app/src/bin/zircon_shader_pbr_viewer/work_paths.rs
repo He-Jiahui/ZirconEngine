@@ -47,6 +47,33 @@ impl ViewerWorkPaths {
         &self.renderdoc_capture_template
     }
 
+    /// Prepare and validate the directory RenderDoc needs before configuring its template.
+    pub(crate) fn prepare_renderdoc_capture_template(&self) -> Result<(), String> {
+        let parent = self
+            .renderdoc_capture_template
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .ok_or_else(|| {
+                format!(
+                    "RenderDoc capture template has no parent directory: {}",
+                    self.renderdoc_capture_template.display()
+                )
+            })?;
+        std::fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "create RenderDoc capture template directory {}: {error}",
+                parent.display()
+            )
+        })?;
+        if !parent.is_dir() {
+            return Err(format!(
+                "RenderDoc capture template parent is not a directory: {}",
+                parent.display()
+            ));
+        }
+        Ok(())
+    }
+
     pub(crate) fn terminal_outcome_path(&self) -> &Path {
         &self.terminal_outcome_path
     }

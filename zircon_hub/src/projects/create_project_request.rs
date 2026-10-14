@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_runtime_interface::project::{
-    validate_project_name, ProjectNameError, ProjectTemplateId,
+    ProjectNameError, ProjectTemplateId, validate_project_name,
 };
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]

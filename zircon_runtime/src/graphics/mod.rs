@@ -1,7 +1,8 @@
-//! Core rendering, scene rasterization, and host-agnostic GPU services.
+// Core rendering, scene rasterization, and host-agnostic GPU services.
 
 // Crate-private implementation owners. Public callers should enter graphics
 // through the curated facade exports and subsystem prelude below.
+/// GPU device and surface management.
 #[path = "backend/mod.rs"]
 pub(crate) mod backend;
 #[path = "debug_markers.rs"]

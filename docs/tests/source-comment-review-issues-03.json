@@ -1,0 +1,499 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "legacyIssueLedger": "docs/tests/source-comment-review-issues.json",
+  "status": "partial continuation; actual source tags reconciled per record, whole repository not accepted",
+  "issueIdPrefixes": {
+    "project-compatibility-005": "ZCA-PROJ05",
+    "serialization-005": "ZCA-SER05",
+    "ui-template-005": "ZCA-TPL05",
+    "plugin-core-005": "ZCA-PLUG05",
+    "manifest-summary-006": "ZCA-MAN06",
+    "runtime-session-registry-008": "CR-SESSION-",
+    "serialization-migration-008": "CR-SERIALIZATION- (retained preexisting tag)"
+  },
+  "issues": [
+    {
+      "id": "ZCA-TPL05-TODO-001",
+      "kind": "TODO",
+      "batchId": "ui-template-005",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "symbol": "probe_control_reference",
+      "state": "root-approved open uncertainty; final source/tag and independent UI review reconciled, formal coordinator pending",
+      "trigger": "control.a.foo.b satisfies the root plus three Dot/Ident segments used by probe_path_root(input, control, 3)",
+      "observableBehavior": "probe may return true for a non-prop middle segment; full parse_primary rejects foo. Existing Runtime callers use probe as prefilter then parse. This is not a proven runtime defect.",
+      "proof": "Root actual complete expression source read and control_scope.rs:70-108,186-197; probe_path_root checks segment count but not prop segment. Existing readonly tests cover root/quoted strings/budgets, not this middle-segment intent.",
+      "evidence": [
+        {
+          "path": "zircon_runtime/src/ui/template/asset/compiler/control_scope.rs",
+          "sha256": "cf6958d78a2a4ca466f254f27905ef6a35c94bd5a62c04437541e281e6e9b408"
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/expression.rs",
+          "sha256": "071e96e4b606b885f5aa6223e7bfd2d7e402cd193d73c69b190a5b655ec0150d",
+          "attribution": "preexisting source changes; readonly",
+          "previousMisrecordedPath": "zircon_runtime_interface/src/ui/template/binding/tests/expression.rs"
+        }
+      ],
+      "evidenceGap": "Contract does not establish whether future/other middle segments should be accepted by this prefilter.",
+      "nextAction": "Confirm intended probe grammar with control.a.foo.b, control.a.prop.b and quoted-string cases; then decide whether probe should narrow. No behavior or test change in this task.",
+      "sourceMarkerExpected": "TODO: [ZCA-TPL05-TODO-001]",
+      "finalSourceSha256": "c59dc1e83f2d146f2926be71e97eb8d3512cd2a1ac09669a66241b59b78a39b3",
+      "pathCorrection": {
+        "previousPath": "zircon_runtime_interface/src/ui/template/binding/expression.rs",
+        "reason": "root corrected missing asset segment from actual definition; previous spelling never verified as valid source path",
+        "observedAtUtc": "2026-10-14T03:39:49.481920+00:00"
+      },
+      "sourceMarkerLine": 108,
+      "sourceMarkerText": "// TODO: [ZCA-TPL05-TODO-001] 确认预筛是否有意接受 `control.a.foo.b`：这里只检查根后 3 个 Dot+Ident，不要求中间段为 `prop`；scope 调用端会完整解析命中项。先核对契约并验证该路径、`control.a.prop.b` 与带引号文本，再决定是否收窄。",
+      "independentReview": {
+        "path": "docs/tests/source-comment-review-independent-ui-template-005.json",
+        "sha256": "aa70c9597dd50ecb62d5d1b43dd2ed9fdec0b8f565b9ab4d6a0531923a685e20",
+        "section": "boundaryQualifications"
+      }
+    },
+    {
+      "id": "CR-PROJECT-0003",
+      "kind": "TODO",
+      "batchId": "manifest-summary-006",
+      "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+      "symbol": "load_project_manifest_value_from_toml_str",
+      "state": "pre-existing unresolved TODO independently revalidated at final content",
+      "sourceMarkerLine": 23,
+      "sourceMarkerExpected": "TODO: [CR-PROJECT-0003]",
+      "finalSourceSha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "trigger": "New callers may directly invoke public raw TOML loader without the MAX_PROJECT_MANIFEST_BYTES guard currently applied by summary/Runtime wrappers.",
+      "observableBehavior": "Direct entry parses supplied TOML before any shared raw-byte ceiling; not promoted to BUG because the desired public boundary is unresolved.",
+      "proof": "Root read all migration.rs and summary parser plus actual Runtime load.rs 14-32; wrapper byte guards precede loader invocation.",
+      "independentEvidence": {
+        "path": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "evidenceGap": "Public-loader byte-limit responsibility and direct-call contract are not established.",
+      "nextAction": "Interface owner confirms whether to move the shared byte limit into direct public entry and supplies boundary validation; this task changes comments only."
+    },
+    {
+      "id": "CR-R02-public_ui_templates-0001",
+      "kind": "TODO",
+      "batchId": "ui-template-005",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "symbol": "UiStyleScope",
+      "state": "root-approved open uncertainty; final source/tag and independent UI review reconciled, formal coordinator pending",
+      "sourceMarkerLine": 224,
+      "sourceMarkerExpected": "TODO: [CR-R02-public_ui_templates-0001]",
+      "finalSourceSha256": "b21845024c31e941e424579c6fcab84169b4cb38154dc78a9c80a60a1f034210",
+      "trigger": "Open/Closed component style_scope is stored in source/prototype; the intended external selector isolation behavior is unresolved.",
+      "proof": "Root actual document.rs enum contains only Open/Closed and existing TODO at224; related Runtime tree/selector validators use public-part contracts. Agent claims of global/component/widget scope or scope-driven rule selection were rejected during root evidence review.",
+      "evidenceGap": "No Open/Closed cross-component selector behavior test establishes the intended isolation boundary.",
+      "nextAction": "Confirm isolation contract and separately exercise external selectors against private parts for both values; do not treat this audit as a behavior fix.",
+      "independentReview": {
+        "path": "docs/tests/source-comment-review-independent-ui-template-005.json",
+        "sha256": "aa70c9597dd50ecb62d5d1b43dd2ed9fdec0b8f565b9ab4d6a0531923a685e20",
+        "section": "boundaryQualifications"
+      }
+    },
+    {
+      "id": "ZCA-HST-001",
+      "kind": "BUG",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "symbol": "RuntimeForeignOutputState::ensure_call_succeeded",
+      "state": "root-static-confirmed open BUG; no behavior fix/executed reproduction",
+      "trigger": "未fused新state、无并发reject，同一仍存活provider/session的失败status，diagnostics指向4097个存活可读初始化bytes，规范empty output及匹配releaser；所有unsafe内存/生命周期前提可满足。",
+      "observableBehavior": "call_failures增1，但protocol_failed/protocol_failures/rejected_payloads保持原值，后续availability仍Ok。",
+      "proof": [
+        [
+          "S6",
+          68,
+          "checked_slice4096在借用前返回长度限制错误"
+        ],
+        [
+          "S6",
+          75,
+          "SomeProtocolViolation"
+        ],
+        [
+          "S7",
+          160,
+          "canonicalempty validate Ok0"
+        ],
+        [
+          "S7",
+          82,
+          "canonicalempty release Ok无callback"
+        ],
+        [
+          "S5",
+          155,
+          "Err原call_error且不reject"
+        ],
+        [
+          "appOperation",
+          172,
+          "?只传播"
+        ],
+        [
+          "appError",
+          64,
+          "分类映射无reject"
+        ],
+        [
+          "gateway",
+          185,
+          "?只传播"
+        ],
+        [
+          "editorError",
+          31,
+          "Protocol映射无reject"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "docs/tests/source-comment-review-independent-legacy-runtime-abi-transfer-007.json",
+          "sha256": "449834f39aaa718cd7b5359b106f4e353fd3a47b13ba341303ad8137e0a9fdab",
+          "section": "issueObservations/ZCA-HST-001"
+        }
+      ],
+      "finalSourceSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "sourceMarkerExpected": "// BUG: [ZCA-HST-001]",
+      "sourceMarkerLine": 149,
+      "sourceMarkerText": "            // BUG: [ZCA-HST-001] 若失败 status 带有可读但超过 diagnostics 上限的字节，from_status",
+      "currentTagPresent": true,
+      "historicalMissingObservationPolicy": "Old record unchanged; new actual raw-SHA observation reconciles continuation attribution only.",
+      "evidenceGap": "不声称所读Runtime当前producer产生该输入；该producerTLS4096有界。没有执行或新增测试/行为修复。",
+      "nextAction": "Separate authorized repair: distinguish diagnostics protocol errors from RuntimeCall before success cleanup return; obtain exact empty-output/diagnostic/availability regression evidence via Jenkins.",
+      "independentReview": {
+        "reviewer": "/root",
+        "path": "docs/tests/source-comment-review-independent-legacy-runtime-abi-transfer-007.json",
+        "sha256": "449834f39aaa718cd7b5359b106f4e353fd3a47b13ba341303ad8137e0a9fdab",
+        "nativeFreezeChunk": "828d15"
+      }
+    },
+    {
+      "id": "ZCA-ABI-001",
+      "kind": "TODO",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "symbol": "runtime_host_api_v1_pointer_rejects_misalignment_before_dereference",
+      "state": "root-revalidated open TODO; no executed failure",
+      "trigger": "u8数组只保证1字节对齐，基址余数可能为align-1；固定add1因此不普遍保证未对齐。",
+      "observableBehavior": "语言层面fixture普遍性缺口；未观察到真实测试先断言失败，不能升级已发生BUG。",
+      "proof": [
+        [
+          "S4",
+          68,
+          "u8 storage"
+        ],
+        [
+          "S4",
+          70,
+          "add1 cast"
+        ],
+        [
+          "S4",
+          72,
+          "assert_ne在unsafe调用前"
+        ],
+        [
+          "S4",
+          75,
+          "只有通过assert才调用pointervalidator"
+        ],
+        [
+          "S1",
+          101,
+          "未对齐时先拒绝"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "docs/tests/source-comment-review-independent-legacy-runtime-abi-transfer-007.json",
+          "sha256": "449834f39aaa718cd7b5359b106f4e353fd3a47b13ba341303ad8137e0a9fdab",
+          "section": "issueObservations/ZCA-ABI-001"
+        }
+      ],
+      "finalSourceSha256": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4",
+      "sourceMarkerExpected": "// TODO: [ZCA-ABI-001]",
+      "sourceMarkerLine": 66,
+      "sourceMarkerText": "    // TODO: [ZCA-ABI-001] 字节数组只保证一字节对齐，偏移一不能普遍保证目标地址未对齐。",
+      "currentTagPresent": true,
+      "historicalMissingObservationPolicy": "Old record unchanged; new actual raw-SHA observation reconciles continuation attribution only.",
+      "evidenceGap": "保留TODO，无测试执行或fixture修改。",
+      "nextAction": "Separate authorized fixture repair/verification: establish aligned storage or choose proven misaligned offset; execute exact test through Jenkins.",
+      "independentReview": {
+        "reviewer": "/root",
+        "path": "docs/tests/source-comment-review-independent-legacy-runtime-abi-transfer-007.json",
+        "sha256": "449834f39aaa718cd7b5359b106f4e353fd3a47b13ba341303ad8137e0a9fdab",
+        "nativeFreezeChunk": "828d15"
+      }
+    },
+    {
+      "id": "CR-SESSION-0001",
+      "kind": "TODO",
+      "batchId": "runtime-session-registry-008",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "symbol": "remove_session_and_census_until / concurrent destroy and release admission",
+      "state": "root-approved specific uncertainty; current TODO/source pin reconciled; formal flow and compliant input proof pending",
+      "trigger": "A/B并发destroy：B见未归还输出后转Retry，使R重新准入release；R移除最后allocation并把census减0、但尚未退出action guard时，A走最终双锁移除。",
+      "observableBehavior": "静态内部候选路径中成功destroy可能早于release guard退出；是否允许此ABI/宿主并发及合法输入尚未证实，不推断UB或provider提前卸载。",
+      "proof": "root实际读取7所属文件、ABI/FFI/host调用前提和相关独立测试；最终移除检查同Arc及零census，但不重查active_actions。外部入口要求先归还输出，App &mut self也限制同对象双destroy，故保持TODO。",
+      "evidence": [
+        {
+          "id": "C03",
+          "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+          "sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+          "authorReadRanges": [
+            [
+              1,
+              924
+            ]
+          ],
+          "contract": "unsafe调用方保证宿主输入可读、输出可写对齐独占、provider存活；检查形状不检测悬垂。owned payload先复制，普通/定稿/提交按实际wrapper接线",
+          "rootWholeCallerFileClaim": false
+        },
+        {
+          "id": "C05",
+          "path": "zircon_runtime/src/dynamic_api/session/linked_session.rs",
+          "sha256": "a053ed2dfc6a96e2ca25aa6e2b9f05d09c6699cdd89a679f05212f29ae4253e4",
+          "authorReadRanges": [
+            [
+              1,
+              37
+            ]
+          ],
+          "contract": "公开linked创建先验证profile/project，再store锁外工厂构造；两个InsertError分类映射",
+          "rootWholeCallerFileClaim": false
+        },
+        {
+          "id": "C12",
+          "path": "zircon_runtime/src/dynamic_api/session/tests/destroy_registry_deadline.rs",
+          "sha256": "607015ea45c14030172319d00744a2d3b9c8255ab7c9f20ccf2dcf7018999374",
+          "authorReadRanges": [
+            [
+              1,
+              216
+            ]
+          ],
+          "contract": "controlled锁竞争验证lookup可保Open、allocation检查/终移除deadline、Joined后重试及并发幂等",
+          "rootWholeCallerFileClaim": false
+        },
+        {
+          "id": "C19",
+          "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+          "sha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+          "authorReadRanges": [
+            [
+              31,
+              320
+            ]
+          ],
+          "contract": "冻结V8 repr(C)函数槽及unsafe extern C别名；borrow/provider/unique writable output由调用方保证，getter不持有动态库",
+          "rootWholeCallerFileClaim": false
+        },
+        {
+          "id": "C22",
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "sha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+          "authorReadRanges": [
+            [
+              1,
+              55
+            ]
+          ],
+          "contract": "wake注册/注销契约要求回调上下文存活、避免从自身回调销毁；只引用已读章，不作全仓无其它并发前提的断言",
+          "rootWholeCallerFileClaim": false
+        },
+        {
+          "id": "C23",
+          "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+          "sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+          "authorReadRanges": [
+            [
+              71,
+              116
+            ],
+            [
+              224,
+              257
+            ]
+          ],
+          "contract": "try_destroy要求&mut self；FFI返回成功后才注销wake、置无效handle并取走runtime所有者；安全Rust同对象双destroy被借用规则排除",
+          "rootWholeCallerFileClaim": false
+        },
+        {
+          "id": "C24",
+          "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+          "sha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+          "authorReadRanges": [
+            [
+              1,
+              110
+            ]
+          ],
+          "contract": "gateway持Arc<dyn Send+Sync>作为runtime所有者；unsafe构造约定provider存活到gateway销毁；该字段布局没有共享调用互斥锁，不据此推导所有外部并发合法",
+          "rootWholeCallerFileClaim": false
+        },
+        {
+          "id": "C25",
+          "path": "zircon_runtime/src/dynamic_api/session/world_sync.rs",
+          "sha256": "3da1bee9dd27f50440cf5e301543e67f0ba159d0816235031b3ed5177bcd707b",
+          "authorReadRanges": [
+            [
+              1,
+              80
+            ]
+          ],
+          "contract": "query_world由owner读取实体并序列化有界结果，接FFI query_world finalize中的登记/输出；本次未构造或执行合法F候选输入",
+          "rootWholeCallerFileClaim": false
+        }
+      ],
+      "independentReview": {
+        "path": "docs/tests/source-comment-review-independent-runtime-session-registry-008.json",
+        "sha256": "93f33d7815499c4a9c339622744e86486fafc0a59b23993046253341799a76ec",
+        "section": "issueEvidence"
+      },
+      "evidenceGap": "缺少允许的外部并发集合、合法finalizer F输入以及同一A/B/F/R屏障交错验证；现有测试分开检查并非该时序。",
+      "nextAction": "核实ABI/FFI/host销毁并发前提及合法F请求；按实际模块验收范围用可控屏障覆盖A/B/F/release并观察成功返回是否早于release guard退出，证据不足前保持TODO。",
+      "sourceMarkerExpected": "TODO: [CR-SESSION-0001]",
+      "finalSourceSha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+      "sourceMarkerLine": 587,
+      "sourceMarkerText": "        // TODO: [CR-SESSION-0001] 并发 destroy 接受 Closing；另一失败方转 Retry 后可重新准入 release。",
+      "sourceMarkerContinuation": [
+        "        // 先前 wait_actions 已归零，release 仍可能在 census 减零但 guard 尚存时被另一销毁方观察。",
+        "        // ABI 要求先归还输出，App 的 &mut 包装排除同对象双销毁；外部并发集合及在途生产者 F 的合法输入仍待核实。",
+        "        // 后续核对销毁并发前提，并用屏障验证 A/B/F/release 交错；尚无合规 ABI 复现。"
+      ],
+      "currentTagPresent": true,
+      "executedReproduction": false,
+      "BUGClaimed": false
+    },
+    {
+      "id": "CR-SERIALIZATION-0001",
+      "kind": "TODO",
+      "batchId": "serialization-migration-008",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "symbol": "migrate_value",
+      "state": "preexisting TODO retained; current owned source independently reconciled; direct-entry contract pending",
+      "trigger": "直接调用migrate_value时from_version>target，目标chain合法，前向range为空。",
+      "observableBehavior": "直接入口可返回未迁移的JSON Value；类型化loader会先拒绝未来源版本，因此不能据此认定该loader已出错。",
+      "proof": "root b0bb30/937c71完整execute和validate定义、6be7b8/4845d1实际loader149–278及测试调用上下文；TODO在分配基线execute81a…已存在，原文保留。",
+      "evidence": [
+        {
+          "path": "zircon_runtime_interface/src/lib.rs",
+          "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+          "bytes": 15832,
+          "lineCount": 251,
+          "symbols": "pub mod serialization",
+          "contract": "Crate-root subsystem reachability.",
+          "editGrant": false
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/mod.rs",
+          "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+          "bytes": 1689,
+          "lineCount": 53,
+          "symbols": "pub use migration::{MigrateError, MigrationChain, MigrationStep};",
+          "contract": "Public migration reexports.",
+          "editGrant": false
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/versioned_schema.rs",
+          "sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+          "bytes": 1389,
+          "lineCount": 26,
+          "symbols": "VersionedSchema::migrations; SCHEMA; VERSION",
+          "contract": "Static schema metadata and chain provider.",
+          "editGrant": false
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/load.rs",
+          "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+          "bytes": 11575,
+          "lineCount": 278,
+          "symbols": "validate_source_version; load_migrated_value; text/binary/legacy loaders",
+          "contract": "Source version validated before migrate_value; migrated Value deserializes to T; current reads validate the full chain.",
+          "editGrant": false
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+          "sha256": "497341e9ea1ad82fed314704cff7ae97b982f80fefa8c1a38cc73f87adbc12a3",
+          "bytes": 2161,
+          "lineCount": 67,
+          "symbols": "path registration for migration_failure_contract",
+          "contract": "Registers in-scope test module.",
+          "editGrant": false
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+          "sha256": "6f639acc69f3e9a8bd9a638bd5ee300d3ed76be6359106512a59c5ea90c0b76a",
+          "bytes": 4362,
+          "lineCount": 155,
+          "symbols": "migration table contract cases",
+          "contract": "Held cases cover duplicate/out-of-order/missing/extra and current-version validation; no direct from_version > target test.",
+          "editGrant": false
+        }
+      ],
+      "independentReview": {
+        "path": "docs/tests/source-comment-review-independent-serialization-migration-008.json",
+        "sha256": "ab4d9970d48cfc85d7988ff848be2cc91b3cdf0284679da5821f9ef6f833e7fe",
+        "section": "boundaryFindings"
+      },
+      "evidenceGap": "直接公共migrate_value是否承担未来源版本拒绝契约尚未确立；现有failure测试只验证旧文本callback失败与嵌套cause，不覆盖该入口。",
+      "nextAction": "核实直接调用契约与真实调用者；按实际scoped flow验证from>target和from==target边界后决定是否需行为修复，本任务保留TODO。",
+      "sourceMarkerExpected": "TODO: [CR-SERIALIZATION-0001]",
+      "finalSourceSha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+      "sourceMarkerLine": 7,
+      "sourceMarkerText": "    // TODO: [CR-SERIALIZATION-0001] 确认公开迁移入口是否应自行拒绝源版本高于目标版本；现有调用方先校验，缺少直接调用该边界的契约测试；下一步补充边界测试并确定错误归属。",
+      "currentTagPresent": true,
+      "executedReproduction": false,
+      "BUGClaimed": false,
+      "origin": "preexisting source tag; not introduced by this batch"
+    }
+  ],
+  "historicalLedgerObservations": [
+    {
+      "kind": "caller-evidence-drift",
+      "batchId": "core-session-003",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "historicalSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+      "observedSha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
+      "evidence": "/root/core_review independently checked all 37 session caller pins: 36 matched; this one differed. Nine frozen source pins still matched. Historical evidence is retained, not promoted to current formal acceptance.",
+      "nextAction": "Registered coordinator validation and precise commit remain pending; old native lifecycle gaps are preserved.",
+      "currentContinuationResolution": {
+        "status": "current caller/body drift independently reconciled, old frozen evidence unchanged",
+        "evidence": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "kind": "historical-source-tag-status-drift",
+      "id": "ZCA-HST-001",
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "observedLine": 149,
+      "observedSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "evidence": "/root/core_review observed the existing BUG tag on current source while legacy issue ledger said missing. Static status/error cleanup path remains a proof candidate; current modifier and old operation termination are unproven.",
+      "nextAction": "Original owner reconciles actual final hash and tag state; this continuation does not reinsert/remove tags or claim current acceptance."
+    },
+    {
+      "kind": "historical-source-tag-status-drift",
+      "id": "ZCA-ABI-001",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "observedLine": 66,
+      "evidence": "/root/core_review observed the existing TODO tag on current source while legacy issue ledger said missing. No behavioral fix, current owner release or formal test result is inferred.",
+      "nextAction": "Original owner reconciles actual final hash, TODO evidence and source-tag state."
+    }
+  ],
+  "wholeRepositoryIssueConsistencyAccepted": false,
+  "previousContinuationLedger": {
+    "path": "docs/tests/source-comment-review-issues-02.json",
+    "sha256": "b816625543212cef1af77fccbead48270b20ddf1980aab47871dde1d2beb26d9",
+    "policy": "Preserve historical observations; this continuation adds actual current-SHA observations."
+  },
+  "retainedLegacyIssueIdsReconciledAtCurrentPins": [
+    "ZCA-HST-001",
+    "ZCA-ABI-001"
+  ]
+}

@@ -1,6 +1,6 @@
 //! Runtime 缓存和实例化使用的扁平 UI 资产原型。
-//! schema migrator 将树形 [`UiAssetDocument`](crate::ui::template::UiAssetDocument) 转成节点表；
-//! 子节点关系用句柄保存，文件缓存共享原型，实例化器再按句柄遍历。
+//! 原型加载器直接把 flat 源节点表中的名称引用转换为表内句柄；
+//! 文件缓存和原型存储保留此表示，实例化器再按句柄遍历。
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ use crate::ui::widget::UiWidgetContract;
 /// 扁平原型节点表的索引；迁移器分配句柄，实例化器再按句柄读取节点。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 /// 原型节点表内的数值索引，不拥有节点，也不延长原型生命周期。
-/// 句柄只在创建它的 `UiRawAssetPrototype` 中有意义；迁移器生成的句柄有界，但公开构造与反序列化值须经原型查表，越界访问返回 `None`。
+/// 句柄只在创建它的 `UiRawAssetPrototype` 中有意义；原型加载器生成的句柄有界，但公开构造与反序列化值须经原型查表，越界访问返回 `None`。
 pub struct UiPrototypeNodeHandle(pub u32);
 
 impl UiPrototypeNodeHandle {
@@ -35,8 +35,8 @@ impl UiPrototypeNodeHandle {
 
 /// 扁平节点形式的资产原型；文件缓存保存它，实例化器从节点表展开树。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Runtime loader 将已迁移的资产文档压平后缓存的原型数据。
-/// 内部句柄由迁移阶段按同一节点表生成；公开构造或 serde 解码仍可产生无效索引，实例化与访问应通过 `node` 取值。
+/// Runtime 原型加载器直接解析 flat 源节点表，生成缓存与实例化使用的数据。
+/// 加载器按同一节点集合分配表内句柄；公开构造或 serde 解码仍可产生无效索引，`node` 提供带边界检查的借用访问。
 pub struct UiRawAssetPrototype {
     pub asset: UiAssetHeader,
     #[serde(default)]
@@ -64,7 +64,7 @@ impl UiRawAssetPrototype {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-/// 扁平文档节点表；迁移器把树节点放入 `nodes` 并写入 root/child 位置索引，实例化器按该表遍历。
+/// 扁平文档节点表；原型加载器为源节点名分配表内索引，root 与 child 句柄沿用同一映射供实例化器遍历。
 /// 字段可公开构造或反序列化，结构体本身不检查 root 与 child 索引是否有效。
 pub struct UiDocumentPrototype {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -76,7 +76,7 @@ pub struct UiDocumentPrototype {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// 扁平原型中的组件导出项；migration 保留组件 root 与参数/槽契约，组件验证通过并注册后由实例化器按 root 展开。
+/// 扁平原型中的组件导出项；保存 root 句柄及参数/槽契约，实例化器以 root 查表展开。
 pub struct UiComponentPrototype {
     pub root: UiPrototypeNodeHandle,
     #[serde(default)]
@@ -90,14 +90,14 @@ pub struct UiComponentPrototype {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// 原型中保留的独立样式声明；loader 迁移但不在此结构中解析选择器，样式编译阶段再解析并建立级联。
+/// 原型保留的样式表；此结构只保存数据，选择器解析及级联交给 Runtime 样式编译阶段。
 pub struct UiStylePrototype {
     pub stylesheet: UiStyleSheet,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 /// 扁平节点保留展开器需要的源属性和契约；children 改用索引句柄以支持缓存存储。
-/// 节点树压平后的单项记录；子节点引用同一 `UiDocumentPrototype.nodes` 表中的句柄。
+/// 源节点表转换后的单项记录；子节点引用同一 `UiDocumentPrototype.nodes` 表中的句柄。
 /// `component_ref` 等跨资产声明仍需在 Runtime 组件解析/实例化阶段解析，反序列化本身不校验引用或句柄。
 pub struct UiNodePrototype {
     #[serde(default)]

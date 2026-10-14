@@ -10071,6 +10071,7 @@ name = "zircon_plugin_virtual_geometry_runtime"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "image",
  "pollster",
  "wgpu",
  "zircon_plugin_sdk",

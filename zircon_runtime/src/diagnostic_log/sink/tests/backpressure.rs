@@ -1,8 +1,9 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use super::super::worker::SinkRuntime;
+use super::super::DiagnosticLogState;
 use super::fixtures::{BlockingOutput, SharedOutput};
 use crate::diagnostic_log::{DiagnosticLogLevel, DiagnosticLogSinkSettings};
 
@@ -101,6 +102,143 @@ fn fast_dequeue_without_a_full_send_still_records_queue_use() {
 }
 
 #[test]
+fn full_state_queue_skips_best_effort_lazy_formatting() {
+    let writer = BlockingOutput::default();
+    let state = DiagnosticLogState::with_test_sink(
+        SinkRuntime::start(
+            Some(Box::new(writer.clone())),
+            false,
+            one_record_blocking_settings(),
+        )
+        .expect("state sink worker"),
+    );
+    let formatted = AtomicUsize::new(0);
+    state.write_lazy(DiagnosticLogLevel::Debug, "runtime", || {
+        formatted.fetch_add(1, Ordering::Relaxed);
+        "in-flight"
+    });
+    let blocking_output = wait_until_blocked_result(&writer);
+    state.write_lazy(DiagnosticLogLevel::Debug, "runtime", || {
+        formatted.fetch_add(1, Ordering::Relaxed);
+        "queued"
+    });
+    state.write_lazy(DiagnosticLogLevel::Debug, "runtime", || {
+        formatted.fetch_add(1, Ordering::Relaxed);
+        "dropped"
+    });
+    let formatted_before_release = formatted.load(Ordering::Relaxed);
+    let held_snapshot = state.snapshot();
+
+    writer.release();
+    let shutdown = state
+        .sink
+        .as_ref()
+        .expect("state sink runtime")
+        .shutdown(Duration::from_secs(2));
+    let snapshot = state.snapshot().expect("state sink snapshot");
+
+    blocking_output.expect("state sink worker enters the blocking output");
+    assert!(shutdown);
+    assert_eq!(formatted_before_release, 2);
+    assert_eq!(held_snapshot.expect("held sink snapshot").queue_depth, 1);
+    assert_eq!(snapshot.dequeued_records, 2);
+    assert_eq!(snapshot.written_records, 2);
+    assert_eq!(snapshot.dropped_debug, 1);
+    assert_eq!(snapshot.dequeued_records + snapshot.dropped_debug, 3);
+    assert_eq!(snapshot.queue_depth, 0);
+    assert!(snapshot.closed);
+    assert_eq!(snapshot.output_errors, 0);
+    let text = writer.text();
+    assert_eq!(text.lines().count(), 2);
+    assert!(text.contains("[debug] [runtime] in-flight"));
+    assert!(text.contains("[debug] [runtime] queued"));
+    assert!(!text.contains("[debug] [runtime] dropped"));
+}
+
+#[test]
+fn state_lazy_formatting_can_lose_a_concurrent_queue_admission() {
+    let writer = BlockingOutput::default();
+    let state = Arc::new(DiagnosticLogState::with_test_sink(
+        SinkRuntime::start(
+            Some(Box::new(writer.clone())),
+            false,
+            one_record_blocking_settings(),
+        )
+        .expect("state sink worker"),
+    ));
+    let formatted = Arc::new(AtomicUsize::new(0));
+    state.write_lazy(DiagnosticLogLevel::Debug, "runtime", || {
+        formatted.fetch_add(1, Ordering::Relaxed);
+        "in-flight"
+    });
+    let blocking_output = wait_until_blocked_result(&writer);
+
+    let (formatting_tx, formatting_rx) = mpsc::sync_channel(1);
+    let (resume_tx, resume_rx) = mpsc::sync_channel(1);
+    let (completed_tx, completed_rx) = mpsc::sync_channel(1);
+    let producer_state = Arc::clone(&state);
+    let producer_formatted = Arc::clone(&formatted);
+    let producer = std::thread::spawn(move || {
+        let mut formatter_started = false;
+        let mut formatter_resumed = false;
+        producer_state.write_lazy(DiagnosticLogLevel::Debug, "runtime", || {
+            producer_formatted.fetch_add(1, Ordering::Relaxed);
+            formatter_started = formatting_tx.send(()).is_ok();
+            formatter_resumed = resume_rx.recv().is_ok();
+            "dropped"
+        });
+        let outcome = (formatter_started, formatter_resumed);
+        let _ = completed_tx.send(outcome);
+        outcome
+    });
+    let formatting_started = formatting_rx.recv_timeout(Duration::from_secs(2));
+    if formatting_started.is_ok() {
+        state.write_lazy(DiagnosticLogLevel::Debug, "runtime", || {
+            formatted.fetch_add(1, Ordering::Relaxed);
+            "winner"
+        });
+    }
+    let resumed = resume_tx.send(());
+    let completed_while_held = completed_rx.recv_timeout(Duration::from_secs(2));
+    let held_snapshot = state.snapshot();
+
+    writer.release();
+    let producer_result = producer.join();
+    let shutdown = state
+        .sink
+        .as_ref()
+        .expect("state sink runtime")
+        .shutdown(Duration::from_secs(2));
+    let snapshot = state.snapshot().expect("state sink snapshot");
+
+    blocking_output.expect("state sink worker enters the blocking output");
+    formatting_started.expect("formatter begins while the queue still has capacity");
+    resumed.expect("formatter resume receiver");
+    assert_eq!(
+        completed_while_held.expect("best-effort admission returns while the writer is held"),
+        (true, true)
+    );
+    assert_eq!(producer_result.expect("state lazy producer"), (true, true));
+    assert!(shutdown);
+    assert_eq!(formatted.load(Ordering::Relaxed), 3);
+    let held_snapshot = held_snapshot.expect("held sink snapshot");
+    assert_eq!(held_snapshot.queue_depth, 1);
+    assert_eq!(held_snapshot.dropped_debug, 1);
+    assert_eq!(snapshot.dequeued_records, 2);
+    assert_eq!(snapshot.written_records, 2);
+    assert_eq!(snapshot.dropped_debug, 1);
+    assert_eq!(snapshot.dequeued_records + snapshot.dropped_debug, 3);
+    assert_eq!(snapshot.queue_depth, 0);
+    assert!(snapshot.closed);
+    assert_eq!(snapshot.output_errors, 0);
+    let text = writer.text();
+    assert_eq!(text.lines().count(), 2);
+    assert!(text.contains("[debug] [runtime] in-flight"));
+    assert!(text.contains("[debug] [runtime] winner"));
+    assert!(!text.contains("[debug] [runtime] dropped"));
+}
+
+#[test]
 fn full_queue_bounds_critical_producer_wait_and_records_drops() {
     let writer = BlockingOutput::default();
     let runtime = Arc::new(
@@ -168,11 +306,17 @@ fn critical_admission_timeout_release_benchmark_evidence() {
         one_record_blocking_settings().with_critical_enqueue_timeout(TIMEOUT),
     )
     .expect("sink worker");
-    assert!(runtime.enqueue(DiagnosticLogLevel::Log, "runtime", "in-flight"));
-    writer.wait_until_blocked();
-    assert!(runtime.enqueue(DiagnosticLogLevel::Log, "runtime", "queued"));
+    let in_flight_accepted = runtime.enqueue(DiagnosticLogLevel::Log, "runtime", "in-flight");
+    let blocking_output = if in_flight_accepted {
+        wait_until_blocked_result(&writer)
+    } else {
+        Ok(())
+    };
+    let queued_accepted =
+        in_flight_accepted && runtime.enqueue(DiagnosticLogLevel::Log, "runtime", "queued");
 
     let mut samples = Vec::with_capacity(SAMPLE_COUNT);
+    let mut accepted_samples = Vec::with_capacity(SAMPLE_COUNT);
     for index in 0..SAMPLE_COUNT {
         let level = if index % 2 == 0 {
             DiagnosticLogLevel::Warn
@@ -180,12 +324,19 @@ fn critical_admission_timeout_release_benchmark_evidence() {
             DiagnosticLogLevel::Error
         };
         let started = Instant::now();
-        assert!(!runtime.enqueue(level, "runtime", "critical"));
-        samples.push(started.elapsed().as_nanos());
+        let accepted = runtime.enqueue(level, "runtime", "critical");
+        let elapsed = started.elapsed().as_nanos();
+        samples.push(elapsed);
+        accepted_samples.push(accepted);
     }
 
     writer.release();
-    assert!(runtime.shutdown(Duration::from_secs(2)));
+    let shutdown = runtime.shutdown(Duration::from_secs(2));
+    assert!(in_flight_accepted);
+    blocking_output.expect("critical benchmark worker enters the blocking output");
+    assert!(queued_accepted);
+    assert!(accepted_samples.iter().all(|accepted| !accepted));
+    assert!(shutdown);
     let p50 = nearest_rank_percentile(&samples, 50);
     let p95 = nearest_rank_percentile(&samples, 95);
     let max = samples.iter().copied().max().expect("admission samples");
@@ -206,6 +357,10 @@ fn critical_admission_timeout_release_benchmark_evidence() {
         snapshot.dropped_error,
         snapshot.critical_backpressure_count
     );
+}
+
+pub(super) fn wait_until_blocked_result(output: &BlockingOutput) -> std::thread::Result<()> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| output.wait_until_blocked()))
 }
 
 fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {

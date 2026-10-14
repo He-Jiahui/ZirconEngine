@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::math::{Transform, UVec2, Vec3};
-use crate::scene::world::World;
+use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::core::math::{Transform, UVec2, Vec3};
+use zircon_runtime::scene::world::World;
 use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
-use crate::{
-    types::ViewportRenderFrame, BuiltinRenderFeature, RenderFeatureCapabilityRequirement,
+use crate::virtual_geometry::ViewportRenderFrame;
+use zircon_runtime::graphics::{
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
     RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 use zircon_runtime::core::framework::render::{
@@ -20,7 +21,7 @@ use zircon_runtime::core::framework::render::{
 
 fn compile_virtual_geometry_pipeline(
     extract: &zircon_runtime::core::framework::render::RenderFrameExtract,
-) -> crate::CompiledRenderPipeline {
+) -> CompiledRenderPipeline {
     RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features([virtual_geometry_render_feature_descriptor()])
         .compile_with_options(

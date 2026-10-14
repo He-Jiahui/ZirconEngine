@@ -4,12 +4,12 @@
 use std::path::PathBuf;
 
 use crate::engines::SourceEngineInstall;
-use crate::projects::{project_metadata_key, ProjectMetadata};
+use crate::projects::{ProjectMetadata, project_metadata_key};
 use crate::settings::{HubLanguage, HubSettings};
 use crate::state::{
     DeliveryMessageId, HubMessage, HubMessageId, HubPage, ProjectFilterMode, ProjectMessageId,
-    ProjectSortMode, ProjectSubpage, ProjectViewMode, SettingsMessageId, TaskStatus,
-    TASK_PROGRESS_PREPARED_PERCENT,
+    ProjectSortMode, ProjectSubpage, ProjectViewMode, SettingsMessageId,
+    TASK_PROGRESS_PREPARED_PERCENT, TaskStatus,
 };
 use crate::team::TeamOverview;
 

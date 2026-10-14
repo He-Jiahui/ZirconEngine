@@ -1,0 +1,452 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "project-template-pack-007",
+  "owner": "/root/public_project",
+  "reviewModel": "gpt-6-luna",
+  "reviewEffort": "max",
+  "checkout": "E:/Git/ZirconEngine",
+  "baselineHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+  "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+  "observedHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "scope": [
+    "zircon_runtime_interface/src/project/template_pack/descriptor.rs",
+    "zircon_runtime_interface/src/project/template_pack/receipt.rs",
+    "zircon_runtime_interface/src/project/template_pack/render.rs",
+    "zircon_runtime_interface/src/project/template_pack/embedded.rs",
+    "zircon_runtime_interface/src/project/template_pack/rendered_template.rs",
+    "zircon_runtime_interface/src/project/template_pack/rendered_entry.rs",
+    "zircon_runtime_interface/src/project/template_pack/tests/render.rs",
+    "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs"
+  ],
+  "state": "root-correction-pending",
+  "sourceStatusAtAssignment": {
+    "coverageRevision": 7,
+    "coverageSha256": "717bf461073792d032a355fc55e894466afd2fef0ec3567a7e236423a32a91d8",
+    "assignment": "主审已逐一核验精确8路径初始SHA、LF行尾及clean状态；授权只覆盖scope中的8源与本JSON。",
+    "legacyCoverage": "发现阶段对照旧coverage 106项及coverage-02已有61项；本批8路径无既有记录或冲突。"
+  },
+  "sourceStatusAfterReview": {
+    "observedAt": "functions.exec cell38, native command completed with exit 0",
+    "head": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "porcelain": "精确8路径均为M；仅本批注释/文档属性改动。没有触及历史未归属的 project/tests/template_pack.rs。",
+    "eol": "functions.exec cell31 observed all eight files remain LF, CRLF=0, with final newline; root corrections may alter line counts but must preserve LF."
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "6f8ff52e973d2de3d9931dbb80ead297198f5db29ec452450ad79a872b5fa10c",
+      "observedInterimSha256": "50ef075baa6078865823112739c0b4e577519b1dea020886a98fc12ab538153b",
+      "beforeLines": 306,
+      "observedInterimLines": 429,
+      "state": "root-correction-pending",
+      "rootCorrectionPending": [
+        "修正 target、module_profile、required_capabilities 三个 accessor 文档的错位。",
+        "澄清独立反序列化 ProjectTemplateEntryDescriptor 不校验摘要真实性；手工反序列化 ProjectTemplateDescriptor 才与规范注册表逐项比较。",
+        "逐字恢复本批改写的一条基线普通注释。"
+      ],
+      "objectEvidence": ["TPACK07-002", "TPACK07-003", "TPACK07-004", "TPACK07-005"],
+      "callerEvidence": ["CALL-01", "CALL-02", "CALL-04", "CALL-05", "CALL-06", "CALL-07"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/receipt.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "2308a0d5b502a9ba09089d4ce012ec989374271c714d48fdf68af6972a665927",
+      "observedInterimSha256": "234bf74fc2299941857cfd34443bfd19218fd2af4789404c1f2d0da44d75d99b",
+      "beforeLines": 186,
+      "observedInterimLines": 282,
+      "state": "root-correction-pending",
+      "rootCorrectionPending": [
+        "收窄 ProjectCreationProvenance.operation_id 与 ProjectTemplateReceipt.operation_id 的新文案，避免把调用方声明描述成类型已验证的准入事实。",
+        "逐字恢复本批改写的两条基线注释。",
+        "主审已接管本批其余限定文案修正；本中间SHA不作为最终pin。"
+      ],
+      "objectEvidence": ["TPACK07-006", "TPACK07-007"],
+      "callerEvidence": ["CALL-03", "CALL-04", "CALL-05", "CALL-06", "CALL-07", "CALL-08"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+      "observedInterimSha256": "c67b5e623fb8c0c11748178c1f781753f8c728607bbd72de27b9b62e4a8bb3f3",
+      "beforeLines": 202,
+      "observedInterimLines": 219,
+      "state": "reviewed-awaiting-final-validation",
+      "rootCorrectionPending": [],
+      "objectEvidence": ["TPACK07-008"],
+      "callerEvidence": ["CALL-04", "CALL-05", "CALL-06", "CALL-09"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/embedded.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "97a2efc516a008f949f746aa690f2a1eb624f08406efa199855f9ac545aa4405",
+      "observedInterimSha256": "c5ede8bc76cc3572e6d9538f24b095f7b3d1a147f716775a752421be0788c99d",
+      "beforeLines": 88,
+      "observedInterimLines": 94,
+      "state": "reviewed-awaiting-final-validation",
+      "rootCorrectionPending": [],
+      "objectEvidence": ["TPACK07-001"],
+      "callerEvidence": ["CALL-05", "CALL-06"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/rendered_template.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "55b24533ba2f8c12efb2eba8cb210129388d9c9e4c62344782efcca6fb58e6d1",
+      "observedInterimSha256": "1aaba672a2696dee2f4fba44a54d13d7e62fdca28fed9306ca3d4ff5414c0ac0",
+      "beforeLines": 15,
+      "observedInterimLines": 20,
+      "state": "root-correction-pending",
+      "rootCorrectionPending": ["限定字段文档中的完成校验表述：仅render_project_template返回的值表示已经通过渲染检查；public字段可由调用方构造或修改。"],
+      "objectEvidence": ["TPACK07-009"],
+      "callerEvidence": ["CALL-05", "CALL-06"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/rendered_entry.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "e9d1d80e798427a2d6e0d55f57b6f57d7d949374c7ebca21f82736ef85285555",
+      "observedInterimSha256": "1eb58387bb8dbdd66818edd58f41ad831229edd63d24ed9d21453562d0a832f2",
+      "beforeLines": 10,
+      "observedInterimLines": 13,
+      "state": "root-correction-pending",
+      "rootCorrectionPending": ["限定字段文档中的完成校验表述：仅render_project_template返回的值表示已经通过渲染检查；public字段可由调用方构造或修改。"],
+      "objectEvidence": ["TPACK07-009"],
+      "callerEvidence": ["CALL-05", "CALL-06"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "9fcb22747a000962023de6bc4e6c51273a9c4ddaeb13cba731b9fbed13ef68a5",
+      "observedInterimSha256": "a01467803650513e174d2e7b7357ce6f499ed1cc951bb72ca4222f18e3d73d7b",
+      "beforeLines": 94,
+      "observedInterimLines": 100,
+      "state": "root-correction-pending",
+      "rootCorrectionPending": ["移除本批新增的4条仅转述函数名/断言的///；保留新增模块//!与所有基线注释。"],
+      "objectEvidence": ["TPACK07-010"],
+      "callerEvidence": ["CALL-09"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "2adb4709300a4c5131660c9fe70624518586bea9e5d931a0c298c645142de5cc",
+      "observedInterimSha256": "5bff015cc80af9cbe8ab622a8a44faf4d8a140d927b759e3d7baa5747d68cb80",
+      "beforeLines": 90,
+      "observedInterimLines": 94,
+      "state": "root-correction-pending",
+      "rootCorrectionPending": ["移除本批新增的4条仅转述测试名/断言的///；保留原//!和全部基线注释。"],
+      "objectEvidence": ["TPACK07-010"],
+      "callerEvidence": ["CALL-09"]
+    }
+  ],
+  "objectEvidence": [
+    {
+      "id": "TPACK07-001",
+      "symbol": "embedded template registry and template_bytes!",
+      "kind": "module-static-data-and-macro",
+      "members": ["//! module boundary", "EmbeddedProjectTemplateEntry.path", "EmbeddedProjectTemplateEntry.bytes", "template_bytes!", "RENDERABLE_EMPTY_ENTRIES (17 static entries)"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/embedded.rs", "symbols": ["EmbeddedProjectTemplateEntry", "template_bytes!", "RENDERABLE_EMPTY_ENTRIES"]}],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/render.rs", "symbol": "render_project_template", "relationship": "selects the static slice and copies its entries into the owned render result"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "ProjectTemplateDescriptor::content_digest / entries", "relationship": "derives digest and per-entry identity from the same embedded bytes"}
+      ],
+      "implementations": [{"symbol": "EmbeddedProjectTemplateEntry", "relationship": "private-super data record; no trait implementation or dynamic registration"}],
+      "macroOrRegistrationOrFfi": [
+        {"symbol": "template_bytes!", "relationship": "include_bytes!(concat!(env!(CARGO_MANIFEST_DIR), fixed template root, literal relative path)) embeds resources at compile time; no runtime checkout lookup"},
+        {"symbol": "FFI/dynamic registration", "relationship": "none found in this module"}
+      ],
+      "testsOrContract": [{"path": "zircon_runtime_interface/src/project/tests/template_pack.rs", "symbol": "embedded_pack_matches_every_versioned_template_file", "relationship": "read-only historical test reference; excluded from edit scope due unowned prior modification"}],
+      "blockEntryAndStateAndEffect": [
+        {"block": "template_bytes! expansion", "entry": "compile-time literal entry path and crate manifest directory", "state": "compiler embeds the selected file bytes into the binary", "effect": "runtime rendering consumes immutable packaged content"},
+        {"block": "RENDERABLE_EMPTY_ENTRIES", "entry": "static registry is compiled", "state": "17 relative path/byte pairs define package membership", "effect": "the same canonical set feeds rendering, content digest, and descriptor entry evidence"}
+      ],
+      "commentDecision": {"action": "added module/record/macro context", "reason": "connects static manifest, digest derivation, and absence of runtime source-tree lookup"}
+    },
+    {
+      "id": "TPACK07-002",
+      "symbol": "ProjectTemplateTargetRequirement",
+      "kind": "public-contract-and-accessors",
+      "members": ["target", "module_profile", "required_capabilities", "required_runtime_providers", "new", "target()", "module_profile()", "required_capabilities()", "required_runtime_providers()"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbols": ["ProjectTemplateTargetRequirement and impl"]}],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "ProjectTemplateDescriptor::target_requirements", "relationship": "constructs per-target immutable values once and exposes a static slice"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/render.rs", "symbol": "validate_manifest_requirements", "relationship": "reads target and required provider IDs to validate rendered selections"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "ProjectTemplateDescriptor Serialize/Deserialize", "relationship": "converts requirements to/from strict wire DTOs for canonical equality"}
+      ],
+      "implementations": [{"symbol": "Clone, Debug, PartialEq, Eq, Hash", "relationship": "owned immutable snapshot; accessors borrow slices/strings or copy enum values"}],
+      "macroOrRegistrationOrFfi": [{"symbol": "OnceLock", "relationship": "descriptor getter initializes the boxed target slice once; no FFI"}],
+      "testsOrContract": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs", "symbol": "render_rejects_a_manifest_that_weakens_a_required_provider", "relationship": "proves a required selection cannot be weakened"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs", "symbol": "render_accepts_provider_selection_without_target_modes", "relationship": "proves omitted target_modes retains Runtime's default all-target semantics"}
+      ],
+      "blockEntryAndStateAndEffect": [
+        {"block": "new", "entry": "static capabilities/providers and one target/profile pair", "state": "copies requirement data into owned boxed slices and strings", "effect": "callers can share the cached contract without mutating registry data"},
+        {"block": "required_runtime_providers iterator", "entry": "borrowed requirement remains alive", "state": "iterates provider IDs as borrowed str values", "effect": "render validation compares manifest provider IDs without cloning each one"}
+      ],
+      "commentDecision": {"action": "added contract/lifetime context; accessor wording requires root correction", "reason": "explains per-target admission data and returned borrow/value semantics"}
+    },
+    {
+      "id": "TPACK07-003",
+      "symbol": "ProjectTemplateEntryDescriptor and ProjectTemplateCapability",
+      "kind": "public-value-and-enum",
+      "members": ["ProjectTemplateEntryDescriptor.path/byte_len/sha256", "path()", "byte_len()", "sha256()", "ProjectTemplateCapability::{Scene3d,ObjModelImport,PbrMaterialImport,WgslShaderImport,NativeWindow}"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbols": ["ProjectTemplateEntryDescriptor", "ProjectTemplateCapability"]}],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "ProjectTemplateDescriptor::entries", "relationship": "derives path, original byte length, and SHA-256 from embedded records"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "ProjectTemplateTargetRequirement.required_capabilities", "relationship": "exposes the enum values stored in each target contract"}
+      ],
+      "implementations": [{"symbol": "Serialize/Deserialize derives; deny_unknown_fields on entry descriptor", "relationship": "entry's standalone derived deserialization parses fields but does not itself authenticate digest or registry membership"}],
+      "macroOrRegistrationOrFfi": [{"symbol": "ProjectTemplateDescriptor manual Deserialize", "relationship": "when entries are nested in a descriptor wire value, compares the complete entry slice with canonical registry metadata"}],
+      "testsOrContract": [{"path": "zircon_runtime_interface/src/project/tests/template_pack.rs", "symbol": "template_descriptor_rejects_forged_version_digest_and_capabilities", "relationship": "historical read-only test reference; excluded from this grant"}],
+      "blockEntryAndStateAndEffect": [
+        {"block": "entries OnceLock initializer", "entry": "embedded entry slice", "state": "maps each path/length/SHA and sorts by relative path", "effect": "descriptor serialization and callers see stable source-file evidence"},
+        {"block": "standalone entry decode versus nested descriptor decode", "entry": "serde input is decoded as one entry or full descriptor", "state": "only full descriptor path performs canonical equality comparison", "effect": "documentation does not overstate standalone entry authenticity"}
+      ],
+      "commentDecision": {"action": "added field/variant context; canonical-validation boundary pending root correction", "reason": "distinguishes source evidence values from authenticated registry membership"}
+    },
+    {
+      "id": "TPACK07-004",
+      "symbol": "ProjectTemplateDescriptor wire types and serde implementations",
+      "kind": "manual-serde-and-canonicalization",
+      "members": ["ProjectTemplateDescriptor", "ProjectTemplateDescriptorWire", "ProjectTemplateTargetRequirementWire", "Deserialize for ProjectTemplateDescriptor", "Serialize for ProjectTemplateDescriptor"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbols": ["descriptor wire structs and serde impls"]}],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "project_template_descriptor(wire.id)", "relationship": "resolves the only accepted canonical in-memory descriptor"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "expected.version/content_digest/engine_version_req/target_requirements/entries", "relationship": "builds expected persisted metadata for field-by-field equality"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/receipt.rs", "symbol": "ProjectTemplateReceiptWire.descriptor", "relationship": "receipt decoding delegates template canonicalization to descriptor Deserialize"}
+      ],
+      "implementations": [
+        {"symbol": "ProjectTemplateDescriptor Deserialize", "relationship": "decodes strict DTO, reconstructs canonical target wires, compares all descriptor metadata, returns canonical ID-only value or serde error"},
+        {"symbol": "ProjectTemplateDescriptor Serialize", "relationship": "derives wire fields from ID and canonical getters rather than stored mutable copies"},
+        {"symbol": "deny_unknown_fields", "relationship": "rejects extra fields on both DTOs"}
+      ],
+      "macroOrRegistrationOrFfi": [{"symbol": "serde derives/attributes", "relationship": "compiler-facing serialization metadata; no custom macro expansion beyond serde derives and no FFI"}],
+      "testsOrContract": [{"path": "zircon_runtime_interface/src/project/tests/template_pack.rs", "symbol": "template_descriptor_rejects_forged_version_digest_and_capabilities / template_descriptor_round_trips_as_a_persistable_receipt_identity", "relationship": "historical read-only tests; edit-excluded"}],
+      "blockEntryAndStateAndEffect": [
+        {"block": "Deserialize body", "entry": "untrusted descriptor wire fields", "state": "canonical registration data is reconstructed and compared", "effect": "only a canonical handle is returned; forged metadata fails"},
+        {"block": "Serialize body", "entry": "ID-only immutable handle", "state": "canonical metadata is projected into the wire form", "effect": "serialized descriptor stays tied to packaged registry"}
+      ],
+      "commentDecision": {"action": "added DTO/canonicalization reasons", "reason": "explains why persistence contains redundant fields while in-memory descriptor stores only an ID"}
+    },
+    {
+      "id": "TPACK07-005",
+      "symbol": "ProjectTemplateDescriptor API, OnceLock caches, registration, and digest helper",
+      "kind": "public-api-and-lazy-derived-state",
+      "members": ["qualified_id", "id", "version", "content_digest", "engine_version_req", "target_requirements", "entries", "assess_engine_compatibility", "project_template_descriptor", "sha256_hex", "RENDERABLE_EMPTY_* OnceLock values"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbols": ["descriptor constants/statics, impl, registry accessor, digest helper"]}],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/project_template_id.rs", "symbol": "ProjectTemplateId::descriptor", "relationship": "forwards the stable ID to project_template_descriptor"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/receipt.rs", "symbol": "ProjectTemplateReceipt::try_new", "relationship": "calls assess_engine_compatibility before receipt construction"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/render.rs", "symbol": "render_project_template", "relationship": "uses descriptor engine range, requirements, and embedded identity"}
+      ],
+      "implementations": [{"symbol": "OnceLock::get_or_init", "relationship": "lazily computes and reuses immutable digest, target requirement, and entry descriptor values"}],
+      "macroOrRegistrationOrFfi": [{"symbol": "match ProjectTemplateId", "relationship": "static registry dispatch currently covers RenderableEmpty; no dynamic registration or FFI"}],
+      "testsOrContract": [{"path": "zircon_runtime_interface/src/project/tests/template_pack.rs", "symbol": "render_exposes_a_stable_qualified_template_descriptor / template_descriptor_is_a_payload_free_registry_handle", "relationship": "historical read-only tests; edit-excluded"}],
+      "blockEntryAndStateAndEffect": [
+        {"block": "content_digest cache", "entry": "first descriptor digest request", "state": "hashes static embedded path/byte pairs and stores the value", "effect": "later requests return a copy of the cached identity"},
+        {"block": "target_requirements cache", "entry": "first target contract request", "state": "builds EditorHost/Editor and ClientRuntime/Client3d pairs from static provider/capability declarations", "effect": "render and admission callers consume stable per-target requirements"},
+        {"block": "entries cache", "entry": "first entry evidence request", "state": "derives original lengths/digests then sorts paths", "effect": "wire representation has deterministic entry order"},
+        {"block": "assess_engine_compatibility", "entry": "running engine version", "state": "delegates descriptor optional semver range to project compatibility evaluator", "effect": "returns compatibility classification/error only; caller still owns admission policy"}
+      ],
+      "commentDecision": {"action": "added identity/cache/lifetime and caller context", "reason": "clarifies the distinction between static descriptor metadata and template bytes or activation authority"}
+    },
+    {
+      "id": "TPACK07-006",
+      "symbol": "ProjectCreationProvenance",
+      "kind": "creation-source-input",
+      "members": ["operation_id", "creator_engine_version", "build_set_id", "new", "getters", "issue_receipt"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/receipt.rs", "symbols": ["ProjectCreationProvenance and impl"]}],
+      "calls": [
+        {"path": "zircon_editor/src/ui/host/editor_manager_project_session.rs", "symbol": "ProjectCreationProvenance::new", "relationship": "constructs fields from admitted operation ID, engine package version, and admission BuildSet"},
+        {"path": "zircon_editor/src/core/project/authority/create_project.rs", "symbol": "ProjectCreationProvenance::issue_receipt", "relationship": "binds the supplied source values to rendered descriptor and project GUID before staging writes"}
+      ],
+      "implementations": [{"symbol": "new/getters", "relationship": "stores and returns provided value identities; constructor does not authenticate their origin"}],
+      "macroOrRegistrationOrFfi": [{"symbol": "serde/FFI", "relationship": "provenance input itself has no serde or FFI implementation"}],
+      "testsOrContract": [{"path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs", "symbol": "creation_provenance_issues_the_exact_authenticated_identity", "relationship": "constructs a fixture then checks every receipt identity field"}],
+      "blockEntryAndStateAndEffect": [
+        {"block": "new", "entry": "caller-provided operation/version/BuildSet identities", "state": "moves values into an immutable struct without validating origin", "effect": "later receipt issue has those source fields available"},
+        {"block": "issue_receipt", "entry": "descriptor and rendered project GUID", "state": "delegates to ProjectTemplateReceipt::try_new", "effect": "checks engine compatibility and returns identity record or error"}
+      ],
+      "commentDecision": {"action": "root is narrowing newly added provenance wording; pending", "reason": "the public constructor does not prove that values originated from startup admission"}
+    },
+    {
+      "id": "TPACK07-007",
+      "symbol": "ProjectTemplateReceipt, wire decoder, schema constant, and errors",
+      "kind": "persistent-provenance-contract",
+      "members": ["PROJECT_TEMPLATE_RECEIPT_SCHEMA_VERSION_V1", "ProjectTemplateReceipt fields/accessors", "try_new", "ProjectTemplateReceiptWire", "Deserialize for ProjectTemplateReceipt", "ProjectTemplateReceiptError variants"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/receipt.rs", "symbols": ["receipt constant/type/impl/wire/decoder/error"]}],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs", "symbol": "ManifestSummaryWire.template_receipt", "relationship": "deserializes the receipt while projecting manifest fields; current file belongs to manifest-summary-006 and is read-only here"},
+        {"path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs", "symbol": "ProjectManifestSummary.template_receipt", "relationship": "retains optional receipt as parsed summary data; current file belongs to manifest-summary-006 and is read-only here"},
+        {"path": "zircon_runtime/src/asset/project/manifest/project_manifest.rs", "symbol": "ProjectManifest.template_receipt", "relationship": "runtime manifest model stores the optional receipt"}
+      ],
+      "implementations": [
+        {"symbol": "Serialize derive", "relationship": "writes snake_case identity fields"},
+        {"symbol": "manual Deserialize", "relationship": "first decodes the strict ProjectTemplateReceiptWire, whose descriptor field invokes ProjectTemplateDescriptor manual Deserialize and canonical registry comparison; then checks V1 schema and delegates to try_new for creator-engine compatibility"},
+        {"symbol": "thiserror variants", "relationship": "distinguishes unsupported schema, incompatible creator engine, and compatibility evaluation failure"}
+      ],
+      "macroOrRegistrationOrFfi": [{"symbol": "serde attributes/derive and thiserror derive", "relationship": "generate serialization/error traits; no FFI"}],
+      "testsOrContract": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs", "symbol": "receipt_round_trips_with_all_provenance_identity", "relationship": "checks all identity fields and V1 schema survive serialization"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs", "symbol": "receipt_rejects_unknown_schema_and_fields", "relationship": "checks schema and unknown-field rejection"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs", "symbol": "receipt_rejects_an_incompatible_creator_engine", "relationship": "checks deserialization re-runs compatibility"}
+      ],
+      "blockEntryAndStateAndEffect": [
+        {"block": "try_new", "entry": "all caller-supplied provenance identities and canonical descriptor", "state": "evaluates creator engine compatibility before constructing schema V1 receipt", "effect": "returns identity-only record or typed failure; no activation capability is issued"},
+        {"block": "Deserialize", "entry": "untrusted receipt wire value", "state": "decodes the strict wire DTO including canonical descriptor comparison, then rejects unsupported schema and delegates to try_new", "effect": "decoded receipt obeys the same template and version checks as a new receipt"}
+      ],
+      "commentDecision": {"action": "root is narrowing identity-source wording; pending", "reason": "receipt stores supplied provenance values but does not authenticate that they correspond to an actual materialization or admission"}
+    },
+    {
+      "id": "TPACK07-008",
+      "symbol": "render_project_template and private rendering pipeline",
+      "kind": "rendering-api-and-invariants",
+      "members": ["PROJECT_MANIFEST_PATH", "render_project_template", "validate_manifest_requirements", "missing_provider_requirement", "render_entries", "render_entry", "rewrite_manifest_identity", "cfg(test) render test module"],
+      "definition": [{"path": "zircon_runtime_interface/src/project/template_pack/render.rs", "symbols": ["render API and helpers"]}],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/embedded.rs", "symbol": "RENDERABLE_EMPTY_ENTRIES", "relationship": "supplies packaged path/byte pairs"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs", "symbol": "project_template_descriptor / target_requirements / engine_version_req", "relationship": "supplies canonical template identity and provider requirements"},
+        {"path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs", "symbol": "ProjectManifestSummary::parse_toml_bytes", "relationship": "parses the rewritten manifest into returned summary; summary source is read-only prior-batch caller here"},
+        {"path": "zircon_editor/src/core/project/authority/preflight.rs", "symbol": "render_project_template", "relationship": "renders selected template during creation preflight"},
+        {"path": "zircon_editor/src/core/project/authority/create_project.rs", "symbol": "render_project_template / create_rendered_project", "relationship": "renders and then stages the owned entries"}
+      ],
+      "implementations": [{"symbol": "RelPath::parse", "relationship": "provides lexical relative-path validation; caller separately confines resolved path under staging root"}],
+      "macroOrRegistrationOrFfi": [{"symbol": "cfg(test) and #[path = tests/render.rs]", "relationship": "statically attaches private tests to render module; no FFI"}],
+      "testsOrContract": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs", "symbol": "entry_render_rejects_duplicate_canonical_paths / entry_render_rejects_a_file_used_as_a_directory", "relationship": "checks duplicate and file-ancestor conflicts"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs", "symbol": "render_rejects_a_manifest_that_weakens_a_required_provider / render_accepts_provider_selection_without_target_modes", "relationship": "checks required provider and Runtime target default contract"},
+        {"path": "zircon_runtime_interface/src/project/tests/project_guid.rs", "symbol": "rendered_project_templates_persist_distinct_project_guids_in_the_manifest", "relationship": "read-only caller test confirms rendered manifests receive distinct project GUIDs"}
+      ],
+      "blockEntryAndStateAndEffect": [
+        {"block": "render_project_template", "entry": "template ID and project name", "state": "validates name, copies packaged entries, locates and rewrites manifest, checks descriptor requirements, parses shared summary", "effect": "returns descriptor plus summary and owned entries without accessing a destination path"},
+        {"block": "validate_manifest_requirements", "entry": "rendered UTF-8 TOML and descriptor", "state": "maps target enums, requires exactly one provider selection and checks enabled/required/target support", "effect": "rejects a manifest that weakens declared runtime provider requirements"},
+        {"block": "render_entries", "entry": "embedded entry slice", "state": "validates each RelPath, rejects duplicate paths, then rejects file/ancestor conflicts", "effect": "produces a path layout suitable for file-by-file staging"},
+        {"block": "rewrite_manifest_identity", "entry": "manifest bytes, project name, fresh GUID, optional engine range", "state": "parses TOML table, replaces identity fields and re-encodes", "effect": "only the rendered manifest changes; descriptor digest continues to identify original embedded files"}
+      ],
+      "commentDecision": {"action": "added API boundary and non-obvious ordering explanations", "reason": "documents the handoff from static package to owned payload and the separate staging-path responsibility"}
+    },
+    {
+      "id": "TPACK07-009",
+      "symbol": "RenderedProjectTemplate and RenderedProjectTemplateEntry",
+      "kind": "owned-handoff-values",
+      "members": ["RenderedProjectTemplate.descriptor/summary/entries", "RenderedProjectTemplateEntry.path/bytes"],
+      "definition": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/rendered_template.rs", "symbols": ["RenderedProjectTemplate"]},
+        {"path": "zircon_runtime_interface/src/project/template_pack/rendered_entry.rs", "symbols": ["RenderedProjectTemplateEntry"]}
+      ],
+      "calls": [
+        {"path": "zircon_editor/src/core/project/authority/preflight.rs", "symbol": "rendered.entries / rendered.summary", "relationship": "reads rendered manifest and payload during preflight"},
+        {"path": "zircon_editor/src/core/project/authority/create_project.rs", "symbol": "create_rendered_project", "relationship": "binds receipt from descriptor/GUID and writes owned entries under staging"},
+        {"path": "zircon_editor/src/core/project/tests/template_creation.rs", "symbol": "RenderedProjectTemplate construction and create flow", "relationship": "read-only integration contract for Editor consumers"}
+      ],
+      "implementations": [{"symbol": "Clone, Debug, PartialEq, Eq", "relationship": "owned transfer values; no filesystem access or resource borrowing"}],
+      "macroOrRegistrationOrFfi": [{"symbol": "none", "relationship": "plain Rust data types"}],
+      "testsOrContract": [{"path": "zircon_runtime_interface/src/project/tests/project_guid.rs", "symbol": "rendered_project_templates_persist_distinct_project_guids_in_the_manifest", "relationship": "checks parsed summary identity from rendered manifest"}],
+      "blockEntryAndStateAndEffect": [
+        {"block": "RenderedProjectTemplate fields", "entry": "successful render pipeline", "state": "stores descriptor, parsed summary, and owned file entries", "effect": "Editor and Hub can consume results without source-tree access"},
+        {"block": "RenderedProjectTemplateEntry fields", "entry": "one embedded record", "state": "stores validated lexical RelPath and copied bytes", "effect": "staging caller writes bytes but remains responsible for root confinement"}
+      ],
+      "commentDecision": {"action": "added Chinese summary and ownership/handoff boundary while preserving existing comments; final wording is pending root review", "reason": "public fields are caller-constructible and mutable; any claim that data passed rendering checks must be limited to values returned by render_project_template"}
+    },
+    {
+      "id": "TPACK07-010",
+      "symbol": "private render and receipt tests",
+      "kind": "test-contracts",
+      "members": [
+        "entry_render_rejects_duplicate_canonical_paths",
+        "entry_render_rejects_a_file_used_as_a_directory",
+        "render_rejects_a_manifest_that_weakens_a_required_provider",
+        "render_accepts_provider_selection_without_target_modes",
+        "receipt()",
+        "creation_provenance_issues_the_exact_authenticated_identity",
+        "receipt_round_trips_with_all_provenance_identity",
+        "receipt_rejects_unknown_schema_and_fields",
+        "receipt_rejects_an_incompatible_creator_engine"
+      ],
+      "definition": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs", "symbols": ["four private helper contract tests"]},
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs", "symbols": ["receipt fixture and four serde/provenance contract tests"]}
+      ],
+      "calls": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/render.rs", "symbol": "private helpers", "relationship": "render tests import helper functions/types through super"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/receipt.rs", "symbol": "try_new/issue_receipt/Deserialize", "relationship": "receipt tests exercise constructor, source binding, and decode checks"}
+      ],
+      "implementations": [{"symbol": "#[cfg(test)] #[path]", "relationship": "render/receipt modules include their test files only in test compilation; test assertions were not changed"}],
+      "macroOrRegistrationOrFfi": [{"symbol": "serde_json test macros", "relationship": "test fixtures mutate serialized JSON values to reach schema, unknown-field, and incompatibility checks; no production macro or FFI"}],
+      "testsOrContract": [
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs", "relationship": "duplicate/ancestor path errors, required provider rejection, and omitted target_modes default behavior"},
+        {"path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs", "relationship": "identity preservation, V1 round trip, unknown schema/field rejection, and compatibility recheck"}
+      ],
+      "blockEntryAndStateAndEffect": [
+        {"block": "render path fixtures", "entry": "small synthetic embedded entry arrays or mutated embedded manifest", "state": "calls private render validation helpers", "effect": "asserts exact path conflict or provider requirement outcome"},
+        {"block": "receipt fixture and tests", "entry": "fresh operation/GUID/version/BuildSet values and serialized receipt", "state": "constructs, encodes, mutates or decodes receipt", "effect": "asserts identity roundtrip and rejection boundaries"}
+      ],
+      "commentDecision": {"action": "render module overview added; new per-test /// comments are pending removal by root as redundant; receipt //! remains; root will restore the two baseline comments changed by this batch", "reason": "function names and assertions already state each boundary without repeating implementation"}
+    }
+  ],
+  "callerEvidence": [
+    {"id": "CALL-01", "path": "zircon_runtime_interface/src/project/mod.rs", "sha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a", "symbol": "pub use template_pack::*", "relationship": "reexports template pack API from crate::project; read-only caller pin"},
+    {"id": "CALL-02", "path": "zircon_runtime_interface/src/project/template_pack/project_template_id.rs", "sha256": "e848674af0f1c87297625448641d7953191e69384775c740e38a166d6bb87463", "symbol": "ProjectTemplateId::descriptor", "relationship": "forwards ID to project_template_descriptor; read-only caller pin"},
+    {"id": "CALL-03", "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs", "sha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917", "symbol": "ManifestSummaryWire.template_receipt", "relationship": "deserializes receipt; path currently modified by manifest-summary-006 and is read-only in this batch"},
+    {"id": "CALL-04", "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs", "sha256": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4", "symbol": "ProjectManifestSummary.template_receipt", "relationship": "stores optional parsed receipt; path currently modified by manifest-summary-006 and is read-only in this batch"},
+    {"id": "CALL-05", "path": "zircon_editor/src/core/project/authority/preflight.rs", "sha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde", "symbol": "render_project_template", "relationship": "renders selected template during creation preflight; exact path was clean at caller-pin observation"},
+    {"id": "CALL-06", "path": "zircon_editor/src/core/project/authority/create_project.rs", "sha256": "4edfee1ccc8c730f9bc325d5229d74ac13260725e4c9669cbcbd3f556de13c94", "symbol": "create_rendered_project", "relationship": "gets GUID from summary, issues receipt from descriptor/provenance, then writes each entry under staging"},
+    {"id": "CALL-07", "path": "zircon_editor/src/ui/host/editor_manager_project_session.rs", "sha256": "cd84b526aac64642b7670d6a5125728c24362408520406572c7ec07b680bdc3f", "symbol": "ProjectCreationProvenance::new", "relationship": "passes admitted operation ID, engine package version, and admission BuildSet"},
+    {"id": "CALL-08", "path": "zircon_runtime/src/asset/project/manifest/project_manifest.rs", "sha256": "862eccba6ca7f434d371065c86290f69c6aeffa613f2aa2b824aeffdafec7464", "symbol": "ProjectManifest.template_receipt", "relationship": "runtime manifest model persists the optional receipt"},
+    {"id": "CALL-09", "path": "zircon_runtime_interface/src/project/tests/project_guid.rs", "sha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed", "symbol": "rendered_project_templates_persist_distinct_project_guids_in_the_manifest", "relationship": "renders twice and checks separate project GUIDs survive manifest summary parsing"}
+  ],
+  "crossBatchDependency": {
+    "batchId": "manifest-summary-006",
+    "frozenProofSha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+    "callerId": "CALL-21",
+    "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+    "frozenCallerSha256": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+    "relationship": "frozen summary proof records render_project_template parsing the rewritten manifest after requirement validation. This batch's doc-only edit changes the caller file SHA; preserve the frozen proof unchanged and reconcile a current dependency observation separately."
+  },
+  "excludedForeignPath": {
+    "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+    "observedSha256": "79c1c13d78440f2308c53d8ae1b44a036b87b0dae683732ab6df04e590101bb5",
+    "observedLines": 521,
+    "reason": "历史存在未归属的预存修改；即使外部提交后状态清洁也不能证明原编辑者释放。只读参考，未纳入授权、未修改、未在本证据中冒认所有权。"
+  },
+  "issues": [],
+  "newIssueTags": [],
+  "compilerFacingChange": "新增 //! 与 /// 会生成 #[doc = ...] 属性，因此编译器可观察的文档 token 发生变化；同时有普通 // 注释。此批不属于普通 comments_only lane，但不改变可执行语句、签名、布局、serde/配置属性、字符串常量、断言、条件编译或宏输入。",
+  "writeReceipts": [
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "7", "path": "descriptor.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "13", "path": "receipt.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "14", "path": "render.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "15", "path": "embedded.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "16", "path": "rendered_template.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "17", "path": "rendered_entry.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "19", "path": "tests/render.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "20", "path": "tests/receipt.rs", "terminal": "completed; apply_patch returned {}"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "21", "path": "descriptor.rs", "terminal": "completed; added descriptor DTO/field/cache explanations"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "29", "path": "descriptor.rs", "terminal": "failed: Failed to write file; cell30 read-only SHA remained unchanged"},
+    {"source": "functions.apply_patch invoked by functions.exec", "outerCell": "33", "path": "receipt.rs", "terminal": "completed while root correction-transfer message arrived; cell34 read-only SHA became 234bf74fc2299941857cfd34443bfd19218fd2af4789404c1f2d0da44d75d99b"}
+  ],
+  "unresolvedReadOnlyOperation": {
+    "outerCell": "g3:1",
+    "operation": "Python -B read of exact initial source hashes/EOL, HEAD/status, and coverage ledger SHA",
+    "terminal": "outer wait reported stale without native session/chunk handle; no EOF is claimed. The command was read-only and did not write source, evidence, Git metadata, or issue records.",
+    "replacementEvidence": "A separate exact before-pin command completed successfully at functions.exec cell6; subsequent completed reads are individually identified above."
+  },
+  "validation": {
+    "status": "pending-root-correction",
+    "scopedParserAcceptance": {"status": "pending", "kind": "注释与Rust文档属性范围的语法/结构验收", "reason": "根审修订和最终source pins完成后再验收新增普通注释与#[doc = ...]属性；目前没有该验收的终止回执。"},
+    "rustfmt": {"status": "pending", "requiredCommand": "rustfmt --edition 2021 --config skip_children=true --check <exact 8 paths>", "reason": "root correction is in progress; no formatter was run against an intermediate snapshot"},
+    "diffWhitespace": {"status": "pending", "requiredCommand": "git --no-optional-locks diff --check -- <exact 8 paths>", "reason": "must run after root correction and final pins"},
+    "structuralDiff": {"status": "pending", "reason": "the observed diff was read-only inspected at functions.exec cell23 and consisted of documentation/ordinary comments; final exact-scope structural check remains pending"},
+    "formalDocOrMacroExecution": {"status": "not-required/not-run", "reason": "本批注释审查不要求Cargo doc/build/test或宏执行；静态证据记录serde派生与include_bytes!源表达式，不声称执行展开。"},
+    "nativeIdentity": "Exact pre-write status/hash completed at functions.exec cell6; first post-edit diff completed at functions.exec cell23; current interim hash/status snapshot completed at functions.exec cell38."
+  },
+  "notes": [
+    "模板 descriptor 是仅保存 ProjectTemplateId 的规范句柄；descriptor wire Deserialize 对版本、摘要、engine range、逐目标 requirements、逐文件 entries 做 canonical equality。ProjectTemplateEntryDescriptor 自身带 derive Deserialize，单独解码不验证摘要真实度。",
+    "ProjectCreationProvenance::new 和 ProjectTemplateReceipt::try_new 接受公开调用方提供的身份值；receipt 只检查模板创建引擎范围并记录来源字段，不证明调用方来源真实，不签发激活授权。",
+    "render_project_template 校验名称、复制嵌入项、重写 manifest 身份/模板版本要求、核对 provider 选择并用共享 ProjectManifestSummary parser 生成摘要；路径校验是词法 RelPath 校验，Editor staging 写入侧仍负责根目录约束。",
+    "没有证实需要新增 BUG/TODO。发现并由root接管的三处基线注释改写待逐字恢复（一处descriptor.rs普通注释、两处receipt.rs注释）；descriptor、receipt、两份测试与rendered_template.rs仍有文案修订待完成，故当前中间SHA不能冻结或视为最终reviewedSha256。",
+    "本批只写授权8源与本唯一证据路径；无Git写、Cargo/build/test/generation、临时helper或源码副本。"
+  ],
+  "objectGroupCount": 10,
+  "objectGroupNote": "按逻辑契约组计数；members列举组内实际结构体、字段、方法、serde实现、宏和测试函数，组数不代表文件数。",
+  "observedHeadNote": "HEAD d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef 是独立工具测试外部提交；不是本批源或证据提交。"
+}

@@ -1,5 +1,8 @@
+//! 绑定诊断稳定身份的接口契约测试。
+
 use super::UiBindingDiagnosticCode;
 
+/// 每个公开诊断码的名称、机器 ID 与本地化键固定且互不重复。
 #[test]
 fn binding_diagnostic_identity_contract_is_unique_and_stable() {
     let expected = [

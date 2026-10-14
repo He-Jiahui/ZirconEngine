@@ -131,7 +131,7 @@ impl VmPluginInstance for MigrationRollbackInstance {
                         type_path,
                         ReflectFieldInfo::from_stable_keys(
                             "tests.hot-reload-state",
-                            "health",
+                            "required_health",
                             "health",
                             "f64",
                             ReflectEditorHint::Scalar,
@@ -176,7 +176,7 @@ fn state_registration(
 }
 
 #[test]
-fn migration_failure_rolls_back_old_module() {
+fn migration_failure_rolls_back_old_module_when_required_field_is_removed() {
     let events = Arc::new(Mutex::new(Vec::new()));
     let backend = MigrationRollbackBackend {
         events: Arc::clone(&events),

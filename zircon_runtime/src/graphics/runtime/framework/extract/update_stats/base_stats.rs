@@ -692,6 +692,12 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
         stats.last_hzb_occlusion_compacted_draw_count = 0;
         stats.last_hzb_occlusion_zero_instance_arg_count = 0;
         stats.last_hzb_occlusion_remaining_instance_count = 0;
+        #[cfg(feature = "test-support")]
+        {
+            stats.last_hzb_occlusion_first_instances = [0; 8];
+            stats.last_hzb_occlusion_first_instance_count = 0;
+            stats.last_hzb_occlusion_first_instances_truncated = false;
+        }
         return;
     };
 
@@ -721,6 +727,15 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
             indirect_args_readback.zero_instance_arg_count as usize;
         stats.last_hzb_occlusion_remaining_instance_count =
             indirect_args_readback.remaining_instance_count as usize;
+        #[cfg(feature = "test-support")]
+        {
+            stats.last_hzb_occlusion_first_instances =
+                indirect_args_readback.first_instances;
+            stats.last_hzb_occlusion_first_instance_count =
+                indirect_args_readback.first_instance_count;
+            stats.last_hzb_occlusion_first_instances_truncated =
+                indirect_args_readback.first_instances_truncated;
+        }
     } else {
         stats.last_hzb_occlusion_indirect_args_readback_available = false;
         stats.last_hzb_occlusion_indirect_args_readback_source_frame_index = None;
@@ -728,6 +743,12 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
         stats.last_hzb_occlusion_compacted_draw_count = 0;
         stats.last_hzb_occlusion_zero_instance_arg_count = 0;
         stats.last_hzb_occlusion_remaining_instance_count = 0;
+        #[cfg(feature = "test-support")]
+        {
+            stats.last_hzb_occlusion_first_instances = [0; 8];
+            stats.last_hzb_occlusion_first_instance_count = 0;
+            stats.last_hzb_occlusion_first_instances_truncated = false;
+        }
     }
     let Some(readback_stats) = report.readback_stats else {
         stats.last_hzb_occlusion_readback_available = false;

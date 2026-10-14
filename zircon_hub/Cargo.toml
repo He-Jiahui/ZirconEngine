@@ -30,6 +30,7 @@ required-features = ["desktop"]
 [features]
 default = ["desktop"]
 desktop = ["dep:tauri", "dep:tauri-build", "dep:zircon_runtime_interface", "account-broker"]
+hub-settings = []
 account-broker = ["dep:openidconnect", "dep:tokio", "dep:axum", "dep:keyring", "dep:webbrowser", "dep:sha2", "dep:libc"]
 local-service = ["dep:zircon_runtime_interface", "dep:axum", "dep:tokio", "dep:rusqlite", "dep:openidconnect", "dep:jsonwebtoken", "dep:sha2", "dep:aes-gcm", "dep:libc"]
 

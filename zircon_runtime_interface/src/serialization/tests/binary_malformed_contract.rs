@@ -1,3 +1,9 @@
+//! 二进制读取器对前缀、封套头和 payload 的拒绝边界。
+//!
+//! 这些契约固定错误发生的阶段：格式前缀或 body 预算失败时不进入 bincode 解码，头部
+//! schema/version 不可接受时不解释 payload；成功通过这些关卡后，值域仍须满足节点、深度、
+//! 字符串和对象键约束。测试使用生产写入器构造有效载荷，避免手工样本绕开 wire 约定。
+
 use super::super::{
     binary::{
         encode_binary_value, BinaryNode, BinaryValue, MAX_BINARY_BODY_BYTES, MAX_BINARY_DEPTH,

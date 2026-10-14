@@ -1,6 +1,6 @@
 use super::{config::ServiceConfig, error::ServiceError};
-use jsonwebtoken::{decode, decode_header, jwk::JwkSet, Algorithm, DecodingKey, Validation};
-use openidconnect::{core::CoreProviderMetadata, reqwest, IssuerUrl};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
+use openidconnect::{IssuerUrl, core::CoreProviderMetadata, reqwest};
 use serde::Deserialize;
 use std::{
     sync::Arc,

@@ -90,8 +90,7 @@ fn callback_and_system_dispatch_avoid_wide_record_clones() {
     assert!(callback.contains(".generation(handle.slot)"));
     assert!(!callback.contains("self.slot(handle.slot)"));
     assert!(systems.contains("let system_count = systems.len();"));
-    // BUG: [CR-SCRIPT-AUDIT-0004] 此断言仍要求旧的所有权循环文本，生产派发已改用借用迭代；截取的派发区间不含目标子串，因此测试必败。
-    assert!(systems.contains("for mut system in systems"));
+    assert!(systems.contains("for system in systems.iter()"));
     assert!(!systems.contains("systems.iter().cloned()"));
 }
 

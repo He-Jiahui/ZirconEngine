@@ -1,3 +1,10 @@
+//! 旧项目资产引用的兼容迁移入口。
+//!
+//! 批量入口只识别键恰为 uuid 与 url 的旧对象；带预算的批量入口先检查整份 JSON 的资源上限，
+//! 通过后才开始重写和调用解析器。单对象入口只接收根对象，不遍历其容器。
+//! 本模块不读取文件，也不确认 GUID 与资源注册表的对应关系；Runtime 调用方在
+//! zircon_runtime/src/asset/migration/resolver.rs 的 MigrationResolver::resolve 中完成该解析。
+
 #[path = "budget.rs"]
 mod budget;
 #[path = "error.rs"]

@@ -1,5 +1,5 @@
 use std::{
-    ffi::{c_void, OsStr},
+    ffi::{OsStr, c_void},
     fs::File,
     io,
     os::windows::{

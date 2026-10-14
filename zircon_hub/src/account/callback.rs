@@ -1,13 +1,13 @@
 use super::AccountError;
 use axum::{
-    extract::{RawQuery, State},
-    http::{header, HeaderMap, StatusCode},
-    routing::get,
     Router,
+    extract::{RawQuery, State},
+    http::{HeaderMap, StatusCode, header},
+    routing::get,
 };
-use openidconnect::{url::form_urlencoded, AuthorizationCode, CsrfToken};
+use openidconnect::{AuthorizationCode, CsrfToken, url::form_urlencoded};
 use std::{future::IntoFuture, sync::Arc};
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{Mutex, oneshot};
 
 #[derive(Clone)]
 struct CallbackState {

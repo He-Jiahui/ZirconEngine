@@ -1,0 +1,1366 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "public-ui-template-005",
+  "reviewer": "/root",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewedAtUtc": "2026-10-14 09:21:12 UTC",
+  "state": "independently-reviewed-awaiting-coordinator",
+  "wholeRepositoryComplete": false,
+  "inputEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-ui-template-005.json",
+    "sha256": "e75067d5bc09b187b11bd1d1d8c22b7fa16b9f2debfc8d0df3d7739b60aedb58",
+    "immutable": true,
+    "objectCount": 101,
+    "flowBlockCount": 71,
+    "callerCount": 28
+  },
+  "baselineHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "reviewedFileCount": 8,
+  "pendingFileCount": 0,
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "initialSha256": "27da1b34a0d3825f834eb49a1b5cabdb2b90b209a4c8308bf5254a8c93560ca9",
+      "currentSha256": "91a95dd04e954ae6a8d0d105c7336251238596d3bfaecd28d9fcbb57ed9cbb0a",
+      "bytes": 4518,
+      "lineCount": 89,
+      "insertedCommentOrBlankLines": 3,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "91a95dd04e954ae6a8d0d105c7336251238596d3bfaecd28d9fcbb57ed9cbb0a",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "initialSha256": "91e010741ca4ab53df356455df3c638a0b60dff9585897c2a8f41d01c21abdeb",
+      "currentSha256": "b21845024c31e941e424579c6fcab84169b4cb38154dc78a9c80a60a1f034210",
+      "bytes": 17065,
+      "lineCount": 386,
+      "insertedCommentOrBlankLines": 76,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "b21845024c31e941e424579c6fcab84169b4cb38154dc78a9c80a60a1f034210",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": [
+        "CR-R02-public_ui_templates-0001"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "initialSha256": "5c280ebb6ab6a4c631d797df1fc2b008a62b06e88b7e98ef6809dbd538d53394",
+      "currentSha256": "72d01edde9c5bdf865674ab0e6f39b907c81da3b82d0e3e2b1c510f8ccc01cea",
+      "bytes": 6682,
+      "lineCount": 153,
+      "insertedCommentOrBlankLines": 18,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "72d01edde9c5bdf865674ab0e6f39b907c81da3b82d0e3e2b1c510f8ccc01cea",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "initialSha256": "8656e545028fa49d1f6c555e52b2fa86b025c5c978e76634310296db1538adc1",
+      "currentSha256": "52ecf3eaa37c3e6a6c54851df01c1c6b7aec4afae7ed1491a18943794a634e0c",
+      "bytes": 10977,
+      "lineCount": 259,
+      "insertedCommentOrBlankLines": 30,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "52ecf3eaa37c3e6a6c54851df01c1c6b7aec4afae7ed1491a18943794a634e0c",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "initialSha256": "792f594f2253671ceda8cf12ec6dee774907a44fe1d8d7a4b555e86967c29117",
+      "currentSha256": "25f1308b1db9df7de102b2b06e013f69f57734f0216e1be99acc9a088159d5b6",
+      "bytes": 1191,
+      "lineCount": 30,
+      "insertedCommentOrBlankLines": 4,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "25f1308b1db9df7de102b2b06e013f69f57734f0216e1be99acc9a088159d5b6",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "initialSha256": "7afe81dccd4d662cc65cf54b5107cc59ba342e41e7c7286a4477b3b45c6e5ded",
+      "currentSha256": "547b076a7f54c129ef7730d665634d3e83920df79a5ea631274e1ef200eda7a5",
+      "bytes": 11004,
+      "lineCount": 310,
+      "insertedCommentOrBlankLines": 10,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "547b076a7f54c129ef7730d665634d3e83920df79a5ea631274e1ef200eda7a5",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "initialSha256": "052b5553b0b08c97ce8f1390a82be518f9fd00de976cd56ee17541f5ec58954e",
+      "currentSha256": "0d94c0cc0a41ccc016eb75b63b23a548990c48c2763942023f00bcbce6bf1ef1",
+      "bytes": 8430,
+      "lineCount": 204,
+      "insertedCommentOrBlankLines": 61,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "0d94c0cc0a41ccc016eb75b63b23a548990c48c2763942023f00bcbce6bf1ef1",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "initialSha256": "e14351b5651d0120e1519b890f35f8bdeab7d51d339334d65f53024d002ed03e",
+      "currentSha256": "c59dc1e83f2d146f2926be71e97eb8d3512cd2a1ac09669a66241b59b78a39b3",
+      "bytes": 37264,
+      "lineCount": 927,
+      "insertedCommentOrBlankLines": 76,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "c59dc1e83f2d146f2926be71e97eb8d3512cd2a1ac09669a66241b59b78a39b3",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": [
+        "ZCA-TPL05-TODO-001"
+      ]
+    }
+  ],
+  "objectEvidence": [
+    {
+      "id": "TPL05-R001",
+      "object": "module asset 与私有子模块声明",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R002",
+      "object": "pub use action_policy",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R003",
+      "object": "pub use binding",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R004",
+      "object": "pub use compiler",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R005",
+      "object": "pub use component_contract",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R006",
+      "object": "pub use document",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R007",
+      "object": "pub use invalidation",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R008",
+      "object": "pub use localization",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R009",
+      "object": "pub use prototype",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R010",
+      "object": "pub use resource_ref",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R011",
+      "object": "pub use schema",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R012",
+      "object": "pub use style",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R013",
+      "object": "UiAssetKind",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R014",
+      "object": "UiAssetHeader",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R015",
+      "object": "UiAssetImports",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R016",
+      "object": "UiAssetDocument",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R017",
+      "object": "UiAssetDocument::root_node_id",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R018",
+      "object": "UiAssetDocument::component_root_node_id",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R019",
+      "object": "UiNodeDefinitionKind",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R020",
+      "object": "UiNodeDefinition",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R021",
+      "object": "UiChildMount",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R022",
+      "object": "UiComponentDefinition",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R023",
+      "object": "UiComponentParamSchema",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R024",
+      "object": "UiNamedSlotSchema",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "命名槽以 accepts 列表约束组件名；空列表表示不限制。实际调用为 Runtime prototype_instancer 和 component_instance_expander，不以编译器结构定义证明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R025",
+      "object": "UiNamedSlotSchema::accepts_component",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "accepts_component 只比较接口声明的组件标识；实际展开入口负责调用，接口字段并不执行跨资产验证。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R026",
+      "object": "UiStyleScope",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R027",
+      "object": "UiStyleSheet",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R028",
+      "object": "UiStyleRule",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R029",
+      "object": "UiStyleDeclarationBlock",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R030",
+      "object": "UiActionRef",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R031",
+      "object": "UiAssetError",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R032",
+      "object": "parse_component_reference",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R033",
+      "object": "default_asset_version",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R034",
+      "object": "UiPrototypeNodeHandle",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R035",
+      "object": "UiPrototypeNodeHandle::new",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R036",
+      "object": "UiPrototypeNodeHandle::index",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R037",
+      "object": "UiRawAssetPrototype",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R038",
+      "object": "UiRawAssetPrototype::node",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "node 通过 Vec::get 检查当前表内数值边界；在范围内的外来表句柄仍可返回 Some，不包含表身份验证。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R039",
+      "object": "UiRawAssetPrototype::node_count",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R040",
+      "object": "UiDocumentPrototype",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R041",
+      "object": "UiComponentPrototype",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R042",
+      "object": "UiStylePrototype",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R043",
+      "object": "UiNodePrototype",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R044",
+      "object": "UiPrototypeChildMount",
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R045",
+      "object": "UiSelector",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R046",
+      "object": "UiSelectorSegment",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R047",
+      "object": "UiSelectorCombinator",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R048",
+      "object": "UiSelectorToken",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R049",
+      "object": "UiSelectorSpecificity",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R050",
+      "object": "UiSelectorSpecificity::new",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R051",
+      "object": "UiSelectorSpecificity::legacy_display_score",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R052",
+      "object": "UiSelector::parse",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R053",
+      "object": "UiSelector::specificity",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R054",
+      "object": "parse_compound_tokens",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R055",
+      "object": "split_whitespace_prefix",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R056",
+      "object": "skip_whitespace",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R057",
+      "object": "selector performance module declarations",
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R058",
+      "object": "binding module declarations",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R059",
+      "object": "pub use diagnostic",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R060",
+      "object": "pub use expression",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R061",
+      "object": "pub use schema",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R062",
+      "object": "pub use target",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R063",
+      "object": "UI_BINDING_SCHEMA_NAME_MAX_BYTES",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R064",
+      "object": "UiBindingContractTerm and inherent API",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "术语对应关系以 Runtime schema_naming.rs 28–42 的测试为证；接口 tests/schema.rs 不覆盖此契约。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R065",
+      "object": "UiBindingSchemaNameKind and inherent API",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R066",
+      "object": "UiBindingSchemaNameKind::Display",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R067",
+      "object": "UiBindingSchemaNameError",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R068",
+      "object": "UiActionPayloadFieldName and inherent API",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "值种类对应关系以 Runtime schema_naming.rs 51–67 的测试为证；接口 tests/schema.rs 不覆盖此契约。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R069",
+      "object": "validate_payload_field",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R070",
+      "object": "validate_dotted_name",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R071",
+      "object": "schema unit-test module",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "rootDisposition": "接口 schema 测试覆盖字段名往返、未知项与 surface Entity 的拒绝，并含 ignored release benchmark；不据此推断术语与 value-kind 测试。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R072",
+      "object": "UiBindingMissingValuePolicy",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R073",
+      "object": "UiBindingMissingValueResolution",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R074",
+      "object": "UiBindingMissingValuePolicy::resolve",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "缺失策略由 UiSurface::prepare_binding_targets 449–500 调用 resolve：Omitted 跳过，required-explicit 失败；不是 UiBindingExpr::resolve。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R075",
+      "object": "UiBindingMissingValuePolicy::substitute",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R076",
+      "object": "UiBindingMissingValuePolicy::is_well_formed / is_required",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R077",
+      "object": "UiBindingTargetAssignment",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R078",
+      "object": "UiBindingTarget",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R079",
+      "object": "UiBindingTarget constructors",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R080",
+      "object": "UiBindingTargetKind",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R081",
+      "object": "UiBindingTargetSchema",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R082",
+      "object": "expression budget constants",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R083",
+      "object": "UiBindingExpression AST",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "解析生成 AST，与 Runtime 编译 IR 分开；AST evaluate_with 同时确有 Runtime 动作和 Editor 预览的直接消费者。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R084",
+      "object": "UiBindingExpression::parse",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "evaluate_with 在 AST 上执行 resolver 驱动的求值，生命周期由调用作用域约束；不声称所有消费者必须先编译 IR。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R085",
+      "object": "param reference query API",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R086",
+      "object": "control reference probe API and TODO",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R087",
+      "object": "UiBindingExpressionParseError and trait impls",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R088",
+      "object": "private Token enum",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R089",
+      "object": "private Parser state",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R090",
+      "object": "Parser::new / Parser::parse",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R091",
+      "object": "Parser precedence methods",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R092",
+      "object": "Parser unary and primary methods",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R093",
+      "object": "Parser path and typed literal helpers",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R094",
+      "object": "Parser argument and expectation helpers",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R095",
+      "object": "Parser token cursor helpers",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R096",
+      "object": "expression budget helpers",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R097",
+      "object": "tokenization entry points",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R098",
+      "object": "test-only unbounded tokenizer",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "词法辅助逻辑随 expression.rs 全文审查；不虚构独立块数量或不存在的资源预算。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R099",
+      "object": "input and string escape helpers",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R100",
+      "object": "number and identifier helpers",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "已独立读取所属源文件定义、分支与所需调用上下文；完整对象/块清单沿用 inputEvidence，此项未发现需要改写的新增说明。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    },
+    {
+      "id": "TPL05-R101",
+      "object": "evaluator and expression test module declarations",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "rootDisposition": "evaluator 和测试子模块声明；Runtime 动作及 Editor 预览直接调用 AST 求值的路径保留，具体 evaluator 及其测试由006单独归属。",
+      "evidenceReference": "inputEvidence object/flow rows; rootSourceReadEvidence and rootCallerContextReadEvidence"
+    }
+  ],
+  "objectCount": 101,
+  "flowBlockCount": 71,
+  "callerEvidence": [
+    {
+      "id": "TPL05-C01",
+      "path": "zircon_runtime/src/ui/template/asset/document.rs",
+      "sha256": "66537079a8f555d3cbbf1d05ec0b7a8ec5155fbefe1846033ac09d863c9b9c7e",
+      "symbols": "UiAssetDocumentRuntimeExt 查询、修改及 validate_tree_authority 实现",
+      "contract": "提供树模型的 Runtime 扩展；不是原型加载器，也不能据此推断 flat→prototype 先经树迁移。",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C02",
+      "path": "zircon_runtime/src/ui/template/asset/document/validation.rs",
+      "sha256": "4fc8fe8b57b06f0c6cd13998ce838bf6c9bedacbdf20c8a2d0de3f436f563094",
+      "symbols": "document validation 私有辅助",
+      "contract": "为 C01 的验证实现提供辅助；不把 validate_document/validate_tree_authority 的定义归到此文件。",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C03",
+      "path": "zircon_runtime/src/ui/template/asset/schema/migrator.rs",
+      "sha256": "4daaa0cfe656ce87f86b70a97ef9671f1ccf733341a897675fc3878ca54ccae0",
+      "symbols": "source-version migration",
+      "contract": "consumes UiAssetHeader.version and maps supported source versions; does not make public model constructors self-validating",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C04",
+      "path": "zircon_runtime/src/ui/template/asset/prototype_store.rs",
+      "sha256": "fcf559059be6391a8c455daf8d07d1177ba07ec8800e17b3abcf9c0a205d489c",
+      "symbols": "component/style import resolution and prototype lookup",
+      "contract": "resolves declared component references against registered/imported assets and constructs the runtime-owned prototype context",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C05",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs",
+      "sha256": "9430e3799bf0a8b1c5892c6ddbb22212cb4a30091a49f9d4e30d75bb03184f42",
+      "symbols": "apply_prototype_child_mount; prototype node lookup/instantiation",
+      "contract": "uses prototype-local handles; child mount values resolve at parent call site, default mui_slot only fills absence, then normalized values reach expanded root slot_attributes",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C06",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs",
+      "sha256": "761330858c86990904fd338bb1dff34c6167e6f4e220254f66a796b0adc3998b",
+      "symbols": "apply_child_mount",
+      "contract": "same source-component path: resolve slot map, insert default mui_slot only when missing, normalize and merge into each expanded root node",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C07",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/value_normalizer.rs",
+      "sha256": "3eb104d52173bb0bbea1e9473e750cdab9e8290f13bfe294455ab35281850ad0",
+      "symbols": "merge_value_maps_resolved; normalize_layout",
+      "contract": "recursively merges tables; scalar/array values replace; layout normalization occurs after resolved map composition",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C08",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver.rs",
+      "sha256": "a9440f9be96a5fe93a84682ca8c56d6211b9958e466826b6b1cd27cb348ab0cc",
+      "symbols": "UiStyleResolver::apply",
+      "contract": "assembles widget, imported and local styles in actual input order, then builds/applies the style plan",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C09",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/style_apply.rs",
+      "sha256": "138964bb1de4c3f886335e36bb01c6940c8cf5245d3675bf3f8363d186d4dc53",
+      "symbols": "build_style_plan; apply_styles_to_tree",
+      "contract": "parses selectors, matches path, sorts by (specificity, source_order), applies self values and slot values to separate node maps",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C10",
+      "path": "zircon_runtime/src/ui/template/asset/style.rs",
+      "sha256": "e4b7f50f45ad67f997f3fa6808fb736021993c51c1991efd27e3f8a733ff0fb0",
+      "symbols": "matches_token",
+      "contract": "generic Runtime matching supports Type/Class/Id/State/Host and returns false for Part",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C11",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/control_scope.rs",
+      "sha256": "cf6958d78a2a4ca466f254f27905ef6a35c94bd5a62c04437541e281e6e9b408",
+      "symbols": "probe_control_reference; resolve_binding_control_scope; qualify_control_refs",
+      "contract": "scope-less input remains unchanged; scoped path prefilters, fully parses hits, then qualifies references; action payload additionally checks its expression marker",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C12",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/binding_param_resolver.rs",
+      "sha256": "4eb61b7029bd1f0aaafe242fea07136eebee0e5334b8387d641fe5a722fa1917",
+      "symbols": "probe_param_reference / parameter resolution",
+      "contract": "uses token probe to identify candidates; complete parsing and component parameter resolution remain later compiler work",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C13",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/binding_program.rs",
+      "sha256": "b45b8db697a9c4e2fd865cc50d4eb20b889f073c5987227514c604e8aab86f2a",
+      "symbols": "compile_expression; UiCompiledBindingExpression construction",
+      "contract": "parses source AST, then compiles it to the compiled binding representation; parse does not itself evaluate at runtime",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C14",
+      "path": "zircon_runtime/src/ui/template/asset/binding/validation.rs",
+      "sha256": "4a8f764339df4bda489c291dce03bb24323dbf5d3101d818949a21df95eb3c84",
+      "symbols": "validate expression/target payload; expected_kind_for_target",
+      "contract": "checks target/expression compatibility and known action field kinds after parsing; unknown custom field may remain untyped",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C15",
+      "path": "zircon_runtime/src/ui/surface/binding_targets.rs",
+      "sha256": "01033bf26fbc7f2bd13ba0319db5d60de1fa1e96ca427fa398e733a31c2f13c6",
+      "symbols": "UiSurface::prepare_binding_targets",
+      "contract": "绑定准备期间调用 missing policy.resolve；Omitted 被跳过，required-explicit 返回错误；不是 UiBindingExpr::resolve。",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C16",
+      "path": "zircon_runtime/src/ui/surface/surface/pointer_component_events/action.rs",
+      "sha256": "1466d34a5a03b5143535b6de8544b5198261c79d7abe103e76fa6d303f9c2705",
+      "symbols": "action payload dispatch",
+      "contract": "Required/ExplicitError absence fails dispatch; Optional omits field; payload resolution belongs to event path",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C17",
+      "path": "zircon_runtime/src/ui/template/asset/component_contract/validation.rs",
+      "sha256": "7729f24e4b35c8bb30d438792d3c5b40319a616eb66a8d27ef3db621dffe0354",
+      "symbols": "component public contract and named-slot validation",
+      "contract": "不以该结构/上下文断言它直接调用 accepts_component；实际调用补证为 C05 prototype_instancer 720–762/call750 和 C06 component_instance_expander 295–335/call321。",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C18",
+      "path": "zircon_runtime/src/ui/template/asset/resource_ref/collect.rs",
+      "sha256": "c0b9494e18419a2f5f217a727c2e5673fc3a382e3e15b17d835703933c03d65e",
+      "symbols": "resource import/reference collection",
+      "contract": "consumes UiAssetImports.resources during resource collection",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C19",
+      "path": "zircon_runtime/src/ui/tests/asset_binding/schema_naming.rs",
+      "sha256": "69f2b29d096618551f1e36550848c858cd7f5b226c9df7e3e9fbc9b488224375",
+      "symbols": "schema naming tests",
+      "contract": "checks shared schema names and diagnostics against runtime integration",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C20",
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "sha256": "9b89fe4d2d1d852396725649a27af9837e447f52ebe4b77fcf9d3f2c85cf7042",
+      "symbols": "selector contract tests",
+      "contract": "checks parse shape, token grammar and specificity ordering at interface layer",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C21",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs",
+      "sha256": "228e93961895eae999462b040528d9cbe2ffc00c6fde3805563d723a2a987f59",
+      "symbols": "schema module tests",
+      "contract": "接口字段名往返、未知项拒绝、surface Entity 拒绝及 ignored benchmark；术语和 value-kind 对应的测试在 C19 Runtime schema_naming.rs。",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C22",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/expression.rs",
+      "sha256": "071e96e4b606b885f5aa6223e7bfd2d7e402cd193d73c69b190a5b655ec0150d",
+      "symbols": "expression tests; historical foreign owner, read-only",
+      "contract": "covers token-root detection, quoted text, budgets and non-root references; no test for non-prop middle segment",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C23",
+      "path": "zircon_runtime/src/ui/tests/event_routing/component_events/missing_policy.rs",
+      "sha256": "387c174e7676b6837338ca0750b2346fc8035aa3123a288bd2571bed2e918ef7",
+      "symbols": "missing policy integration tests",
+      "contract": "checks required/optional/default/fallback/error decisions through event binding path",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C24",
+      "path": "zircon_runtime/src/ui/tests/asset_binding/compiled_program.rs",
+      "sha256": "4a404117950b37646dff2b89e7e307bfa4aeecfbe738705bc4185de6745ceff4",
+      "symbols": "compiled program integration tests",
+      "contract": "exercises the parsed/compiled binding pipeline and resulting target behavior",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C25",
+      "path": "zircon_runtime/src/ui/template/asset/style/tests/single_match_tests.rs",
+      "sha256": "3bf232fc471b837ed142b00f14177c1c552c0088ca4bbe296ddbac780558efd2",
+      "symbols": "selector matcher tests",
+      "contract": "exercises runtime selector matching and excludes any claim that Part is matched by the generic matcher",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C26",
+      "path": "zircon_editor/src/ui/asset_editor/style/matched_rule_inspection.rs",
+      "sha256": "af6fa0aa3a16ec8bf8ba0f6058ae63bbda4fefc6b44ce1dc010d6e1b9c1105d1",
+      "symbols": "InspectorSelector::cascade_specificity; collect_matching_rules",
+      "contract": "production editor path parses/matches rules; sort key is (cascade_specificity, source_order); legacy_display_score is copied only to display field",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C27",
+      "path": "zircon_editor/src/tests/ui/ui_asset_editor/palette_descriptor_registry.rs",
+      "sha256": "a849a75033e133d22a05990e027856736a2ebfb56e05ea034edf8f4b056c95d0",
+      "symbols": "palette descriptor tests; unrelated to selector",
+      "contract": "covers descriptor palette entries, local/imported reference sources and inserted templates; selector/specificity search had no matches",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C28",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs",
+      "sha256": "8ef1c33c51334583830be8ca1c4a4918bba5f0c9c0c377b7de84eeec5164f8b8",
+      "symbols": "编译器结构、结果、配置与导入注册",
+      "contract": "本文件定义结构及模块边界；实际 compile 方法定义和排序在 compiler/compile.rs 补证。",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    }
+  ],
+  "rootSourceReadEvidence": [
+    {
+      "nativeChunk": "3a0bd0",
+      "scope": "8文件定义与分支全文，按该次源pin读取；prototype 随后作定点说明纠正"
+    },
+    {
+      "nativeChunk": "e4d51b",
+      "scope": "target 最终字段与对象85–94补全、28 caller pin读取"
+    },
+    {
+      "nativeChunk": "c32394",
+      "scope": "target91–170"
+    },
+    {
+      "nativeChunk": "0e879d",
+      "scope": "prototype1–90、expression1–132及 overlay 调用分支"
+    },
+    {
+      "nativeChunk": "acc0b6",
+      "scope": "prototype全文153行（最后两条新增说明改正前）"
+    },
+    {
+      "nativeChunk": "c167c4",
+      "scope": "最终 prototype 的全部改动说明、基线146及最终pin；最后两条新增说明已经纠正"
+    }
+  ],
+  "rootObjectTableReadEvidence": [
+    {
+      "nativeChunk": "ff7b23",
+      "scope": "初段对象表"
+    },
+    {
+      "nativeChunk": "4c7fb0",
+      "scope": "中段对象表"
+    },
+    {
+      "nativeChunk": "e03add",
+      "scope": "后段对象表"
+    },
+    {
+      "nativeChunk": "ffbce1",
+      "scope": "末段对象表"
+    },
+    {
+      "nativeChunk": "e4d51b",
+      "scope": "补全85–94；不对截断未读输出计功"
+    }
+  ],
+  "rootCallerContextReadEvidence": [
+    {
+      "nativeChunk": "b0a149",
+      "scope": "真实 flat loader/flat_nodes 与 migrator 方向"
+    },
+    {
+      "nativeChunk": "cd0c0e",
+      "scope": "直接 AST Runtime/Editor 消费和实际 compile 定义"
+    },
+    {
+      "nativeChunk": "c21dc5",
+      "scope": "selector/schema 测试全文和真实测试范围"
+    }
+  ],
+  "supplementalCallerEvidence": [
+    {
+      "path": "zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs",
+      "sha256": "d8e8c705c10e6294648ee653957de530e2a36de625355c75a34ef7edd92a9c7b",
+      "readSections": [
+        "1–180",
+        "360–390"
+      ],
+      "use": "直接 flat 源节点表→原型；BTreeMap 节点名排序后分配稠密句柄并写入节点 Vec；不宣称全文448行审查。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/asset/schema/migrator.rs",
+      "sha256": "4daaa0cfe656ce87f86b70a97ef9671f1ccf733341a897675fc3878ca54ccae0",
+      "readSections": [
+        "1–100"
+      ],
+      "use": "公共迁移入口按 header 接受源版本，再将 flat 迁为 tree；与直接原型加载器分别取证。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/asset/loader.rs",
+      "sha256": "576689adb49887accba085fc6d67bff3ed69fb7ecfed008a2405d965ef895fdb",
+      "readSections": [
+        "1–53"
+      ],
+      "use": "22–23直接调用 flat 原型解析；26–29另有 tree 加载，不是 tree→flat 共同转换。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/asset/prototype_file_cache.rs",
+      "sha256": "4f899797a4690946f40705d902471e2357bc55e038ddcd78eac48ea415e3ebca",
+      "readSections": [
+        "207–228"
+      ],
+      "use": "文件缓存读取 flat 原型的实际入口。"
+    },
+    {
+      "path": "zircon_editor/src/ui/asset_editor/style/matched_rule_inspection.rs",
+      "sha256": "af6fa0aa3a16ec8bf8ba0f6058ae63bbda4fefc6b44ce1dc010d6e1b9c1105d1",
+      "readSections": [
+        "35–115"
+      ],
+      "use": "Editor 生产选择器使用；84按 specificity 排序，108显示匹配规则。不存在的 Editor/src/tests 猜测路径未作证据。"
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/runtime/projection.rs",
+      "sha256": "6a03e9a79ab818cf4d4fc2fa3533cf1bcc958d0148f7df0b88cc7197e3954657",
+      "readSections": [
+        "709–730"
+      ],
+      "use": "Editor 预览解析表达式后直接 AST evaluate_with。"
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/runtime/compiled_template_action.rs",
+      "sha256": "3eedae39b7b7946813707dd2d2ad76b6a4ac229a46de00f190c12e540cb7fbfd",
+      "readSections": [
+        "104–125"
+      ],
+      "use": "AST 动作变体直接调用 evaluate_with；不把 IR 命名误当所有表达式的排他消费方式。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/surface/pointer_component_events/action.rs",
+      "sha256": "1466d34a5a03b5143535b6de8544b5198261c79d7abe103e76fa6d303f9c2705",
+      "readSections": [
+        "216–240"
+      ],
+      "use": "Runtime 动作解析并直接求值 AST。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/asset/compiler/compile.rs",
+      "sha256": "b2244053d7e94e06f5923fae8c712142c75c098f1cd6d9bef1676f121d956c9f",
+      "readSections": [
+        "1–100"
+      ],
+      "use": "实际 compile30 validate→root36→expand50→unique68→styles71→bindings72→resources74→result80。"
+    }
+  ],
+  "boundaryQualifications": [
+    "UiPrototypeNodeHandle 仅是数值索引，不带表身份；公开构造/serde 不能保证句柄有效。直接 flat 加载器与 tree 迁移入口分开，不再用 tree→flat 描述实际缓存路径。",
+    "StyleScope Open/Closed 是存储枚举，尚不能证明样式隔离生效；CR-R02-public_ui_templates-0001 保留。UiStyleSheet 仅保存 id/rules；未声称它执行选择器解析或级联。",
+    "UiNamedSlot.accepts 为空时不限制组件名；实际展开调用的验证与纯数据字段分别取证。",
+    "UiBindingExpr AST 有直接 Runtime 动作及 Editor 预览消费者；IR 编译与 AST 求值并存。",
+    "保留 ZCA-TPL05-TODO-001 的证据缺口，不将预探针行为推断为安全边界。",
+    "冻结005的101对象、71块、28调用者是该批审查分组，不声称随后006的文件已完成全文审查。"
+  ],
+  "crossBatchDependencies": [
+    {
+      "batch": "ui-template-tests-006",
+      "state": "active separately owned",
+      "paths": [
+        "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs"
+      ],
+      "action": "006修改005的C20/C21测试调用者时提供前后pin及契约连续性，冻结005不回写；本记录不授予006审查完成。"
+    },
+    {
+      "batch": "runtime/compiler",
+      "state": "read-only context",
+      "action": "compiler结构内旧TODO不属于此批新增issue；未修改其源码。"
+    }
+  ],
+  "validation": {
+    "rawByteProof": {
+      "nativeChunk": "bfd5ba",
+      "exitCode": 0,
+      "originalCodeCommentsEolPreserved": true,
+      "insertedCommentOrBlankLines": 278
+    },
+    "checks": {
+      "format": {
+        "argv": [
+          "C:/Users/HeJiahui/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin/rustfmt.exe",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "--check",
+          "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs"
+        ],
+        "returncode": 0,
+        "childEOF": true,
+        "stdout": "",
+        "stderr": ""
+      },
+      "diff": {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+          "--",
+          "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs"
+        ],
+        "returncode": 0,
+        "childEOF": true,
+        "stdout": "",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/binding/expression.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/binding/target.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/document.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/prototype.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      "guard": {
+        "argv": [
+          ".jenkins/runtime/python/python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--repo-root",
+          "E:\\Git\\ZirconEngine",
+          "--profile",
+          "zircon-strict",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs"
+        ],
+        "returncode": 0,
+        "childEOF": true,
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"1d8a5954eb9637cbc447428ae3cfe1bf7be8c1f8b8912370e740ee085e3929c9\",\r\n    \"base\": \"5a547d4e2727d27ddf99578f548efb7e6d19d915\",\r\n    \"files\": [\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/expression.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/mod.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/schema.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/target.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/document.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/mod.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/prototype.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/style.rs\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"zircon_runtime_interface/src/ui/template/asset/mod.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/document.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/prototype.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/style.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/mod.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/schema.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/target.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/binding/expression.rs\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n",
+        "stderr": ""
+      }
+    },
+    "toolHashes": {
+      "rustfmt": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+      "guard": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734"
+    },
+    "formalCoordinator": {
+      "status": "pending actual original request supported source-owner recipe and flow tickets",
+      "acceptance": false
+    },
+    "cargoBuildTestsDocMacroExecution": "not run; no invented gate"
+  },
+  "correctionHistory": [
+    {
+      "state": "historical invalid draft not credited",
+      "detail": "早期证据起稿输出截断并触发 Path.write_text newline 参数错误；新冻结005重新生成101/71/28，不使用不存在的旧56/37行号。"
+    },
+    {
+      "receipt": "52cc64",
+      "state": "historical format failure",
+      "detail": "target 两处新字段说明的格式修正后才通过；旧失败保留。"
+    },
+    {
+      "state": "root annotation correction",
+      "detail": "用实际 flat loader 及 AST 直接消费者纠正新增说明；现有基线注释原文保留。"
+    },
+    {
+      "receipt": "93149d",
+      "state": "failed before format/guard",
+      "detail": "root修正新增prototype93/100时误改一条基线146，字节子序列断言拒绝。50493e证明只该基线行被改；root118普通补丁恢复原文。"
+    },
+    {
+      "receipt": "bfd5ba",
+      "state": "final passing local evidence",
+      "detail": "最终8文件所有原代码/旧注释/LF保留，精确 rustfmt/diff/guard 全部exit0。"
+    },
+    {
+      "state": "unwritten metadata path correction",
+      "receipt": "79250a",
+      "detail": "摘要中的简写路径误扩成不存在的路径；写入前逐路径实读发现，已从原始 root102/root110 实际 SOURCE/FILE 输出恢复精确路径，不对失败路径计功。"
+    }
+  ],
+  "issueIds": [
+    "CR-R02-public_ui_templates-0001",
+    "ZCA-TPL05-TODO-001"
+  ],
+  "commit": null,
+  "notification": {
+    "sent": false
+  },
+  "artifactLifecycle": {
+    "compilerOutputsCreated": 0,
+    "sourceCopiesCreated": 0,
+    "releasedBytes": 0,
+    "status": "formal manifest and original native lifecycle remain open"
+  }
+}

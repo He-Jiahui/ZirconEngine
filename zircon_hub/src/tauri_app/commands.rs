@@ -7,13 +7,13 @@ use std::time::{Duration, Instant};
 use tauri::Emitter;
 
 use crate::error::HubError;
-use crate::process::editor_child_receipt::EditorChildTerminalReceipt;
 use crate::process::EditorChildReaper;
+use crate::process::editor_child_receipt::EditorChildTerminalReceipt;
 
 use super::action_id::HubActionId;
 use super::action_request::HubActionRequest;
-use super::runtime_state::action_tasks::{run_background_worker_loop, EditorLaunchOwner};
 use super::runtime_state::HubRuntimeSession;
+use super::runtime_state::action_tasks::{EditorLaunchOwner, run_background_worker_loop};
 use super::view_model::HubViewModel;
 
 #[path = "commands/focus_refresh_gate.rs"]
@@ -219,7 +219,10 @@ fn project_editor_terminal_receipts(
         let view_model = match &result {
             Ok(changed) => changed.then(|| session.publish_view_model()),
             Err(error) => {
-                eprintln!("zircon_hub: failed to persist Editor child terminal attempt {} PID {}: {error}", receipt.attempt_id, receipt.process_id);
+                eprintln!(
+                    "zircon_hub: failed to persist Editor child terminal attempt {} PID {}: {error}",
+                    receipt.attempt_id, receipt.process_id
+                );
                 Some(session.publish_view_model())
             }
         };
@@ -441,7 +444,9 @@ impl HubEditorShutdownHandle {
                     }
                 }
             } else {
-                eprintln!("zircon_hub: Editor shutdown could not persist incomplete owner because the Hub session lock stayed busy");
+                eprintln!(
+                    "zircon_hub: Editor shutdown could not persist incomplete owner because the Hub session lock stayed busy"
+                );
             }
         }
         if let Some(mut session) = lock_before_deadline(&self.session, deadline) {

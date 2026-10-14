@@ -1,3 +1,9 @@
+//! 注册表的行为契约测试：用显式通道控制动作、finalizer、wake 和 owner 清理的完成顺序。
+//!
+//! 重点区分未完成销毁与成功删除，验证关闭失败后输出可归还、普通动作仍拒绝、随后可显式重试。
+//! allocation 测试验证会话绑定编号与唯一回收；耗时测试中的串行锁只协调使用该锁的测试。
+//! 子模块分别补充 owned event、registry 锁截止时间及 Windows watcher 退出的接线。
+
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -81,6 +87,7 @@ fn committed_session_result_rolls_back_in_flight_state_when_finalization_fails()
     assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
 }
 
+/// 测试 wake 进入后等待独立 Release 标志；销毁线程须等回调 guard 归还后才能完成。
 unsafe extern "C" fn blocking_wake(_token: u64) {
     WAKE_ENTERED.store(true, Ordering::Release);
     while !WAKE_RELEASED.load(Ordering::Acquire) {
@@ -88,6 +95,7 @@ unsafe extern "C" fn blocking_wake(_token: u64) {
     }
 }
 
+/// 超时用的独立回调屏障，避免与普通 quiescence 测试共用进入/放行标志。
 unsafe extern "C" fn blocking_timeout_wake(_token: u64) {
     TIMEOUT_WAKE_ENTERED.store(true, Ordering::Release);
     while !TIMEOUT_WAKE_RELEASED.load(Ordering::Acquire) {
@@ -99,6 +107,7 @@ unsafe extern "C" fn counting_wake(token: u64) {
     WAKE_COUNT.fetch_add(token as u32, Ordering::AcqRel);
 }
 
+/// 在 wake 回调线程内尝试同步销毁，记录拒绝状态而不改变正常线程随后清理的前提。
 unsafe extern "C" fn reentrant_destroy_wake(_token: u64) {
     let handle = zircon_runtime_interface::ZrRuntimeSessionHandle::new(
         REENTRANT_DESTROY_HANDLE.load(Ordering::Acquire),
@@ -859,6 +868,7 @@ fn outstanding_runtime_allocation_blocks_destroy_until_release_and_retry() {
 }
 
 #[test]
+/// 测量完整登记/归还循环，样本包含 payload 克隆及会话准入，不能当作裸计数器分配的耗时。
 fn runtime_allocation_registry_performance_acceptance() {
     let _serial = REGISTRY_TIMING_TEST_SERIAL
         .lock()

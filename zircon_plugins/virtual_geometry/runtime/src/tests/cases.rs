@@ -2,6 +2,8 @@ use super::*;
 
 #[path = "product_args_prepare.rs"]
 mod product_args_prepare;
+#[path = "unified_indirect_cpu.rs"]
+mod unified_indirect_cpu;
 #[path = "uploader_contract.rs"]
 mod uploader_contract;
 #[path = "virtual_geometry_execution.rs"]

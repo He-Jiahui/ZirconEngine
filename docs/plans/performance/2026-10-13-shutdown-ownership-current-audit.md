@@ -3,13 +3,13 @@ doc_type: current-source-architecture-review
 status: pending_validation
 date: 2026-10-13
 task_id: engine-audit-20261009-01a12097
-source_head: 5a547d4e2727d27ddf99578f548efb7e6d19d915
+source_head: 1de7f1af1f86b124645acdb2743bfe9064f6da8b
 source_root: E:/Git/ZirconEngine
 ---
 
 # 当前源码的关闭责任与阅读覆盖
 
-最新累计覆盖和本轮callee结论见第10节；第1–9节的“当前”统计保留此前282行切片的时间范围，独立复核只绑定各自的准确指纹。
+最新引擎阅读覆盖和callee结论见第11节，records归档及执行输入差异见第12节；此前各节的“当前”保留各自切片的时间范围，独立复核只绑定准确指纹。
 
 本记录补充[架构执行流](2026-10-04-architecture-audit-flow.md)，服务于 MVP `00/F0` 的失败与退出审查。Root 负责归属判断和问题去重，三路 Luna 按限定范围阅读全文，Sol 独立串联 pool、回调与 ABI 关闭契约。所有阅读绑定本表的实际源码字节；HEAD 相同并不能替代文件指纹。新正文阅读前核对了既有执行流和指定 module-reviews 中的同 pin 证据，未找到可复用的完整正文记录。
 
@@ -311,7 +311,7 @@ Runtime入口420–708已确认load/create失败调用recover/startup helper；�
 
 entry recover176–204仅在typed create failure的cleanup pending时尝试retry，合并retry错误与恢复上下文；602–637保留原create primary及StartFailed报告错误。成功Session在640–642给出共享teardown ledger，663进入App::new，664调用`winit::event_loop::EventLoop::run_app(app)`。event loop错误673–684入账；terminal_status686–695先按当时ledger选择，reporter错误696仍入账，697取snapshot并由finish返回错误，只有成功才写complete诊断。finish_runtime_process345–359和finish_startup394–413负责汇总，不执行cleanup/join。这里没有错误被丢弃或仅因status先算就成立的误投影；空ledger不能证明任务已join。
 
-App mod有直接`session: RuntimeSession`，construct new接收并存入session、返回Self，没有Result分支；failure state仅保存原子recorded标记与共享ProductFailureLedger，record不关闭资源。因此App持有原Session/Library。后续已读锁定版本的Windows facade：run_app217–234以App值为参数，230将&mut app借给backend，232显式drop(app)，233才返回Result。普通Ok和非零exit code的Err均走这条顺序；App Drop与字段析构早于facade正常返回、也早于入口随后读取ledger snapshot，但不证明Runtime work已join。panic/unwind与abort另按其失败边界核，不套用普通Result保证。本轮App目录Drop定位在surface_present/lifecycle88；不能从mod内无Drop推整个App无析构。创建失败typed Drop/TLS retained继续复用既有证据，不因helper转String另判owner丢失，精确释放仍需真实创建线程验收。
+App mod有直接`session: RuntimeSession`，construct new接收并存入session、返回Self，没有Result分支；failure state仅保存原子recorded标记与共享ProductFailureLedger，record不关闭资源。因此App持有原Session/Library。后续已读锁定版本的Windows facade：run_app217–234以App值为参数，230将&mut app借给backend，232显式drop(app)，233才返回Result。该facade的普通返回路径中，backend返回的Ok或Err都在facade返回前执行drop(app)；App Drop与字段析构早于facade正常返回、也早于入口随后读取ledger snapshot，但不证明Runtime work已join。panic/unwind与abort另按其失败边界核，不套用普通Result保证。本轮App目录Drop定位在surface_present/lifecycle88；不能从mod内无Drop推整个App无析构。创建失败typed Drop/TLS retained继续复用既有证据，不因helper转String另判owner丢失，精确释放仍需真实创建线程验收。
 
 ### 10.3 lifecycle、exit与surface失败去重
 
@@ -333,11 +333,119 @@ commit_project_resource_sync209–226先准备commit，再运行commit_files；�
 
 Cargo.lock仅定位winit0.31.0-beta.2条目，manifest定位platform-winit/dep:winit。Root从已有E cargo-home读取缓存两份event_loop.rs的metadata，并仅在RAM比较对应既有crate archive条目一致，没有创建、提取到文件或修改源码/cache；winit archive SHA与lock条目一致。winit main event_loop pin `1d3aab32...`／18751 B/522行，win32 event_loop `8bf7dc58...`／109711 B/2661行；Sol已按下表范围补读，未称两库叶全文、native产物选择或完整input seal。win32 archive SHA `644ea78af0e858aa3b092e5d1c67c41995a98220c81813f1353b28bc8bb91eaa`也与lock9286–9289一致；当前lock pin `93a0b73716139efb41199093a21e0a2ae2e6d577c60cf0624889a9b0d3b9cf11`／247346 B/10355行，仅定位相关条目。此前一次metadata读因假定.cargo-checksum.json存在而FileNotFound，已改用实际文件/既有archive比对并exit0，不判缓存坏、权限拒绝或native失败。
 
-Win32 run_app_on_demand250–279在257注册_app_resetter，等候/派发并检查exit，274调用loop_destroyed、276 reset_runner、278返回；panic分支371–373 reset后resume_unwind。set_app guard撤销/raw handler清除、loop_destroyed/reset以及ActiveEventLoop::exit的实现未读；不将正常App Drop窗口扩成handler/所有线程安全保证。
+Win32 run_app_on_demand250–279在257注册_app_resetter，等候/派发并检查exit，274调用loop_destroyed、276 reset_runner、278返回；panic分支371–373 reset后resume_unwind。截至03a58切片，set_app guard撤销/raw handler清除、loop_destroyed/reset以及ActiveEventLoop::exit的实现未读；后续限定guard阅读见10.7，不将正常App Drop窗口扩成所有线程安全保证。
 
 | 既有外部输入（E cargo-home registry/src/index.crates.io-1949cf8c6b5b557f） | bytes / lines | SHA256 | 实际正文范围 |
 |---|---|---|---|
 | winit-0.31.0-beta.2/src/event_loop.rs | 18751 / 522 | `1d3aab32ef4a772f8ea7dcdf7fe8f5e20705f11187a7b461254c8e9d1c3aa971` | Sol：1–120、180–237、330–373，共222行；不是全文 |
 | winit-win32-0.31.0-beta.2/src/event_loop.rs | 109711 / 2661 | `8bf7dc5859e0bb120499c6d7575d6dbbb7d73e8381419a73c6b87d44f3aea30d` | Sol：1–405，共405行；不是全文 |
 
-本节新增正文与结论待独立复核；Win32 handler/guard下游、实际线程与release/join、真实DLL和失败恢复仍待证。没有Rust实施、测试执行或性能样本；R4原字节与原请求身份保持，Jenkins当前native入口和实际checkout条件仍未通过。已验收账本不增，Root删除/释放0 B，供给/必要失败/共享/未知产物保留，goal与清理active。
+本节的`03a58dd1cb4ac33f77ea082c0f7aa7dbf877f80405facbf67881149d449645dd`／54109 B/343行切片已完成三路Luna独立复核；计数已核对，初始重复加总意见已撤回。后续facade措辞、HEAD、records缺口与guard阅读增量的93a59041／58272 B/363行切片已由三路Luna独立复核，无新阻断。Win32 panic disposition、实际线程与release/join、真实DLL和失败恢复仍待证。没有Rust实施、测试执行或性能样本；历史R4创建与回复观察按原指纹保留，原请求身份保持，原native请求尚未形成当前验收。已验收账本不增，Root删除/释放0 B，供给/必要失败/共享/未知产物保留，goal与清理active。
+
+### 10.6 当前HEAD与证据时点
+
+共享checkout仍为main；Root观察并保留其他任务的HEAD移动：`5a547d4e2727d27ddf99578f548efb7e6d19d915`→`1de7f1af1f86b124645acdb2743bfe9064f6da8b`。该提交差异有1041个路径，与本表93个引擎文件的交集为0。Root在新HEAD前后稳定的窗口核对全部93个引擎pin、2个外部pin，以及六叶App/Input原native交接pin，均匹配既有字节；这只更新当前阅读范围的提交背景，不证明其余源码、配置或compiler input closure未变。原R4、原请求及历史文档切片仍绑定其创建时的5a547d4，不改写旧消息或回滚提交。
+
+Jenkins installed pointer另已从84d4483切换至`0f4040edb188cda357a93bcff32345b0533a29eb2645552ad155f8517f757277`。新capsule的runner.py仍为`2dd91b66eb482135bfbe3cd80abdce18e59e6dc86980415630c63a9f8f3fa120`／232228 B/3331行，source_preparation.py仍为`42f8c8cd1bf7ee62c2f30c59057a49b1bebceada339994ce67c7b65832820b7f`／27188 B/435行。Sol已核新manifest metadata与两叶pin并复用同字节的普通single/batch正文：single3047/batch2269仍另设pool inputs/source，3102/2413–2418 materialize，3135/2487–2488仍以pool作为Cargo cwd。该限定路径的actual-checkout缺口未修，最低责任在正常Jenkins provider owner；没有核完整capsule输入闭包、底层复制/链接方式或物理输出。公开local-cargo两叶pin也未变；既有未提交原因、当前入口/identity/input seal及实际checkout执行仍需原任务正常受管路径核对。
+
+Root随后发现R4原md及匹配monitor-response的原records路径均FileNotFound；指定records/outbox文件名搜索也未找到本任务/R4候选。历史创建pin和当时回复观察保留原时点；当前归档位置与原因未证，不将历史投递说成当前文件可读或指定聊天ACK。该两项证据缺口保持开放，R5使用新编号补交当前状态，投递结果另记执行流；旧消息未重建，清理仍开放。
+
+### 10.7 Win32正常返回的handler撤销链
+
+Sol新增读取一个既有外部部分叶20–147、254–272，共147唯一正文行；Root独立核对该leaf metadata。外部累计3个pin、774唯一正文行，单列于引擎84全文/5部分/4测试和93个pin之外；没有新增引擎覆盖。
+
+| 既有外部输入（同E cargo-home） | bytes / lines | SHA256 | 实际正文范围 |
+|---|---|---|---|
+| winit-win32-0.31.0-beta.2/src/event_loop/runner.rs | 16494 / 446 | `14b12c79a8bb1202d6cd96c2be23caf305860a309224d910ec6848f5e7f84a63` | Sol：20–147、254–272，共147行；不是全文；已有archive RAM一致性证据复用 |
+
+set_app99–127把App的借用经lifetime erasure存入Rc<Cell<Option<&mut ApplicationHandler>>>，返回带借用生命周期的Resetter；其Drop121–123置None，reset_runner129–147也置None。复用已读backend普通返回顺序：loop_destroyed→reset_runner→本地guard析构→facade显式drop(app)。正常返回后runner仍保存App handler的条件候选被排除；runner不持有App/RuntimeSession/Library的真实owner。这项静态链不证明Runtime worker join、全部callback完成或真实DLL卸载。
+
+guard成功建立后的普通Rust unwind会执行Resetter，abort不提供该保证。call_event_handler263–270先取出handler、正常closure返回才恢复；closure panic会跳过恢复，实际catch_unwind的保存/转交正文未读。set_app114先replace、116再assert，assert失败在guard构造前，但合法普通路线能否在已有handler时二次进入未证，仅保留条件安全边界，不登记具体故障。loop_destroyed254–256仅委托move_state_to，该callee及take_panic_error仍未读。后续先按locator收窄panic disposition；Windows真实普通退出/App Drop一次与返回顺序、callback panic及真实关闭receipts均待执行。
+
+## 11. 退出回调、直接帧循环与现有watcher回归增量
+
+本节在R5消息创建与§10独立复核之后追加；旧93a59041／58272 B/363行reviewed cut、e06e0ba1／58343 B/363行管理切片及R5的不可变指纹保持原时点。新正文增量不得反向算入旧切片或R5。实际HEAD仍为1de7f1af1f86b124645acdb2743bfe9064f6da8b；Root本节写入前重核以下两叶和外部runner pin。
+
+### 11.1 实际新增阅读与累计覆盖
+
+| 完整源码路径 | bytes / lines | SHA256 | 阅读范围与归属 |
+|---|---|---|---|
+| zircon_app/src/entry/runtime_entry_app/frame_loop.rs | 2350 / 57 | `f5546eb2ac70b2738a6588c1bbebc15f7fc2f2b04b9ed97fdec82d43ffabf895` | Sol全文1–57；Contract同范围独立复核，不重复计数 |
+| zircon_runtime/src/asset/manager/assets/runtime/tests/watcher_shutdown.rs | 11598 / 280 | `6fc08be16359cd8fec728ebe78f3c9db7df938001c3c0048a5d09f31a51c5248` | Budget全文1–280；前序只有locator，不冒称测试执行 |
+
+外部同一runner14b12c79／16494 B/446行新增157–163、194–221、314–358共80行，随后359–393共35行；与旧20–147、254–272的147行无交集。Sol阅读、Anchors分别同范围独立复核；call_new_events完整函数仅359–388的30行，余5行为impl边界/空行/注释，不能称读到别的函数或全文。runner累计262/446唯一行，仍部分叶；外部3个唯一pin、889唯一正文行（222+405+262），与引擎单列。
+
+引擎累计85个生产全文/17534行、5个生产部分/488唯一行、5个测试全文/1317行，95个唯一pin/98表行。增量只有生产1叶/57行和测试1叶/280行；hooks、event_dispatch与已有生命周期正文的复用/独立复读不加覆盖。模块、package、完整输入闭包和全引擎阅读均未完成。
+
+### 11.2 外部panic disposition与Engine准入
+
+catch_unwind194–219会捕获closure panic并保存payload；已有panic会短路closure，重入产生的已存payload优先。take_panic_error157–162取出并清空槽；复用backend消息分派371–373的take→reset→resume_unwind顺序，普通消息panic重抛链静态闭合。成功建立的handler guard在普通Rust unwind中撤销借用，facade显式drop(app)会跳过而owned App按unwind析构；abort不提供此保证，也不据此证明Runtime join或DLL释放。
+
+move_state_to314–358先改状态，再按旧态调回调：Uninitialized→Destroyed走call_new_events(true)再about_to_wait；HandlingMainEvents→Destroyed仅about_to_wait；Idle→Destroyed无新增callback。call_new_events的init=true优先选Init，再调用new_events、can_create_surfaces和dispatch_buffered_events；已有panic可能使handler closure短路，buffered dispatch正文与trait默认new_events仍未读，不称全部回调实际执行。复用backend274 loop_destroyed→276 reset_runner的普通返回顺序，结束回调期间新保存的panic可能被reset清除；Uninitialized候选并不限于about_to_wait。此项仅为外部静态条件候选，尚无Engine合法触发或动态复现，不登记实际Engine缺陷、不提高MVP优先级、不修改依赖库。
+
+Engine hooks47–52只在failure未记录且生命周期为SurfaceActive时调用pump_frame_loop；event_loop.exit本身不改变这两个gate。已读dispatcher事件Err先record再exit，因此其后泵被failure gate抑制。直接frame_loop9–48先由cadence.take_frame_request放行才tick；tick Err显式report_fatal_failure→exit→return，成功才更新demand、wake、host requests与redraw，host requests false时提前返回，其他路径才执行event-loop policy。该叶无显式panic/assert/unwrap/expect，也不检查exit flag；不能由此断言委托callee安全或最终回调必跳过。最低未闭边界仍为真实Session tick/FFI契约、cadence准入及宿主/feature分支；真实关闭、失败、线程join和库释放回归均待运行。
+
+### 11.3 watcher回归的实际边界
+
+新读测试使用真实PAM/default IO pool，但前3个shutdown竞态主要注入from_test_worker合成worker或只持operation guard；channel握手验证pending→释放→同owner重试，不能代替生产watcher loop。项目open失败用真实ProjectManager fixture；171行case以1 ms轮询preparation epoch，未独立证明worker ready或成功安装后的失败。open/close publication wake两case经真实生产路径和subscriber同步请求shutdown，再pending→retry清空watcher Vec，但没有经过CoreRuntime、AssetModule或service registry，也不模拟OS文件事件。
+
+这些测试没有覆盖lookup/resolve失败时活跃watcher的owner保留、实际模块卸载顺序、关闭完成后的成功reopen或强callback自保持。最低回归仍须真实PAM安装到实际Core/module、真实watcher ready握手、受控callback与stop/join、期限届满保留原owner并重试，成功后才retire；已有直接PAM测试可复用，不足以关闭第9.3节根因。测试正文阅读完成，测试执行仍0。
+
+### 11.4 records与当前入口的时间边界
+
+R5在2026-10-13T14:48:09.618430+00:00成功创建并hash读回，随后Luna44按b4cb3ec9／6723 B/42行独立复核。后续仅records目录、本任务文件名的一次扫描未见候选；Root cell109及revision13直接读取R5原路径为FileNotFound。历史创建/复核证据保留，当前归档位置、原因与receipt均未证；不能宣告已被Jenkins消费、指定聊天ACK或native提交，也不重建R5/改写旧消息。它与R4及旧monitor原路径构成三个当前records证据缺口，此前25个历史缺失href仍保持其原范围，不重新声称全执行流链接通过。
+
+Root cell110观察公开jenkins_validate.py已为4398ad8f／55766 B/842行；当前选中正式driver仍1dfff656、runtimeOperationId仍start-1791875329248257600。这里只核metadata/selector，不把新入口、selected标志或management同字节路线扩大为实际runtime、actual-checkout或编译能力。正常formal入口与原请求身份的最新能力另待Core窄读；Root未运行native、private fallback、service管理或生成源码副本。§7.47原R5链接在复核时存在、后续已缺失，按各自观察时间记录。
+
+第11节的f0898b4e／64779 B/400行切片已由Anchors、Budget、Contract按分配范围独立复核，无阻断；Root cell114核对95个引擎及3个外部pin。没有新增Rust实施、测试执行、产品或性能样本，已验收账本不增。Root删除/释放0 B，供给、必要失败、共享及未知产物保留，原请求、goal和清理继续active/pending。
+
+## 12. 受管归档、原请求输入差异与正式入口
+
+本节不增加引擎源码阅读覆盖。第11节的95个引擎pin、85个生产全文、5个生产部分和5个测试全文仍是该复核切片的统计；f0898b4e与旧93a59041/e06e0ba1的指纹分别保留，不能称更新后的全文等于任一旧切片。Root在artifact registry revision14登记本节、执行流7.48、pending与R6消息的写入范围后集成。
+
+### 12.1 已定位的归档及不同回执
+
+| 对象 | 实际归档或回执 | SHA256 / bytes | 已核边界 |
+|---|---|---|---|
+| R4原消息 | [归档md](../../../.jenkins/state/records-queue/archive/3c138524391989e2a185645aa4d28a0ba18011be88cf7b1e8bb7c64e59387863/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.md) | `3ebaf4b7d7c0a6a60d0fd8fabaacf2c7909b0cc59478ff30b437bbe945fc6d4f` / 5507 | records_queue_message精确键、task与followup12匹配；原路径当前不存在 |
+| 历史monitor回应 | [归档json](../../../.jenkins/state/records-queue/archive/3c138524391989e2a185645aa4d28a0ba18011be88cf7b1e8bb7c64e59387863/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.monitor-response-20261013T102109Z.json) | `ad9467da675cdcf6232c8d554cb1a73020a3ebc71f0a28ce2ff0b3b9aa59d898` / 10102 | 原名带current-state-r4前缀；此前shortened basename是错误候选，不能作为正确原路径缺失的证明；此次正确原路径也已核为不存在 |
+| R5原消息 | [归档md](../../../.jenkins/state/records-queue/archive/2c3d031f0dab2f0667a1f3f29c821f77bb8ccec311762440859afe5af6ef262c/engine-audit-20261009-01a12097-current-state-r5-to-jenkins-01a0f6e1.md) | `b4cb3ec933af53ce77bded0386b1d003bcad248be371633656dc3e84583f1072` / 6723 | 42行与原消息逐字节一致；原路径当前不存在，未重建或改写 |
+| R5状态回应 | [归档json](../../../.jenkins/state/records-queue/archive/2c3d031f0dab2f0667a1f3f29c821f77bb8ccec311762440859afe5af6ef262c/engine-audit-20261009-01a12097-current-state-r5-to-jenkins-01a0f6e1.response.json) | `55f8ea9afbd2e986b855ccc1defd2edd0d209354a868952214e94d09f54d93c7` / 19586 | Root与Luna45Reply核对task、inReplyTo和原身份；本回应intakeAccepted=false，formal/native=false，nativeExitAndEofProof=null |
+| R5补充受理回执 | [queue receipt](../../../.jenkins/state/records-queue/followups/responses/2c3d031f0dab2f0667a1f3f29c821f77bb8ccec311762440859afe5af6ef262c.json) | `78d266c8bb5a04517bb2bebfcbce22f80120c4e78da03baac0bc58595e146a7f` / 19915 | Root核对实际字节、task与digest；intakeAccepted=true，formalAcceptance=false，newNativeRequest=false |
+
+最新只读State仍是原task version35／payload c5f2d789，phase=waiting、done=false、formalAcceptance=false；R5 followup version2／payload54f6d830，attached-and-cleared并关联followup29。SQL使用已核验的项目Python、mode=ro、query_only和只读事务，退出前rollback/close；没有构造State或调用CLI/provider。R4两映射由Luna45Archive独立核对，R5归档与回应由Luna45Reply核对。上述证据闭合指定消息的归档位置及补充受理；指定聊天ACK、原native执行和独立cleanup receipt仍未证。State内嵌清理数字不计为Root释放空间。既有25个历史缺失href保持原时点，未据此宣称整份执行流链接通过。
+
+### 12.2 当前源码与原formal DTO的实际差异
+
+Root与Luna45DTO重新核对当前六叶SHA。原task中的compile/cleanup两份formalRequests仍登记App测试旧f263bc47，实际为0fd942d2；其余五叶的内容hash匹配。三个consumer仍登记src/tests/runtime_absorption旧路径，实际已经迁移到src/tests/contracts/structure/test_size/input_manager.rs、src/tests/contracts/input_stack/inventory/behavior_anchors.rs和src/tests/contracts/input_stack/contracts.rs。内容一致不代表新路径已进入原会话授权和source guard；当前DTO、迁移scope和输入seal必须由原provider/source owner按正常受理流程协调。
+
+原formal receipt仍是pending／formal_input_pending，原因“Existing external submodules require explicit index and HEAD registration”。原App A1、cleanup A1、session、receiver31及历史2/8/14/23/26保持；queue attempt1和recovery attempt6是另两层字段。完整Cargo/config/build scripts/dependencies/toolchain/features及外部zr_vm HEAD/index、产物兼容指纹仍未签发；六个文件hash不能替代它们。
+
+### 12.3 当前正式入口的限制
+
+实际main已移至d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef，父提交1de7f1af仅变更tools/jenkins/tests/test_frontend.py；R6当前六个checkout pin再次匹配，原formal DTO的差异仍见12.2。selected driver仍1dfff656，但selector字节已为b9a72d6f，runtimeOperationId已变为start-1791949844649660400。这些是当前指针观察，不证明runtime进程、actual-checkout能力或Cargo验收。
+
+R5所引用的公开entry是tools/jenkins-management/entry.py，不能替代tools/dev/jenkins_validate.py的正式入口证据。Core对selected immutable formal实现的窄读进一步确认：normal launcher进入CLI，CLI构造State会mkdir、设置WAL并初始化schema；request.query按repo/session/request三个字段查记录，不能独立确认attempt/generation/stage。实际formal repository_id是物理root字符串SHA256的前32位，实算与原76b56a19e17c4b8203865215a6d1c078一致，不得仅按长度另造身份。
+
+正式already-applied准备会seal_candidate，再校验patch metadata；seal_candidate将源码字节写入inputs/objects，collect_cargo_evidence强制materialize并在inputs/runs准备目录执行Cargo metadata。workflow/planning.py将recipe cwd固定为preparations/<key>/inputs/source，workflow/execution.py在新native launch前调用materialize_preparation；execution_host.py139–140明确拒绝cwd等于sealed.repositoryRoot，返回recipe_cwd_unsealed。所选实现的静态契约拒绝实际checkout作为Cargo cwd，复用旧副本也不改变cwd。已有checkout resolver、query、selected marker或预览均不能满足该契约。
+
+| selected driver内工具文件（单列，不计引擎覆盖） | SHA256 | Core实际新增正文范围 |
+|---|---|---|
+| tools/jenkins/source/__init__.py | `c28e01515289a2583d3354d10e1f87639cdbaaee9234da920ade6158abdb860f` | 113–117、477–528、551–640 |
+| tools/jenkins/workflow/planning.py | `eb0003e5e3fa1fa5131e25a667a26914acd0c240234c436caf73c4a8edb45af0` | 487–510 |
+| tools/jenkins/workflow/execution.py | `b00a89a114246f7e9b600b971ea69c588493d19546116390b82953c42850a3dd` | 249–295 |
+| tools/jenkins/processes/execution_host.py | `194d430231b04f2f207878b80aa7ce89885f0b7a97cb1719e2f627c4dd025833` | 107–163、306–335 |
+
+Core本轮共读13个工具pin的741新增正文行，均为限定范围；baseline_ref authoritative resolver也尚未实现。最小修复由合法provider在canonical实现中增加受管actual-checkout契约，贯通无源码复制的seal/metadata、planner/pools/preparation及native host，分开验证物理源码root和批准产物root；不能只改cwd或关闭安全gate。还须按原身份刷新App测试hash、迁移scope和完整编译/外部输入seal，提供真实cwd、退出与输入稳定性证据。R6原消息已创建并保持immutable（3c071557／7936 B/51行），Luna45Reply复核时原路径存在，精确records_queue_message键0075c5cc查询无记录；尚无归档映射、受理或聊天ACK。消息标题的“复现”只指静态源码限制，本批没有动态复现；未创建新native request。
+
+本节0d1604ff切片（72570 B/441行，line12、400和402–441）经Luna45Archive、Luna45DTO、Luna45Reply按各自任务范围复核，无阻断；本次仅消除六个pin和静态结论的歧义并更新复核/消息状态，旧复核指纹保留在registry。Root当前批次Rust实施、native命令、测试运行、产品和性能样本均0；已验收账本不增。旧工具host中断的只读尝试保留终态未知，新的成功只读不能证明旧进程退出；没有杀未知进程或采用private fallback。Root删除/释放0 B，保留必要失败、供给、共享及未知产物；goal和清理继续active。
+
+### 12.4 R6归档与ordinary路线的新证据
+
+在12.3限定复核之后，Root只读查询精确records_queue_message键0075c5cce47d7734e5ce6af060d22f84d53502028665f2a554c42586328007bc，已为version1／payload051968cf；R6原路径现不存在，[实际归档](../../../.jenkins/state/records-queue/archive/5979d0fc8bc1384f3475873922140e51170e9584273a3f29ce133ed8e6679a27/engine-audit-20261009-01a12097-current-input-r6-to-jenkins-01a0f6e1.md)与原消息逐字节一致，3c071557／7936 B/51行。此前Luna查询row=null且原路径存在仍是其准确时点，没有重建或改写原消息。
+
+[实际补充回执](../../../.jenkins/state/records-queue/followups/responses/5979d0fc8bc1384f3475873922140e51170e9584273a3f29ce133ed8e6679a27.json)为de99b643／14768 B，task、messageId、followupDigest、原identity和原receiver31匹配；followup36 State version2／payload45f2a61e，intakeAccepted=true、formalAcceptance=false、newNativeRequest=false、actualFlowSubmitted=false、nativeValidationAccepted=false。原task现version36／payload15edfdf8，waiting/done=false；原A1的formal_input_pending、两个旧DTO的App hash与三个旧consumer路径仍在，尚无原native退出或EOF证据。补充受理没有修改原会话授权或输入seal，也不证明指定聊天人工ACK或独立cleanup receipt。
+
+此回执明确区分ordinary management与canonical formal Flow：当前ordinary capsule b48ac30b报告validate_prepared把checkout分派给validate_checkout及continuous-read guard，引用runner3d548037／307909 B、checkout_guard453c7cb7／42657 B；formal Flow仍prepared-source、compatibility pending。Root核到installed.json实际6bc951a6／515 B和公开entry.py f13dfc57／38591 B，但尚未以这些metadata证明活runtime或完整guard/native行为。此前针对旧ordinary runner的prepared cwd证据保留旧切片；不得据其概括所有当前management路线。Core正在限定复核当前ordinary实现，实际执行仍须合法owner协调原scope、输入闭包、artifact identity和稳定读区间。
+
+本增量与R6在registry revision15登记：Root只更新canonical文档和transport metadata，没有执行模块、State、CLI、provider或native，也未部署或复制源码。MVP、模块、产品和性能验收继续pending；Root释放0 B。World/render/Gateway另起已登记的限定M0正文阅读，12.4本身不增加引擎源码覆盖。

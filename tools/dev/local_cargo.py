@@ -250,27 +250,92 @@ def _run_owned_command(command: list[str], repo: Path, environment: dict[str, st
     from tools.jenkins.pilot.native.process_identity import popen_process_creation_time
     from tools.jenkins.pilot.native.windows_job_process import (
         close_process_job, create_atomic_kill_on_close_process, resume_popen_process,
-        terminate_process_job, wait_for_process_job_terminal,
+        terminate_and_close_process_job, wait_for_process_job_terminal,
     )
     from tools.jenkins.pilot.process_evidence import JobEvidence
     if os.name != "nt" or not 0 < timeout <= 86400:
         raise ValueError("Owned local evidence requires Windows and a bounded positive timeout")
+    cleanup_seconds = 30.0
     deadline = time.monotonic() + timeout
+    observer_deadline = deadline + cleanup_seconds + 1.0
     process, job, query, waiter, birth = None, None, None, None, None
+    waiter_started = False
     native_done = threading.Event()
     native_result = {"terminal": False}
     pipes = {name: {"eof": False, "closed": False} for name in ("stdout", "stderr")}
-    logs, errors, root_exit = {}, [], None
-    def fail(stage, error):
-        errors.append({"stage": stage, "type": type(error).__name__, "message": str(error)})
+    logs, errors, wait_errors, root_exit = {}, [], [], None
+    error_lock = threading.Lock()
+    raw, handles = {}, {}
+    cleanup = {"attempted": False, "budgetSeconds": cleanup_seconds, "complete": False,
+               "terminationRequested": False, "jobTerminationProven": False,
+               "rootSignaled": False, "pipeEOF": False, "nativeWaiterJoined": False,
+               "originalWaiterProven": False, "errors": []}
+    api = ctypes.WinDLL("kernel32", use_last_error=True)
+    api.PeekNamedPipe.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD,
+                                 ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
+    api.PeekNamedPipe.restype = wintypes.BOOL
+    api.GetCurrentProcess.restype = wintypes.HANDLE
+    api.DuplicateHandle.argtypes = [wintypes.HANDLE, wintypes.HANDLE, wintypes.HANDLE,
+                                   ctypes.POINTER(wintypes.HANDLE), wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    api.DuplicateHandle.restype = wintypes.BOOL
+    api.CloseHandle.argtypes = [wintypes.HANDLE]
+    api.CloseHandle.restype = wintypes.BOOL
+
+    def fail(stage, error, *, observer=False, during_cleanup=False):
+        item = {"stage": stage, "type": type(error).__name__, "message": str(error)}
+        with error_lock:
+            errors.append(item)
+            if observer:
+                wait_errors.append(item)
+            if during_cleanup:
+                cleanup["errors"].append(item)
+
+    def observed_wait_errors():
+        with error_lock:
+            return bool(wait_errors)
+
     def wait_native():
         try:
-            wait_for_process_job_terminal(job, timeout_seconds=max(0.001, deadline - time.monotonic()))
+            wait_for_process_job_terminal(job, timeout_seconds=max(0.001, observer_deadline - time.monotonic()))
             native_result["terminal"] = True
         except BaseException as error:
-            fail("owned_job_wait", error)
+            fail("owned_job_wait", error, observer=True)
         finally:
             native_done.set()
+
+    def prepare_pipe_handles():
+        for name in pipes:
+            if name not in raw:
+                buffer = getattr(process, name).buffer
+                raw[name] = getattr(buffer, "raw", buffer)
+                handles[name] = msvcrt.get_osfhandle(raw[name].fileno())
+
+    def drain_once():
+        for name in pipes:
+            if pipes[name]["eof"]:
+                continue
+            available = wintypes.DWORD()
+            if not api.PeekNamedPipe(handles[name], None, 0, None, ctypes.byref(available), None):
+                code = ctypes.get_last_error()
+                if code not in (109, 232):
+                    raise ctypes.WinError(code)
+                data = raw[name].read(1)
+            elif available.value:
+                data = raw[name].read(min(65536, available.value))
+            else:
+                continue
+            if data == b"":
+                pipes[name]["eof"] = True
+            elif data is None:
+                raise OSError("Raw pipe read made no progress")
+            else:
+                remaining = memoryview(data)
+                while remaining:
+                    written = logs[name].write(remaining)
+                    if not written:
+                        raise OSError("Evidence output write made no progress")
+                    remaining = remaining[written:]
+
     try:
         for name in pipes:
             path = _evidence_output(output / (name + ".bin"))
@@ -288,43 +353,15 @@ def _run_owned_command(command: list[str], repo: Path, environment: dict[str, st
         _write_fact(output / "started.json", {"schemaVersion": 1, "command": command, "cwd": str(repo),
                     "pid": process.pid, "creationTime": birth, "scope": "retained-windows-job",
                     "formalAcceptance": False})
-        api = ctypes.WinDLL("kernel32", use_last_error=True)
-        api.PeekNamedPipe.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD,
-                                     ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
-        api.PeekNamedPipe.restype = wintypes.BOOL
-        raw = {name: getattr(getattr(process, name).buffer, "raw", getattr(process, name).buffer) for name in pipes}
-        handles = {name: msvcrt.get_osfhandle(stream.fileno()) for name, stream in raw.items()}
+        prepare_pipe_handles()
         waiter = threading.Thread(target=wait_native, name="local-cargo-owned-job-wait", daemon=True)
         waiter.start()
+        waiter_started = True
         resume_popen_process(process)
-        # This owner alone reads raw pipe bytes. No reader takes a Buffered lock.
         while True:
-            for name in pipes:
-                if pipes[name]["eof"]:
-                    continue
-                available = wintypes.DWORD()
-                if not api.PeekNamedPipe(handles[name], None, 0, None, ctypes.byref(available), None):
-                    code = ctypes.get_last_error()
-                    if code not in (109, 232):  # broken/no-data pipe: verify an actual empty read
-                        raise ctypes.WinError(code)
-                    data = raw[name].read(1)
-                elif available.value:
-                    data = raw[name].read(min(65536, available.value))
-                else:
-                    continue
-                if data == b"":
-                    pipes[name]["eof"] = True
-                elif data is None:
-                    raise OSError("Raw pipe read made no progress")
-                else:
-                    remaining = memoryview(data)
-                    while remaining:
-                        written = logs[name].write(remaining)
-                        if not written:
-                            raise OSError("Evidence output write made no progress")
-                        remaining = remaining[written:]
+            drain_once()
             root_exit = process.poll()
-            if errors:
+            if observed_wait_errors():
                 raise OSError("Owned native waiter failed")
             if root_exit is not None and native_done.is_set() and all(p["eof"] for p in pipes.values()):
                 break
@@ -340,61 +377,118 @@ def _run_owned_command(command: list[str], repo: Path, environment: dict[str, st
     except BaseException as error:
         fail("command_or_pipe", error)
         if job:
+            cleanup.update(attempted=True, reason="timeout" if isinstance(error, TimeoutError)
+                           or time.monotonic() >= deadline else "command-or-observer-error",
+                           identity={"pid": process.pid if process is not None else None,
+                                     "creationTime": birth},
+                           method="freeze-owned-members-and-wait-retained-process-handles")
+            cleanup_deadline = time.monotonic() + cleanup_seconds
+            if query is not None:
+                query.capture("beforeCleanup", members=True)
+            duplicate = wintypes.HANDLE()
             try:
-                # Terminate only this retained Job; keep its handle until waiter settlement.
-                terminate_process_job(job)
-                if waiter is not None:
-                    waiter.join(timeout=10)
-                else:
-                    wait_for_process_job_terminal(job, timeout_seconds=10)
-                if process is not None:
-                    root_exit = process.poll()
+                local = api.GetCurrentProcess()
+                if not api.DuplicateHandle(local, job, local, ctypes.byref(duplicate), 0, False, 2):
+                    raise ctypes.WinError(ctypes.get_last_error())
+                # This helper consumes only the duplicate. The waiter and query
+                # still own the original exact Job until native/EOF settlement.
+                termination_handle = duplicate.value
+                duplicate = wintypes.HANDLE()
+                cleanup["terminationRequested"] = True
+                terminate_and_close_process_job(
+                    termination_handle, timeout_seconds=max(0.001, cleanup_deadline - time.monotonic()))
+                cleanup["jobTerminationProven"] = True
             except BaseException as cleanup_error:
-                fail("owned_job_cleanup", cleanup_error)
+                fail("owned_job_cleanup", cleanup_error, during_cleanup=True)
+            finally:
+                if duplicate.value and not api.CloseHandle(duplicate):
+                    fail("cleanup_duplicate_close", ctypes.WinError(ctypes.get_last_error()), during_cleanup=True)
+            if process is not None:
+                try:
+                    prepare_pipe_handles()
+                    while time.monotonic() < cleanup_deadline:
+                        drain_once()
+                        root_exit = process.poll()
+                        if root_exit is not None and (not waiter_started or native_done.is_set()) and all(
+                                p["eof"] for p in pipes.values()):
+                            break
+                        time.sleep(0.02)
+                    if not all(p["eof"] for p in pipes.values()):
+                        raise TimeoutError("Cleanup did not observe both actual pipe EOFs")
+                except BaseException as cleanup_error:
+                    fail("cleanup_pipe", cleanup_error, during_cleanup=True)
+                # Pipe failure must not discard the held root's independent
+                # signal/exit proof or prevent bounded native waiter settlement.
+                try:
+                    root_exit = process.wait(timeout=max(0.001, cleanup_deadline - time.monotonic()))
+                    cleanup["rootSignaled"] = True
+                except BaseException as cleanup_error:
+                    fail("cleanup_root_wait", cleanup_error, during_cleanup=True)
+            if waiter_started:
+                waiter.join(timeout=max(0.001, cleanup_deadline - time.monotonic()))
+                if waiter.is_alive():
+                    fail("cleanup_waiter_join", TimeoutError("Owned native waiter did not join within cleanup budget"),
+                         during_cleanup=True)
+            if query is not None:
+                query.capture("afterCleanup")
     finally:
         if process is not None:
-            # All pipe reads run in this owner. Close cannot contend with a buffered reader.
             for name in pipes:
                 try:
                     getattr(process, name).close()
                     pipes[name]["closed"] = True
                 except BaseException as error:
-                    fail("pipe_close", error)
+                    fail("pipe_close", error, during_cleanup=cleanup["attempted"])
         for log in logs.values():
             try:
                 log.close()
             except BaseException as error:
-                fail("log_close", error)
-        waiter_joined = waiter is None or not waiter.is_alive()
+                fail("log_close", error, during_cleanup=cleanup["attempted"])
+        waiter_joined = not waiter_started or not waiter.is_alive()
         if job and waiter_joined:
             try:
                 close_process_job(job)
                 if query is not None:
                     query.capture("afterClose")
             except BaseException as error:
-                fail("owned_job_close", error)
-        # A still-running native waiter retains the Job until this failed CLI exits.
-        # Windows closes that exact handle at process exit. This is NOT terminal proof.
+                fail("owned_job_close", error, during_cleanup=cleanup["attempted"])
+        # An unjoined observer keeps its original Job alive until this failed
+        # CLI exits; no EOF, termination or cleanup success is inferred.
         if query is not None:
-            query.close()
+            try:
+                query.close()
+            except BaseException as error:
+                fail("query_handle_close", error, during_cleanup=cleanup["attempted"])
         if process is not None:
             try:
                 process.close(close_streams=False)
             except BaseException as error:
-                fail("root_handle_close", error)
+                fail("root_handle_close", error, during_cleanup=cleanup["attempted"])
     job_evidence = query.to_dict() if query is not None else {"records": {}, "errors": []}
     after_close = job_evidence["records"].get("afterClose", {})
+    after_cleanup = job_evidence["records"].get("afterCleanup", {})
+    pipe_eof = all(p["eof"] for p in pipes.values())
+    original_wait_proven = (not waiter_started or
+                            (waiter_joined and native_result["terminal"] and not observed_wait_errors()))
+    cleanup.update(pipeEOF=pipe_eof, nativeWaiterJoined=waiter_joined, originalWaiterProven=original_wait_proven)
+    cleanup["complete"] = bool(cleanup["attempted"] and cleanup["jobTerminationProven"] and cleanup["rootSignaled"]
+                               and original_wait_proven and pipe_eof and after_cleanup.get("activeProcesses") == 0
+                               and after_close.get("activeProcesses") == 0
+                               and not cleanup["errors"] and not job_evidence["errors"])
+    with error_lock:
+        archived_errors = [dict(item) for item in errors]
     complete = (root_exit is not None and waiter_joined and native_result["terminal"]
-                and all(p["eof"] for p in pipes.values()) and after_close.get("activeProcesses") == 0
-                and not errors and not job_evidence["errors"])
+                and pipe_eof and after_close.get("activeProcesses") == 0
+                and not archived_errors and not job_evidence["errors"])
     return {"schemaVersion": 1, "command": command, "cwd": str(repo),
             "pid": process.pid if process is not None else None,
-            "creationTime": birth if process is not None else None, "rootExitCode": root_exit,
+            "creationTime": birth, "rootExitCode": root_exit,
             "processTree": {"scope": "retained-windows-job", "terminal": complete,
                             "nativeWaiterJoined": waiter_joined, "readersFinished": True,
-                            "pipes": pipes, "pipeEOF": all(p["eof"] for p in pipes.values()),
+                            "pipes": pipes, "pipeEOF": pipe_eof,
                             "jobHandleRetainedUntilCliExit": bool(job and not waiter_joined)},
-            "nativeJobEvidence": job_evidence, "terminalErrors": errors, "formalAcceptance": False}
+            "nativeJobEvidence": job_evidence, "terminalErrors": archived_errors,
+            "cleanup": cleanup, "formalAcceptance": False}
 
 
 def _run_with_evidence(command: list[str], repo: Path, target: Path, environment: dict[str, str],

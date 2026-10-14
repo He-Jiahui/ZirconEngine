@@ -151,10 +151,11 @@ impl UiAssetEditorSession {
     }
 
     pub fn undo_replay(&mut self) -> Result<UiAssetEditorReplayResult, UiAssetEditorSessionError> {
-        let Some(record) = self.undo_stack.undo_record() else {
+        let Some(record) = self.undo_stack.peek_undo_record() else {
             return Ok(UiAssetEditorReplayResult::default());
         };
-        let changed = self.apply_undo_transition(record.transition.clone())?;
+        let changed = self.apply_undo_transition(&record.transition)?;
+        self.undo_stack.commit_undo();
         Ok(UiAssetEditorReplayResult {
             changed,
             label: record.label,
@@ -167,10 +168,11 @@ impl UiAssetEditorSession {
     }
 
     pub fn redo_replay(&mut self) -> Result<UiAssetEditorReplayResult, UiAssetEditorSessionError> {
-        let Some(record) = self.undo_stack.redo_record() else {
+        let Some(record) = self.undo_stack.peek_redo_record() else {
             return Ok(UiAssetEditorReplayResult::default());
         };
-        let changed = self.apply_undo_transition(record.transition.clone())?;
+        let changed = self.apply_undo_transition(&record.transition)?;
+        self.undo_stack.commit_redo();
         Ok(UiAssetEditorReplayResult {
             changed,
             label: record.label,
@@ -310,7 +312,7 @@ impl UiAssetEditorSession {
 
     fn apply_undo_transition(
         &mut self,
-        transition: super::undo_stack::UiAssetEditorUndoTransition,
+        transition: &super::undo_stack::UiAssetEditorUndoTransition,
     ) -> Result<bool, UiAssetEditorSessionError> {
         let mut source = self.source_buffer.text().to_string();
         let source_changed = transition
@@ -320,29 +322,27 @@ impl UiAssetEditorSession {
         let document_changed = transition
             .apply_to_document(&mut replay_document)
             .map_err(|_| UiAssetEditorSessionError::InvalidSourceBuffer)?;
-        let super::undo_stack::UiAssetEditorUndoTransition {
-            selection,
-            source_cursor,
-            selected_theme_source_key,
-            selected_style_rule_id,
-            ..
-        } = transition;
-        self.selection = selection;
-        self.selected_theme_source_key = selected_theme_source_key;
-        self.selected_style_rule_id = selected_style_rule_id;
+        let navigation_changed = self.selection != transition.selection
+            || self.source_cursor_snapshot() != transition.source_cursor
+            || self.selected_theme_source_key != transition.selected_theme_source_key
+            || self.selected_style_rule_id != transition.selected_style_rule_id;
+        let replay_document_changed = document_changed
+            && self.source_schema == UiAssetSourceSchema::LayoutDocument;
+        let prepared = if replay_document_changed {
+            self.prepare_valid_document(replay_document, true)?
+        } else {
+            self.prepare_source_revalidation(&source, true)?
+        };
+        // Source, document and all terminally fallible local projections are
+        // ready before publishing navigation state or advancing history.
+        self.selection = transition.selection.clone();
+        self.selected_theme_source_key = transition.selected_theme_source_key.clone();
+        self.selected_style_rule_id = transition.selected_style_rule_id.clone();
         self.source_buffer.replace(source);
-        self.restore_source_cursor_snapshot(&source_cursor);
-        if document_changed
-            && self.source_schema
-                == super::ui_asset_editor_session::UiAssetSourceSchema::LayoutDocument
-        {
-            self.apply_valid_document(replay_document)?;
-            self.clear_palette_drag_state();
-            return Ok(source_changed || document_changed);
-        }
-        self.revalidate()?;
+        self.restore_source_cursor_snapshot(&transition.source_cursor);
+        self.apply_prepared_source_document(prepared);
         self.clear_palette_drag_state();
-        Ok(source_changed)
+        Ok(source_changed || replay_document_changed || navigation_changed)
     }
 }
 

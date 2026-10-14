@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use serde::Serialize;
 use zircon_runtime_interface::runtime_build_set::{
-    current_runtime_payload_schema_set_digest, ZrRuntimeArtifactIdentityV1, ZrRuntimeBuildSetId,
-    ZrRuntimeInterfaceSpecV1, ZR_RUNTIME_ARTIFACT_MANIFEST_SCHEMA_V1,
+    ZR_RUNTIME_ARTIFACT_MANIFEST_SCHEMA_V1, ZrRuntimeArtifactIdentityV1, ZrRuntimeBuildSetId,
+    ZrRuntimeInterfaceSpecV1, current_runtime_payload_schema_set_digest,
 };
 
 use super::*;
@@ -47,9 +47,11 @@ fn staged_build_rejects_an_editor_replaced_after_manifest_creation() {
     .err()
     .expect("tampered editor should be rejected");
 
-    assert!(error
-        .to_string()
-        .contains("does not match its staged SHA-256"));
+    assert!(
+        error
+            .to_string()
+            .contains("does not match its staged SHA-256")
+    );
     fixture.remove();
 }
 
@@ -66,9 +68,11 @@ fn staged_build_rejects_a_manifest_for_another_profile() {
     .err()
     .expect("wrong profile should be rejected");
 
-    assert!(error
-        .to_string()
-        .contains("does not match requested profile debug"));
+    assert!(
+        error
+            .to_string()
+            .contains("does not match requested profile debug")
+    );
     fixture.remove();
 }
 
@@ -83,9 +87,11 @@ fn qualified_staged_build_replaces_the_active_directory_atomically() {
     activate_staged_engine(&fixture.staged_engine_dir, &active_engine_dir)
         .expect("qualified staging should become the active BuildSet");
 
-    assert!(active_engine_dir
-        .join(platform_editor_executable_name())
-        .is_file());
+    assert!(
+        active_engine_dir
+            .join(platform_editor_executable_name())
+            .is_file()
+    );
     assert!(!active_engine_dir.join("old-build.marker").exists());
     assert!(!fixture.staged_engine_dir.exists());
     fixture.remove();

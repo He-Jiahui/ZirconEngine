@@ -25,6 +25,6 @@ pub(super) use frame_codec::MAX_JOURNAL_BYTES;
 #[cfg(test)]
 pub(super) use intent::create_intent;
 pub(super) use intent::{persist_intent, plan_intent};
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 pub(super) use recovery::decode_journal;
 pub(super) use recovery::{decode_journal_with_valid_len, truncate_torn_tail};

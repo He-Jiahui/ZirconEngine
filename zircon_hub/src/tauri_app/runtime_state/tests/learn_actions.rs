@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use crate::{settings::HubConfig, state::HubActionStatus};
 
 use super::super::HubRuntimeSession;
-use crate::tauri_app::{action_request::HubAction, HubActionRequest};
+use crate::tauri_app::{HubActionRequest, action_request::HubAction};
 
 #[test]
 fn open_resource_rejects_paths_outside_current_learn_catalog() {

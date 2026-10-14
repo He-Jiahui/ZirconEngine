@@ -2,7 +2,7 @@ use std::process::Command;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use super::{lock_children, EditorChildReaper};
+use super::{EditorChildReaper, lock_children};
 use crate::process::SupervisedChild;
 
 #[test]

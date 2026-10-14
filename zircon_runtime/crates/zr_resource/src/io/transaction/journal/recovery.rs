@@ -8,7 +8,7 @@ use super::super::error::{DurableTransactionError, TransactionPhase};
 use super::super::schema::TransactionJournal;
 use super::frame_codec::{decode_frame, parse_toml_frame, TransitionAppend, MAX_JOURNAL_BYTES};
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 pub(in crate::io::transaction) fn decode_journal(
     path: &Path,
     bytes: &[u8],

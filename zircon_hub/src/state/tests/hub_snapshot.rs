@@ -204,9 +204,11 @@ fn hub04_project_availability_filter_release_benchmark_evidence() {
     let mut availability = ProjectAvailabilitySnapshot::capture(&projects);
 
     assert!(legacy_filtered_recent_projects(&snapshot).is_empty());
-    assert!(snapshot
-        .filtered_recent_projects_with_availability(&availability)
-        .is_empty());
+    assert!(
+        snapshot
+            .filtered_recent_projects_with_availability(&availability)
+            .is_empty()
+    );
 
     let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
     let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);

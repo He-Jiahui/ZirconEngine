@@ -5,7 +5,7 @@ use std::{future::IntoFuture, sync::Arc};
 
 #[path = "lifecycle/supervisor.rs"]
 mod supervisor;
-use supervisor::{StartupSupervisor, SHUTDOWN_TIMEOUT};
+use supervisor::{SHUTDOWN_TIMEOUT, StartupSupervisor};
 
 pub async fn run() -> Result<(), ServiceError> {
     let mut supervisor = StartupSupervisor::install_ctrl_c().await?;

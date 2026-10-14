@@ -23,13 +23,15 @@ pub(crate) fn gpu_timing_report_parent(path: &Path) -> Option<&Path> {
 pub(crate) fn validate_gpu_timing_report_output(
     screenshot_path: &Path,
     report_path: &Path,
+    terminal_outcome_path: &Path,
 ) -> Result<(), String> {
     let screenshot_sidecar_path = ready_frame_sidecar_path(screenshot_path)?;
     if artifact_paths_match(screenshot_path, report_path)?
         || artifact_paths_match(&screenshot_sidecar_path, report_path)?
+        || artifact_paths_match(terminal_outcome_path, report_path)?
     {
         return Err(
-            "--gpu-timing-report must not overwrite the --screenshot PNG or its Ready-frame sidecar"
+            "--gpu-timing-report must not overwrite the --screenshot PNG, its Ready-frame sidecar, or the terminal outcome"
                 .to_owned(),
         );
     }

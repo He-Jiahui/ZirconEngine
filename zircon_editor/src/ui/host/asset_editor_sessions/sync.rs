@@ -41,6 +41,7 @@ impl EditorUiHost {
             }
             self.document_dirty(instance_id)?
         } else {
+            self.clear_clean_ui_source_effect(instance_id, source_revision)?;
             self.document_dirty_if_registered(instance_id)?
                 .unwrap_or(false)
         };

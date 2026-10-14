@@ -3,9 +3,9 @@ use crate::account::cloud::manifest::{FileEntry, MAX_BLOB_BYTES};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use zircon_runtime_interface::project::{
-    ProjectGuid, ProjectManifestDigest, ProjectPackageLock, ProjectPackageLockAuthority,
-    ProjectPackageLockPlatform, ProjectPackageLockProject, ProjectPackageLockRuntimeMode,
-    ProjectPackageLockState, ProjectPackageLockTarget, PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1,
+    PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1, ProjectGuid, ProjectManifestDigest, ProjectPackageLock,
+    ProjectPackageLockAuthority, ProjectPackageLockPlatform, ProjectPackageLockProject,
+    ProjectPackageLockRuntimeMode, ProjectPackageLockState, ProjectPackageLockTarget,
 };
 
 const ORGANIZATION: &str = "00000000-0000-4000-8000-000000000001";

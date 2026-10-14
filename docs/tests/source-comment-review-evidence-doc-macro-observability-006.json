@@ -1,0 +1,3643 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "doc-macro-observability-006",
+  "owner": "core_review",
+  "reviewer": "/root/core_review",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "checkout": "E:/Git/ZirconEngine",
+  "rootChatId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "state": "static-review-ready-for-independent-review",
+  "evidencePath": "docs/tests/source-comment-review-evidence-doc-macro-observability-006.json",
+  "authority": {
+    "exclusiveEvidenceWriteGrant": "Root explicitly granted only this new JSON for the focused first-party procedural/derive macro static decision.",
+    "sourceWriteGrant": false,
+    "gitWriteGrant": false,
+    "compilationOrGenerationGrant": false,
+    "additionalAgentsSpawned": 0,
+    "priorFrozenEvidenceWriteGrant": false
+  },
+  "headObservations": {
+    "initialMacroInventoryDirectHead": "not recorded in cell 57",
+    "currentObservedHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+    "readHeads": [
+      {
+        "cells": [
+          "59",
+          "62",
+          "64",
+          "65",
+          "68",
+          "71",
+          "72"
+        ],
+        "head": "1de7f1af1f86b124645acdb2743bfe9064f6da8b"
+      }
+    ],
+    "rootReportedTransition": {
+      "from": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "to": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "meaning": "External HEAD change reported by root; raw macro/caller pins bind this report. No commit authorship, authorization, Jenkins or formal acceptance is inherited."
+    },
+    "frozenEvidenceHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+    "finalInputGuard": {
+      "sourcePinsMatched": 44,
+      "frozenEarlierEvidenceMatched": 2,
+      "newPathAbsent": true,
+      "execCell": "75",
+      "finalChunkId": "f0df39",
+      "exitCode": 0,
+      "observedAtUtc": "2026-10-13T14:24:37.286194+00:00"
+    }
+  },
+  "decision": {
+    "scope": "Four first-party exports in zircon_reflect_derive/src and zircon_runtime/reflection_macros/src plus their discovered named helper/call sites and the inspected Runtime/interface consumer paths.",
+    "finding": "已读第一方宏会收到普通 Rust doc 属性；两组 derive 只解析自己的 zr_reflect/zircon_script 辅助属性，普通 doc 不进入反射 documentation 值。函数/模块属性宏会回插普通 doc 属性，故 compiler-facing 输出仍变化。显式辅助属性或宏参数中的 documentation/doc 则真实进入运行时元数据。",
+    "runtimeExpectation": "在合法 AST 形状、原 helper/macro 参数、类型/成员顺序/cfg/module 路径均保持的前提下，当前被检查的宏路径没有把新增普通 Rust 文档内容转成反射显示名/稳定 ID/字段槽位/序列化标记/回调签名/运行时 documentation 的分支。",
+    "observableExplicitDocumentation": "显式 DSL doc 字符串会影响反射 DTO 和脚本描述符的文档字段、相关序列化/相等性、schema fingerprint 编码及 Markdown 导出。不能把这些配置字符串当成可随意改写的源码注释。",
+    "formalCompilerValidation": false,
+    "wholeWorkspaceCoverage": false,
+    "coverageCredit": "Focused readonly static auxiliary evidence only; no new source-comment coverage is claimed.",
+    "acceptanceRecommendation": "Root may use the path-bound static decision when assessing expected doc-attribute deltas. Keep formal Rustdoc/compiler/procedural-macro and third-party derive validation pending; do not force comments_only or claim compiler-facing token equality."
+  },
+  "scopeEnumeration": {
+    "macroDirectories": [
+      "zircon_reflect_derive/src",
+      "zircon_runtime/reflection_macros/src"
+    ],
+    "focusedRustFiles": 13,
+    "macroManifests": 2,
+    "proceduralExports": 4,
+    "helperAndInvocationAttributeSites": 110,
+    "filesWithTargetSites": 14,
+    "searchRoots": [
+      "zircon_runtime",
+      "zircon_runtime_interface",
+      "zircon_runtime_host",
+      "zircon_reflect_derive",
+      "zircon_plugins",
+      "zircon_editor",
+      "zircon_app",
+      "zircon_hub",
+      "examples",
+      "tests",
+      "templates"
+    ],
+    "scannerMethod": "rg candidate search followed by in-memory masking of line/nested block comments, ordinary/raw strings and recognized character literals, then balanced attribute-site extraction. All named discovered sites were inspected. This scanner is not a compiler parser or module/cfg reachability proof.",
+    "scopeLimit": "No complete first-party repository audit, unknown external consumer, declarative-macro guarantee or third-party implementation review is implied."
+  },
+  "proceduralExports": [
+    {
+      "name": "ZrReflect",
+      "kind": "derive",
+      "entry": "zircon_reflect_derive/src/lib.rs:36-41",
+      "helperAttributes": [
+        "zr_reflect"
+      ],
+      "implementation": "zircon_reflect_derive/src/derive.rs:34-201"
+    },
+    {
+      "name": "ZirconScriptType",
+      "kind": "derive",
+      "entry": "zircon_runtime/reflection_macros/src/lib.rs:21-27",
+      "helperAttributes": [
+        "zircon_script"
+      ],
+      "implementation": "zircon_runtime/reflection_macros/src/derive_type.rs:11-163"
+    },
+    {
+      "name": "zircon_host_function",
+      "kind": "attribute",
+      "entry": "zircon_runtime/reflection_macros/src/lib.rs:29-36",
+      "helperAttributes": [],
+      "implementation": "zircon_runtime/reflection_macros/src/function.rs:11-179"
+    },
+    {
+      "name": "zircon_host_module",
+      "kind": "attribute",
+      "entry": "zircon_runtime/reflection_macros/src/lib.rs:38-45",
+      "helperAttributes": [],
+      "implementation": "zircon_runtime/reflection_macros/src/module.rs:10-92"
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "zircon_reflect_derive/Cargo.toml",
+      "sha256": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+      "lines": 14,
+      "scopeMode": "dependency/export anchor read",
+      "readRanges": []
+    },
+    {
+      "path": "zircon_reflect_derive/src/attributes.rs",
+      "sha256": "182240eb3e4b3b5126198104739f41c811419b8b71b513264ebdcf724198da00",
+      "lines": 330,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          330
+        ]
+      ]
+    },
+    {
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+      "lines": 251,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          251
+        ]
+      ]
+    },
+    {
+      "path": "zircon_reflect_derive/src/fields.rs",
+      "sha256": "4cd70e843b8412ed2c99aabe6aebdcabce021b1b21b721b4e4771ea1198cc585",
+      "lines": 513,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          513
+        ]
+      ]
+    },
+    {
+      "path": "zircon_reflect_derive/src/lib.rs",
+      "sha256": "700988240f23c9d388569aeb162b1a55d0d88c24a1eccef79df94a37e0976793",
+      "lines": 42,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          42
+        ]
+      ]
+    },
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "lines": 261,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          261
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          17,
+          17
+        ],
+        [
+          19,
+          19
+        ],
+        [
+          55,
+          55
+        ],
+        [
+          66,
+          66
+        ],
+        [
+          79,
+          79
+        ],
+        [
+          97,
+          97
+        ],
+        [
+          117,
+          117
+        ],
+        [
+          187,
+          203
+        ],
+        [
+          205,
+          205
+        ],
+        [
+          225,
+          233
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/Cargo.toml",
+      "sha256": "8a61722b1b2eb8e37ce0ad8decbc67445bd15c9b1b550f2c4cc56b59932a5de7",
+      "lines": 26,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          26
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/field_info.rs",
+      "sha256": "8824d277465d382ec001afe65b465eae433ab516eba1c6a00cfb1c48fac5e8c9",
+      "lines": 138,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          138
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/fingerprint.rs",
+      "sha256": "47622f8d6774449b530cd834531a86df830561e2e87be19dcf69af028f9441fa",
+      "lines": 444,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          90,
+          180
+        ],
+        [
+          335,
+          363
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_registration.rs",
+      "sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "lines": 137,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          137
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect.rs",
+      "sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47",
+      "lines": 32,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          32
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "9bd81600c618a38c95fc7211d54ee299e03d70cf74560917ce4c9acf0534ad0b",
+      "lines": 350,
+      "scopeMode": "dependency/export anchor read",
+      "readRanges": []
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/Cargo.toml",
+      "sha256": "dac6e34f66c103214035cb0efdb8ebf2578a01c3d5b099694b05b382a9f5c276",
+      "lines": 14,
+      "scopeMode": "dependency/export anchor read",
+      "readRanges": []
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/args.rs",
+      "sha256": "5f4caefd6688290478ea8093533a207dbc093bac30e6869e99da058a6bdf43bc",
+      "lines": 139,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          139
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/attrs.rs",
+      "sha256": "c78afc2b526b6e00ee131f69107ad847d1090549ad3a2684cae1f1b4faf75a78",
+      "lines": 114,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          114
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/derive_type.rs",
+      "sha256": "84d6e1450a700445e5a1e068a875632e0b4633770624c8fcf590d8a92e6796e1",
+      "lines": 163,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          163
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/function.rs",
+      "sha256": "d5adab3ced932f9a338923a4736e28d69cb182a0ac8a0f8c33cb60b06590a7e6",
+      "lines": 179,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          179
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/lib.rs",
+      "sha256": "a4788f762e3ed05274c26dbe3892eb896c94a5bd9764614bab452991b54a13f6",
+      "lines": 45,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          45
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/module.rs",
+      "sha256": "77ee67fc89eda911748531ff7a2d52bf6bd651e477e7c40cbef17a24efdca9f3",
+      "lines": 92,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          92
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tests/cases.rs",
+      "sha256": "578beccb8f4a2d5e9747c993dc01a5b0e5c876616e493b42ce64f15a4eee3804",
+      "lines": 249,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          249
+        ],
+        [
+          126,
+          133
+        ],
+        [
+          135,
+          140
+        ],
+        [
+          142,
+          142
+        ],
+        [
+          170,
+          170
+        ],
+        [
+          181,
+          181
+        ],
+        [
+          220,
+          220
+        ],
+        [
+          225,
+          225
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tokens.rs",
+      "sha256": "a0fdbe07543bbf8a9236a2408dcaec640e25687e17fae0aadc105bd72e3464ce",
+      "lines": 36,
+      "scopeMode": "complete focused macro-source read",
+      "readRanges": [
+        [
+          1,
+          36
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/scene/mobility.rs",
+      "sha256": "4a1610a794694294095bfd537b8dccc981b8d3b4f7a0dd45bca70fa9b43d049e",
+      "lines": 95,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          3,
+          15
+        ],
+        [
+          16,
+          27
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/script.rs",
+      "sha256": "aed479b2d0aa9a5725c7478bacaec3832fc90812346a9b48f5c7ed4fb3db9e57",
+      "lines": 47,
+      "scopeMode": "dependency/export anchor read",
+      "readRanges": [
+        [
+          1,
+          47
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/script/descriptors.rs",
+      "sha256": "33e84d0df42db43f986be9694bff0ae74b158651bd26183a9079d1705e6fdb06",
+      "lines": 383,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          383
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "71f8e99399f691131e14967924eb03c52ffb8855d7ccbd9d8f3de119a3795534",
+      "lines": 86,
+      "scopeMode": "dependency/export anchor read",
+      "readRanges": [
+        [
+          72,
+          86
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/activation.rs",
+      "sha256": "aad56bb30b0b2ce377c7f28a11005c6683546caa9dbaffd3efa708bd1e74e944",
+      "lines": 71,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          4,
+          6
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          23,
+          25
+        ],
+        [
+          26,
+          32
+        ],
+        [
+          35,
+          41
+        ],
+        [
+          51,
+          53
+        ],
+        [
+          54,
+          58
+        ],
+        [
+          60,
+          60
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/camera.rs",
+      "sha256": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+      "lines": 104,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          8,
+          8
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          17,
+          17
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          25,
+          25
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          35,
+          35
+        ],
+        [
+          38,
+          38
+        ],
+        [
+          41,
+          41
+        ],
+        [
+          44,
+          44
+        ],
+        [
+          47,
+          47
+        ],
+        [
+          50,
+          50
+        ],
+        [
+          53,
+          53
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/hierarchy.rs",
+      "sha256": "2118f5f1d49dac7470f2c2af1b2ca58b4eea5513a70b8c8279ccbec5a9ec350e",
+      "lines": 30,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          4,
+          14
+        ],
+        [
+          15,
+          21
+        ],
+        [
+          24,
+          28
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/identity.rs",
+      "sha256": "1720c9c5998194d86af1e4e649976e52ccd0f84a4988c951934708fad397999b",
+      "lines": 25,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          17,
+          17
+        ],
+        [
+          18,
+          22
+        ],
+        [
+          24,
+          24
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/lighting.rs",
+      "sha256": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c",
+      "lines": 144,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          26,
+          26
+        ],
+        [
+          27,
+          31
+        ],
+        [
+          54,
+          54
+        ],
+        [
+          55,
+          59
+        ],
+        [
+          82,
+          82
+        ],
+        [
+          83,
+          87
+        ],
+        [
+          112,
+          112
+        ],
+        [
+          113,
+          117
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/mesh_renderer.rs",
+      "sha256": "c8913a437f7d8e8374ca19ad0f22293937c00cc069e5ebdf538cba02d91f50f2",
+      "lines": 153,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          41,
+          41
+        ],
+        [
+          42,
+          46
+        ],
+        [
+          49,
+          54
+        ],
+        [
+          57,
+          62
+        ],
+        [
+          64,
+          69
+        ],
+        [
+          80,
+          85
+        ],
+        [
+          88,
+          93
+        ],
+        [
+          96,
+          101
+        ],
+        [
+          107,
+          107
+        ],
+        [
+          111,
+          111
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/physics.rs",
+      "sha256": "90d2aa64801a0aae26e7fe832ec75e1bfb3d5f6d3afbd207102eae0a9df9cc22",
+      "lines": 228,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          19,
+          19
+        ],
+        [
+          20,
+          38
+        ],
+        [
+          41,
+          46
+        ],
+        [
+          50,
+          50
+        ],
+        [
+          53,
+          58
+        ],
+        [
+          61,
+          66
+        ],
+        [
+          72,
+          77
+        ],
+        [
+          80,
+          85
+        ],
+        [
+          87,
+          92
+        ],
+        [
+          94,
+          99
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/transform.rs",
+      "sha256": "046fd8e2b5eaed5c3760641ff4238adbff13cf50790eb37c981a04095e531943",
+      "lines": 68,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          4,
+          6
+        ],
+        [
+          7,
+          32
+        ],
+        [
+          35,
+          35
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs",
+      "sha256": "97b9e7d955597fd14c8008f1db688c8ac7471af65747e0e4109921a83927709c",
+      "lines": 28,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          28
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs",
+      "sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "lines": 252,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          85
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/mod.rs",
+      "sha256": "904fbd2804b6f55b3eb92ae07cb0143fab8c7251d3ba92bfac95c3ff3ca4de43",
+      "lines": 11,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          11
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs",
+      "sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "lines": 188,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          10,
+          10
+        ],
+        [
+          11,
+          11
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          1,
+          58
+        ],
+        [
+          154,
+          188
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/mod.rs",
+      "sha256": "c0649a9d0fad09a4a69aee0a1fbc63ba3896ef6b0bfe8d2fd91ee462e669a558",
+      "lines": 56,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          56
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/registration.rs",
+      "sha256": "44db4451831d68dd28aa291239f47c7fe004ec939064f9317420103280f33412",
+      "lines": 12,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          12
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/host/builtin_host_modules.rs",
+      "sha256": "2d13c1bf04ce3ea33a8d0eba539881c78e45f971af238620d4d613b748b875c6",
+      "lines": 580,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          264,
+          264
+        ],
+        [
+          265,
+          271
+        ],
+        [
+          273,
+          273
+        ],
+        [
+          275,
+          275
+        ],
+        [
+          277,
+          277
+        ],
+        [
+          281,
+          281
+        ],
+        [
+          282,
+          288
+        ],
+        [
+          290,
+          290
+        ],
+        [
+          292,
+          292
+        ],
+        [
+          294,
+          294
+        ],
+        [
+          296,
+          296
+        ],
+        [
+          320,
+          324
+        ],
+        [
+          329,
+          333
+        ],
+        [
+          1,
+          47
+        ],
+        [
+          259,
+          422
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/host/host_export_registry.rs",
+      "sha256": "e5dc3b051ba5fb7b9c3ca88adeb3430d7f8af349b3d587be4d092376b27b78a9",
+      "lines": 441,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          68,
+          193
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs",
+      "sha256": "c3339092819ff4c20999bf6abad510011fc25a5372cc51c9adfc89a1a5dab3d3",
+      "lines": 314,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          1,
+          45
+        ],
+        [
+          85,
+          128
+        ],
+        [
+          163,
+          196
+        ],
+        [
+          239,
+          252
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/host/reflection_docs/writer.rs",
+      "sha256": "a27d577e47e857add51d6645fb56ce23b39cc60199ac636eaee937015c0e36be",
+      "lines": 23,
+      "scopeMode": "actual consumer/data-flow read",
+      "readRanges": [
+        [
+          6,
+          23
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/tests/reflection_docs.rs",
+      "sha256": "324cf4a7bab6c172d55df7d3dd59d64c6910b8d9f9bf7d43b28abba1b8f36f18",
+      "lines": 538,
+      "scopeMode": "all discovered target attributes inspected; no whole consumer audit claim",
+      "readRanges": [
+        [
+          393,
+          393
+        ],
+        [
+          394,
+          400
+        ],
+        [
+          402,
+          402
+        ],
+        [
+          404,
+          404
+        ],
+        [
+          406,
+          406
+        ],
+        [
+          467,
+          467
+        ],
+        [
+          468,
+          468
+        ],
+        [
+          480,
+          485
+        ],
+        [
+          489,
+          489
+        ],
+        [
+          490,
+          494
+        ],
+        [
+          496,
+          496
+        ],
+        [
+          504,
+          509
+        ],
+        [
+          382,
+          538
+        ]
+      ]
+    }
+  ],
+  "macroDefinitionInventory": [
+    {
+      "path": "zircon_reflect_derive/src/attributes.rs",
+      "sha256": "182240eb3e4b3b5126198104739f41c811419b8b71b513264ebdcf724198da00",
+      "lines": 330,
+      "functionCandidates": [
+        {
+          "line": 23,
+          "symbol": "default",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 118,
+          "symbol": "parse_container_attributes",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 231,
+          "symbol": "parse_field_attributes",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 247,
+          "symbol": "parse_field_meta",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 280,
+          "symbol": "validate_field_attributes",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 301,
+          "symbol": "parse_string",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 306,
+          "symbol": "parse_bool",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 311,
+          "symbol": "parse_path",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 317,
+          "symbol": "parse_serialization",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+      "lines": 251,
+      "functionCandidates": [
+        {
+          "line": 34,
+          "symbol": "derive_zr_reflect_impl",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 115,
+          "symbol": "reflect_type_registration",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 140,
+          "symbol": "read_reflected_field",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 157,
+          "symbol": "write_reflected_field",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 172,
+          "symbol": "read_reflected_field_by_slot",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 189,
+          "symbol": "write_reflected_field_by_slot",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 216,
+          "symbol": "validate_unique_field_names",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 233,
+          "symbol": "serialization_tokens",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 245,
+          "symbol": "script_visibility_tokens",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_reflect_derive/src/fields.rs",
+      "sha256": "4cd70e843b8412ed2c99aabe6aebdcabce021b1b21b721b4e4771ea1198cc585",
+      "lines": 513,
+      "functionCandidates": [
+        {
+          "line": 59,
+          "symbol": "collect_virtual_fields",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 99,
+          "symbol": "collect_fields",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 128,
+          "symbol": "field_info_tokens",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 173,
+          "symbol": "read_arm_tokens",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 207,
+          "symbol": "read_slot_arm_tokens",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 242,
+          "symbol": "write_arm_tokens",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 292,
+          "symbol": "write_slot_arm_tokens",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 344,
+          "symbol": "slot_literal",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 351,
+          "symbol": "reflected_field",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 399,
+          "symbol": "build_reflected_field",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 432,
+          "symbol": "infer_value_type_path",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 455,
+          "symbol": "infer_list_value_type_path",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 469,
+          "symbol": "inferred_editor_hint",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 488,
+          "symbol": "parse_editor_hint",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_reflect_derive/src/lib.rs",
+      "sha256": "700988240f23c9d388569aeb162b1a55d0d88c24a1eccef79df94a37e0976793",
+      "lines": 42,
+      "functionCandidates": [
+        {
+          "line": 37,
+          "symbol": "derive_zr_reflect",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/args.rs",
+      "sha256": "5f4caefd6688290478ea8093533a207dbc093bac30e6869e99da058a6bdf43bc",
+      "lines": 139,
+      "functionCandidates": [
+        {
+          "line": 46,
+          "symbol": "parse",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 69,
+          "symbol": "parse",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 90,
+          "symbol": "parse_key_values",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 107,
+          "symbol": "parse_lit_string",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 123,
+          "symbol": "parse_lit_bool",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 127,
+          "symbol": "parse_lit_str",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 131,
+          "symbol": "parse_expr_path",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/attrs.rs",
+      "sha256": "c78afc2b526b6e00ee131f69107ad847d1090549ad3a2684cae1f1b4faf75a78",
+      "lines": 114,
+      "functionCandidates": [
+        {
+          "line": 7,
+          "symbol": "parse_script_type_attrs",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 35,
+          "symbol": "parse_field_attrs",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 65,
+          "symbol": "host_attr_function_ident",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 76,
+          "symbol": "script_type_ident",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 88,
+          "symbol": "has_attr_with_last_segment",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 94,
+          "symbol": "path_last_segment_is",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 100,
+          "symbol": "derives_zircon_script_type",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/derive_type.rs",
+      "sha256": "84d6e1450a700445e5a1e068a875632e0b4633770624c8fcf590d8a92e6796e1",
+      "lines": 163,
+      "functionCandidates": [
+        {
+          "line": 11,
+          "symbol": "derive_zircon_script_type_impl",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 67,
+          "symbol": "reflect_type_registration",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 89,
+          "symbol": "script_host_type_projection",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 100,
+          "symbol": "field_tokens",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/function.rs",
+      "sha256": "d5adab3ced932f9a338923a4736e28d69cb182a0ac8a0f8c33cb60b06590a7e6",
+      "lines": 179,
+      "functionCandidates": [
+        {
+          "line": 11,
+          "symbol": "host_function_impl",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 153,
+          "symbol": "host_function_params",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/lib.rs",
+      "sha256": "a4788f762e3ed05274c26dbe3892eb896c94a5bd9764614bab452991b54a13f6",
+      "lines": 45,
+      "functionCandidates": [
+        {
+          "line": 22,
+          "symbol": "derive_zircon_script_type",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 30,
+          "symbol": "zircon_host_function",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 39,
+          "symbol": "zircon_host_module",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/module.rs",
+      "sha256": "77ee67fc89eda911748531ff7a2d52bf6bd651e477e7c40cbef17a24efdca9f3",
+      "lines": 92,
+      "functionCandidates": [
+        {
+          "line": 10,
+          "symbol": "host_module_impl",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tokens.rs",
+      "sha256": "a0fdbe07543bbf8a9236a2408dcaec640e25687e17fae0aadc105bd72e3464ce",
+      "lines": 36,
+      "functionCandidates": [
+        {
+          "line": 7,
+          "symbol": "path_tokens",
+          "role": "macro-definition-or-generated-template"
+        },
+        {
+          "line": 11,
+          "symbol": "script_host_type_ref_tokens",
+          "role": "macro-definition-or-generated-template"
+        }
+      ],
+      "distinction": "Listed generated method templates are identified separately below; these lexical anchors are not a compiler AST proof."
+    }
+  ],
+  "generatedMethodTemplates": [
+    {
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "symbols": [
+        "reflect_type_registration",
+        "read_reflected_field",
+        "write_reflected_field",
+        "read_reflected_field_by_slot",
+        "write_reflected_field_by_slot"
+      ],
+      "lines": [
+        115,
+        140,
+        157,
+        172,
+        189
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/derive_type.rs",
+      "symbols": [
+        "reflect_type_registration",
+        "script_host_type_projection"
+      ],
+      "lines": [
+        67,
+        89
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/function.rs",
+      "symbols": [
+        "__zircon_host_function_descriptor_<fn_ident>",
+        "__zircon_host_export_function_<fn_ident>"
+      ],
+      "lines": [
+        124,
+        138
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/module.rs",
+      "symbols": [
+        "<mod_ident>_host_module_descriptor",
+        "register_<mod_ident>_host_module"
+      ],
+      "lines": [
+        71,
+        82
+      ]
+    }
+  ],
+  "helperAttributeContracts": [
+    {
+      "owner": "ZrReflect container",
+      "attribute": "zr_reflect",
+      "parser": "zircon_reflect_derive/src/attributes.rs:118-210",
+      "filterLines": [
+        124
+      ],
+      "keys": [
+        "component",
+        "resource",
+        "type_path",
+        "identity",
+        "display_name",
+        "serializable",
+        "editor_visible",
+        "remote_visible",
+        "script_visibility",
+        "serialization",
+        "field(...)"
+      ],
+      "ordinaryDoc": "Filtered out by path().is_ident(\"zr_reflect\"); no Rust doc text extraction",
+      "descriptorDoc": "No supported doc/documentation key; unknown zr_reflect key is an error"
+    },
+    {
+      "owner": "ZrReflect field/virtual field",
+      "attribute": "zr_reflect",
+      "parser": "zircon_reflect_derive/src/attributes.rs:231-278",
+      "filterLines": [
+        235
+      ],
+      "keys": [
+        "skip",
+        "name",
+        "identity",
+        "alias",
+        "value_type_path",
+        "editor_hint",
+        "readonly",
+        "serializable",
+        "editor_visible",
+        "read",
+        "write"
+      ],
+      "ordinaryDoc": "Non-zr_reflect attributes ignored; field configuration contains no documentation value",
+      "descriptorDoc": "No doc/documentation key"
+    },
+    {
+      "owner": "ZirconScriptType type",
+      "attribute": "zircon_script",
+      "parser": "zircon_runtime/reflection_macros/src/attrs.rs:7-33",
+      "filterLines": [
+        11
+      ],
+      "keys": [
+        "name",
+        "identity",
+        "value_kind",
+        "prototype",
+        "allow_value_construction",
+        "documentation",
+        "doc"
+      ],
+      "ordinaryDoc": "Only outer path zircon_script is parsed; outer doc is ignored",
+      "descriptorDoc": "Nested documentation/doc is parsed as a string and becomes args.documentation"
+    },
+    {
+      "owner": "ZirconScriptType field",
+      "attribute": "zircon_script",
+      "parser": "zircon_runtime/reflection_macros/src/attrs.rs:35-63",
+      "filterLines": [
+        39
+      ],
+      "keys": [
+        "name",
+        "identity",
+        "alias",
+        "type_name",
+        "value_kind",
+        "documentation",
+        "doc",
+        "skip"
+      ],
+      "ordinaryDoc": "Only outer path zircon_script is parsed; outer doc is ignored",
+      "descriptorDoc": "Nested documentation/doc becomes FieldArgs.documentation"
+    },
+    {
+      "owner": "zircon_host_function",
+      "attribute": "zircon_host_function(args)",
+      "parser": "zircon_runtime/reflection_macros/src/args.rs:45-66",
+      "keys": [
+        "name",
+        "return_type_name",
+        "return_value_kind",
+        "capability",
+        "documentation",
+        "doc"
+      ],
+      "ordinaryDoc": "Input ItemFn attributes are not read for runtime documentation; #item is re-emitted with its remaining attributes",
+      "descriptorDoc": "Attribute argument keys documentation/doc feed HostFunctionArgs.documentation"
+    },
+    {
+      "owner": "zircon_host_module",
+      "attribute": "zircon_host_module(args)",
+      "parser": "zircon_runtime/reflection_macros/src/args.rs:68-87",
+      "keys": [
+        "name",
+        "version",
+        "capability",
+        "documentation",
+        "doc"
+      ],
+      "ordinaryDoc": "Module attrs and child items are re-emitted; only macro args feed runtime module documentation",
+      "descriptorDoc": "Attribute argument keys documentation/doc feed HostModuleArgs.documentation"
+    }
+  ],
+  "objectAndBlockEvidence": [
+    {
+      "id": "DOC-MACRO-OBS-006-01",
+      "path": "zircon_reflect_derive/src/lib.rs",
+      "definition": "derive_zr_reflect",
+      "lines": [
+        36,
+        41
+      ],
+      "entry": "Compiler provides DeriveInput token input, including Rust attributes",
+      "state": "syn parses the item; derive_zr_reflect_impl receives the parsed input",
+      "impact": "Input doc attributes are visible to the macro, but visibility alone does not mean conversion to runtime descriptions",
+      "calls": [
+        "zircon_reflect_derive/src/derive.rs:34-201"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-02",
+      "path": "zircon_reflect_derive/src/attributes.rs",
+      "definition": "parse_container_attributes / parse_field_attributes / parse_field_meta",
+      "lines": [
+        118,
+        278
+      ],
+      "entry": "All item/field Attribute values",
+      "state": "Outer-path filter accepts only zr_reflect; the accepted key set contains no doc/documentation",
+      "impact": "Ordinary doc attributes do not modify parsed component/resource, names, stable identities, flags, value paths or accessors",
+      "calls": [
+        "zircon_reflect_derive/src/derive.rs:43",
+        "zircon_reflect_derive/src/fields.rs:102"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-03",
+      "path": "zircon_reflect_derive/src/fields.rs",
+      "definition": "collect_fields / build_reflected_field / field_info_tokens / name and slot access generators",
+      "lines": [
+        99,
+        429
+      ],
+      "entry": "Ordered fields plus parsed helper settings",
+      "state": "Skip filtering, member/name/type extraction and normalized ReflectedField; no documentation field is retained",
+      "impact": "Metadata construction and generated read/write dispatch depend on members/types/own helper attributes, not ordinary doc payloads. ReflectFieldInfo::new defaults documentation to None.",
+      "calls": [
+        "zircon_reflect_derive/src/derive.rs:79-110",
+        "zircon_runtime_interface/src/reflect/field_info.rs:43-67"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-04",
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "definition": "derive_zr_reflect_impl generated trait implementation",
+      "lines": [
+        34,
+        201
+      ],
+      "entry": "Type identifier/data and parsed zr_reflect configuration",
+      "state": "Constructs registration and five ZrReflect methods through quote templates; original input.attrs are not re-emitted",
+      "impact": "For unchanged valid item shape/helper values/module path, ordinary added Rust docs have no inspected mapping into registration display names, stable IDs, serialization flags, field slots or accessors. No new repr/field/layout declaration is emitted by this derive.",
+      "calls": [
+        "zircon_runtime_interface/src/reflect/type_registration.rs:50-72",
+        "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:14-53",
+        "zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs:11-27"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-05",
+      "path": "zircon_runtime/reflection_macros/src/attrs.rs",
+      "definition": "parse_script_type_attrs / parse_field_attrs / direct module item detection",
+      "lines": [
+        7,
+        114
+      ],
+      "entry": "All item/field attrs and direct module items",
+      "state": "Reads only outer zircon_script; derives selector reads derive paths and function selector reads attribute last segment zircon_host_function",
+      "impact": "Outer doc attributes neither fill documentation nor select a function/type for module registration. Nested explicit doc/documentation strings remain meaningful DSL arguments.",
+      "calls": [
+        "zircon_runtime/reflection_macros/src/derive_type.rs:19",
+        "zircon_runtime/reflection_macros/src/derive_type.rs:107",
+        "zircon_runtime/reflection_macros/src/module.rs:38-46"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-06",
+      "path": "zircon_runtime/reflection_macros/src/derive_type.rs",
+      "definition": "derive_zircon_script_type_impl / field_tokens",
+      "lines": [
+        11,
+        163
+      ],
+      "entry": "ScriptTypeArgs and FieldArgs obtained from zircon_script helpers",
+      "state": "Optional explicit documentation emits with_documentation for ReflectTypeRegistration or ReflectFieldInfo; no doc attributes from original input are copied into the generated impl",
+      "impact": "Ordinary Rust docs are not converted into runtime documentation in these templates. Explicit DSL doc strings alter runtime metadata; field/type IDs use identity/name and are separate inputs.",
+      "calls": [
+        "zircon_runtime_interface/src/reflect/type_registration.rs:82-85",
+        "zircon_runtime_interface/src/reflect/field_info.rs:134-137",
+        "zircon_runtime/src/core/framework/script/descriptors.rs:14-20",
+        "zircon_runtime/src/core/framework/script/descriptors.rs:255-335"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-07",
+      "path": "zircon_runtime/reflection_macros/src/function.rs",
+      "definition": "host_function_impl / host_function_params",
+      "lines": [
+        11,
+        179
+      ],
+      "entry": "Parsed macro argument config and original ItemFn",
+      "state": "Function name/signature/argument identifiers/types drive descriptor/export. Documentation comes from args.documentation. #item is retained at line 122.",
+      "impact": "Ordinary function docs remain observable compiler-facing output attrs; they do not enter ScriptHostFunctionDescriptor.documentation in this implementation. Signature/arity/conversion templates have no doc extraction branch.",
+      "calls": [
+        "zircon_runtime/reflection_macros/src/args.rs:45-66",
+        "zircon_runtime/src/script/vm/host/builtin_host_modules.rs:320-336",
+        "zircon_runtime/src/script/vm/host/builtin_host_modules.rs:339-351",
+        "zircon_runtime/src/script/vm/host/builtin_host_modules.rs:408-414"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-08",
+      "path": "zircon_runtime/reflection_macros/src/module.rs",
+      "definition": "host_module_impl",
+      "lines": [
+        10,
+        92
+      ],
+      "entry": "Explicit HostModuleArgs and inline ItemMod",
+      "state": "Original attrs at lines 11 and 67, original child items at 69; direct function/derive paths drive descriptor/register functions",
+      "impact": "Ordinary module/child docs are preserved in compiler output; args.documentation alone controls runtime module doc value. Register shape is stable under unchanged macro args/items.",
+      "calls": [
+        "zircon_runtime/reflection_macros/src/attrs.rs:65-114",
+        "zircon_runtime/reflection_macros/src/args.rs:68-87",
+        "zircon_runtime/src/script/vm/tests/reflection_docs.rs:480-538",
+        "zircon_runtime/src/script/vm/host/host_export_registry.rs:100-135"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-09",
+      "path": "zircon_runtime/src/core/framework/script/descriptors.rs",
+      "definition": "ZirconScriptType::script_host_type_descriptor / ScriptHostTypeDescriptor::from_reflect_registration",
+      "lines": [
+        9,
+        335
+      ],
+      "entry": "Generated reflection registration and script projection",
+      "state": "Validates public visibility and field projection correspondence, then copies explicit registration/field documentation",
+      "impact": "Runtime descriptors retain documentation and derive Serialize/Deserialize/PartialEq; documentation values are externally observable descriptor data.",
+      "calls": [
+        "zircon_runtime/src/script/vm/host/builtin_host_modules.rs:339-351",
+        "zircon_runtime/src/script/vm/host/host_export_registry.rs:100-153",
+        "zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs:38-40",
+        "zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs:97-101"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-10",
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/fingerprint.rs",
+      "definition": "hash_registration / hash_field / hash_optional_str",
+      "lines": [
+        106,
+        155
+      ],
+      "additionalLines": [
+        346,
+        361
+      ],
+      "entry": "Runtime ReflectTypeRegistration/ReflectFieldInfo metadata",
+      "state": "Type documentation, enum option documentation and field documentation are encoded with optional marker and UTF-8 length/text",
+      "impact": "Explicit documentation changes participate in fingerprint input and can change catalog fingerprints. No ordinary Rust doc attribute is read here.",
+      "calls": [
+        "zircon_runtime_interface/src/reflect/type_registration.rs:32",
+        "zircon_runtime_interface/src/reflect/field_info.rs:40"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-11",
+      "path": "zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs",
+      "definition": "render_module / render_type / render_fields / render_function / render_parameters",
+      "lines": [
+        10,
+        252
+      ],
+      "entry": "Provided or registered ScriptHostModuleDescriptor values",
+      "state": "Reads .documentation on module/type/field/function/parameter and emits Markdown text",
+      "impact": "Explicit descriptor documentation is observable in runtime documentation output; source Rust docs are not fetched or parsed by this renderer.",
+      "calls": [
+        "zircon_runtime/src/script/vm/host/reflection_docs/writer.rs:10-23"
+      ]
+    },
+    {
+      "id": "DOC-MACRO-OBS-006-12",
+      "path": "zircon_runtime/reflection_macros/src/tests/cases.rs",
+      "definition": "macro_expansion_sources_use_single_field_and_module_item_passes and metadata expansion tests",
+      "lines": [
+        6,
+        249
+      ],
+      "entry": "Raw macro-source include_str data and direct syn parse_quote fixture inputs",
+      "state": "The raw-source guard checks substring spelling; metadata tests inspect explicit DSL-generated values",
+      "impact": "Source comments are included in the guard strings and expanded doc attrs can affect token-string assertions in principle. The four existing source-substring conditions currently match statically; no Rust test or ordinary-doc equivalence test was run.",
+      "calls": [
+        "zircon_runtime/reflection_macros/src/derive_type.rs",
+        "zircon_runtime/reflection_macros/src/module.rs",
+        "zircon_runtime/src/script/vm/tests/reflection_docs.rs:392-538"
+      ]
+    }
+  ],
+  "invocationAndHelperSites": [
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "lines": 261,
+      "sites": [
+        {
+          "line": 10,
+          "endLine": 15,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "display_name",
+            "identity",
+            "script_visibility"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 17,
+          "endLine": 17,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "alias",
+            "editor_hint",
+            "identity"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 19,
+          "endLine": 19,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 55,
+          "endLine": 55,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "identity"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 66,
+          "endLine": 66,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "identity"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 79,
+          "endLine": 79,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 97,
+          "endLine": 97,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 117,
+          "endLine": 117,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 187,
+          "endLine": 203,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "read",
+            "value_type_path",
+            "write"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 205,
+          "endLine": 205,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 225,
+          "endLine": 233,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "name",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/tests/reflection_docs.rs",
+      "sha256": "324cf4a7bab6c172d55df7d3dd59d64c6910b8d9f9bf7d43b28abba1b8f36f18",
+      "lines": 538,
+      "sites": [
+        {
+          "line": 393,
+          "endLine": 393,
+          "attribute": "derive",
+          "macroNames": [
+            "ZirconScriptType"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 394,
+          "endLine": 400,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "allow_value_construction",
+            "documentation",
+            "name",
+            "prototype",
+            "value_kind"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 402,
+          "endLine": 402,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "documentation",
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 404,
+          "endLine": 404,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 406,
+          "endLine": 406,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 467,
+          "endLine": 467,
+          "attribute": "derive",
+          "macroNames": [
+            "ZirconScriptType"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 468,
+          "endLine": 468,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "name",
+            "value_kind"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 480,
+          "endLine": 485,
+          "attribute": "zircon_host_module",
+          "macroNames": [],
+          "argumentKeys": [
+            "capability",
+            "documentation",
+            "name",
+            "version"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 489,
+          "endLine": 489,
+          "attribute": "derive",
+          "macroNames": [
+            "ZirconScriptType"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 490,
+          "endLine": 494,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "allow_value_construction",
+            "name",
+            "value_kind"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 496,
+          "endLine": 496,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 504,
+          "endLine": 509,
+          "attribute": "zircon_host_function",
+          "macroNames": [],
+          "argumentKeys": [
+            "capability",
+            "documentation",
+            "name",
+            "return_type_name"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "Runtime test fixture/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/host/builtin_host_modules.rs",
+      "sha256": "2d13c1bf04ce3ea33a8d0eba539881c78e45f971af238620d4d613b748b875c6",
+      "lines": 580,
+      "sites": [
+        {
+          "line": 264,
+          "endLine": 264,
+          "attribute": "derive",
+          "macroNames": [
+            "ZirconScriptType"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 265,
+          "endLine": 271,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "allow_value_construction",
+            "documentation",
+            "name",
+            "prototype",
+            "value_kind"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 273,
+          "endLine": 273,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 275,
+          "endLine": 275,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 277,
+          "endLine": 277,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 281,
+          "endLine": 281,
+          "attribute": "derive",
+          "macroNames": [
+            "ZirconScriptType"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 282,
+          "endLine": 288,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "allow_value_construction",
+            "documentation",
+            "name",
+            "prototype",
+            "value_kind"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 290,
+          "endLine": 290,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 292,
+          "endLine": 292,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 294,
+          "endLine": 294,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 296,
+          "endLine": 296,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 320,
+          "endLine": 324,
+          "attribute": "zircon_host_function",
+          "macroNames": [],
+          "argumentKeys": [
+            "documentation",
+            "name",
+            "return_type_name"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 329,
+          "endLine": 333,
+          "attribute": "zircon_host_function",
+          "macroNames": [],
+          "argumentKeys": [
+            "documentation",
+            "name",
+            "return_type_name"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs",
+      "sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "lines": 188,
+      "sites": [
+        {
+          "line": 10,
+          "endLine": 10,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 11,
+          "endLine": 11,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "display_name",
+            "script_visibility"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 13,
+          "endLine": 13,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        },
+        {
+          "line": 15,
+          "endLine": 15,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "Runtime test fixture/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/transform.rs",
+      "sha256": "046fd8e2b5eaed5c3760641ff4238adbff13cf50790eb37c981a04095e531943",
+      "lines": 68,
+      "sites": [
+        {
+          "line": 4,
+          "endLine": 6,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 7,
+          "endLine": 32,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "read",
+            "script_visibility",
+            "type_path",
+            "value_type_path",
+            "write"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 35,
+          "endLine": 35,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/physics.rs",
+      "sha256": "90d2aa64801a0aae26e7fe832ec75e1bfb3d5f6d3afbd207102eae0a9df9cc22",
+      "lines": 228,
+      "sites": [
+        {
+          "line": 19,
+          "endLine": 19,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 20,
+          "endLine": 38,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "read",
+            "script_visibility",
+            "type_path",
+            "value_type_path",
+            "write"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 41,
+          "endLine": 46,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 50,
+          "endLine": 50,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 53,
+          "endLine": 58,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 61,
+          "endLine": 66,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 72,
+          "endLine": 77,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path",
+            "write"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 80,
+          "endLine": 85,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path",
+            "write"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 87,
+          "endLine": 92,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 94,
+          "endLine": 99,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/mesh_renderer.rs",
+      "sha256": "c8913a437f7d8e8374ca19ad0f22293937c00cc069e5ebdf538cba02d91f50f2",
+      "lines": 153,
+      "sites": [
+        {
+          "line": 41,
+          "endLine": 41,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 42,
+          "endLine": 46,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 49,
+          "endLine": 54,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 57,
+          "endLine": 62,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 64,
+          "endLine": 69,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 80,
+          "endLine": 85,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 88,
+          "endLine": 93,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 96,
+          "endLine": 101,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "read",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 107,
+          "endLine": 107,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 111,
+          "endLine": 111,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/lighting.rs",
+      "sha256": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c",
+      "lines": 144,
+      "sites": [
+        {
+          "line": 4,
+          "endLine": 4,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 5,
+          "endLine": 9,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 26,
+          "endLine": 26,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 27,
+          "endLine": 31,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 54,
+          "endLine": 54,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 55,
+          "endLine": 59,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 82,
+          "endLine": 82,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 83,
+          "endLine": 87,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 112,
+          "endLine": 112,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 113,
+          "endLine": 117,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/identity.rs",
+      "sha256": "1720c9c5998194d86af1e4e649976e52ccd0f84a4988c951934708fad397999b",
+      "lines": 25,
+      "sites": [
+        {
+          "line": 17,
+          "endLine": 17,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 18,
+          "endLine": 22,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 24,
+          "endLine": 24,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/hierarchy.rs",
+      "sha256": "2118f5f1d49dac7470f2c2af1b2ca58b4eea5513a70b8c8279ccbec5a9ec350e",
+      "lines": 30,
+      "sites": [
+        {
+          "line": 4,
+          "endLine": 14,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 15,
+          "endLine": 21,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "serializable",
+            "serialization",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 24,
+          "endLine": 28,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "serializable",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/camera.rs",
+      "sha256": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+      "lines": 104,
+      "sites": [
+        {
+          "line": 8,
+          "endLine": 8,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 9,
+          "endLine": 13,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 17,
+          "endLine": 17,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 20,
+          "endLine": 20,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 25,
+          "endLine": 25,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 32,
+          "endLine": 32,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 35,
+          "endLine": 35,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 38,
+          "endLine": 38,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 41,
+          "endLine": 41,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 44,
+          "endLine": 44,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 47,
+          "endLine": 47,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 50,
+          "endLine": 50,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 53,
+          "endLine": 53,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/activation.rs",
+      "sha256": "aad56bb30b0b2ce377c7f28a11005c6683546caa9dbaffd3efa708bd1e74e944",
+      "lines": 71,
+      "sites": [
+        {
+          "line": 4,
+          "endLine": 6,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 7,
+          "endLine": 11,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 14,
+          "endLine": 14,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 23,
+          "endLine": 25,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 26,
+          "endLine": 32,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "serializable",
+            "serialization",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 35,
+          "endLine": 41,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "serializable",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 51,
+          "endLine": 53,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 54,
+          "endLine": 58,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "script_visibility",
+            "type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 60,
+          "endLine": 60,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "value_type_path"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/scene/mobility.rs",
+      "sha256": "4a1610a794694294095bfd537b8dccc981b8d3b4f7a0dd45bca70fa9b43d049e",
+      "lines": 95,
+      "sites": [
+        {
+          "line": 3,
+          "endLine": 15,
+          "attribute": "derive",
+          "macroNames": [
+            "ZrReflect"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        },
+        {
+          "line": 16,
+          "endLine": 27,
+          "attribute": "zr_reflect",
+          "macroNames": [],
+          "argumentKeys": [
+            "editor_hint",
+            "name",
+            "read",
+            "script_visibility",
+            "type_path",
+            "value_type_path",
+            "write"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "production source/compiler invocation"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tests/cases.rs",
+      "sha256": "578beccb8f4a2d5e9747c993dc01a5b0e5c876616e493b42ce64f15a4eee3804",
+      "lines": 249,
+      "sites": [
+        {
+          "line": 126,
+          "endLine": 133,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "allow_value_construction",
+            "documentation",
+            "identity",
+            "name",
+            "prototype",
+            "value_kind"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 135,
+          "endLine": 140,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "alias",
+            "documentation",
+            "identity",
+            "type_name"
+          ],
+          "explicitDescriptorDocumentationKey": true,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 142,
+          "endLine": 142,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 170,
+          "endLine": 170,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "identity"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 181,
+          "endLine": 181,
+          "attribute": "zircon_script",
+          "macroNames": [],
+          "argumentKeys": [
+            "identity"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 220,
+          "endLine": 220,
+          "attribute": "derive",
+          "macroNames": [
+            "ZirconScriptType"
+          ],
+          "argumentKeys": [],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        },
+        {
+          "line": 225,
+          "endLine": 225,
+          "attribute": "zircon_host_function",
+          "macroNames": [],
+          "argumentKeys": [
+            "name"
+          ],
+          "explicitDescriptorDocumentationKey": false,
+          "context": "macro crate fixture"
+        }
+      ]
+    }
+  ],
+  "manifestBindings": [
+    {
+      "path": "zircon_reflect_derive/Cargo.toml",
+      "sha256": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+      "lines": 14,
+      "dependencyAndNameAnchors": [
+        {
+          "line": 2,
+          "text": "name = \"zircon_reflect_derive\""
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/Cargo.toml",
+      "sha256": "dac6e34f66c103214035cb0efdb8ebf2578a01c3d5b099694b05b382a9f5c276",
+      "lines": 14,
+      "dependencyAndNameAnchors": [
+        {
+          "line": 2,
+          "text": "name = \"zircon_runtime_reflection_macros\""
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "9bd81600c618a38c95fc7211d54ee299e03d70cf74560917ce4c9acf0534ad0b",
+      "lines": 350,
+      "dependencyAndNameAnchors": [
+        {
+          "line": 320,
+          "text": "zircon_reflect_derive.workspace = true"
+        },
+        {
+          "line": 321,
+          "text": "zircon_runtime_reflection_macros = { path = \"reflection_macros\" }"
+        }
+      ]
+    }
+  ],
+  "sharedInterfaceRelation": {
+    "path": "zircon_runtime_interface/Cargo.toml",
+    "sha256": "8a61722b1b2eb8e37ce0ad8decbc67445bd15c9b1b550f2c4cc56b59932a5de7",
+    "directDependencyOnEitherFocusedMacroCrate": false,
+    "discoveredTargetMacroSites": 0,
+    "traitExports": [
+      "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-32",
+      "zircon_runtime_interface/src/reflect/mod.rs:77-78"
+    ],
+    "producerRelation": "The interface exports ZrReflect/ZrReflectValue contracts; Runtime derives and registration adapters produce/consume the reflection metadata. A doc comment mentioning derive(ZrReflect) is not an actual invocation.",
+    "observedOtherDeriveNames": {
+      "Clone": 1149,
+      "Copy": 542,
+      "Debug": 1170,
+      "PartialEq": 1109,
+      "Eq": 764,
+      "PartialOrd": 144,
+      "Ord": 144,
+      "Hash": 140,
+      "Serialize": 943,
+      "Deserialize": 930,
+      "Default": 425,
+      "Error": 55
+    },
+    "thirdPartyLimit": "Serialize/Deserialize/Error implementations and builtin derives were named but not compiler-validated or fully reviewed here. No blanket no-behavior/API/ABI-change guarantee is made for every compiler/macro in the workspace."
+  },
+  "testInventory": [
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "testFunctions": [
+        {
+          "line": 8,
+          "symbol": "derive_round_trips_reflect_type_info"
+        },
+        {
+          "line": 53,
+          "symbol": "derive_rejects_non_canonical_stable_identity_keys"
+        },
+        {
+          "line": 77,
+          "symbol": "derive_rejects_retired_plugin_owned_projection"
+        },
+        {
+          "line": 95,
+          "symbol": "derive_preserves_enum_shape_without_inventing_fields"
+        },
+        {
+          "line": 115,
+          "symbol": "derive_rejects_conflicting_component_and_resource_flags"
+        },
+        {
+          "line": 133,
+          "symbol": "derive_rejects_unknown_field_type_without_explicit_value_path"
+        },
+        {
+          "line": 150,
+          "symbol": "derive_infers_typed_list_value_paths"
+        },
+        {
+          "line": 168,
+          "symbol": "derive_requires_an_explicit_path_for_unknown_list_elements"
+        },
+        {
+          "line": 185,
+          "symbol": "derive_expands_virtual_fields_through_custom_accessors"
+        },
+        {
+          "line": 223,
+          "symbol": "derive_rejects_duplicate_reflected_field_names"
+        },
+        {
+          "line": 249,
+          "symbol": "derive_requires_explicit_accessors_for_platform_sized_integers"
+        }
+      ],
+      "executed": false
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tests/cases.rs",
+      "sha256": "578beccb8f4a2d5e9747c993dc01a5b0e5c876616e493b42ce64f15a4eee3804",
+      "testFunctions": [
+        {
+          "line": 6,
+          "symbol": "macro_expansion_sources_use_single_field_and_module_item_passes"
+        },
+        {
+          "line": 19,
+          "symbol": "host_function_rejects_async_functions"
+        },
+        {
+          "line": 34,
+          "symbol": "host_function_rejects_generic_functions"
+        },
+        {
+          "line": 49,
+          "symbol": "script_type_rejects_generic_types"
+        },
+        {
+          "line": 63,
+          "symbol": "host_function_rejects_methods"
+        },
+        {
+          "line": 78,
+          "symbol": "host_function_rejects_non_identifier_parameters"
+        },
+        {
+          "line": 93,
+          "symbol": "host_module_rejects_non_inline_modules"
+        },
+        {
+          "line": 109,
+          "symbol": "script_type_rejects_unions"
+        },
+        {
+          "line": 124,
+          "symbol": "script_type_expansion_preserves_metadata_and_skips_fields"
+        },
+        {
+          "line": 168,
+          "symbol": "script_type_rejects_non_canonical_stable_identity_keys"
+        },
+        {
+          "line": 191,
+          "symbol": "host_function_expansion_preserves_descriptor_metadata"
+        },
+        {
+          "line": 217,
+          "symbol": "host_module_expansion_collects_types_and_functions"
+        }
+      ],
+      "executed": false
+    }
+  ],
+  "testContractBindings": [
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "lines": [
+        8,
+        49
+      ],
+      "contract": "Direct derive implementation fixture asserts registration and field/slot tokens from explicit helpers; not an ordinary-doc equivalence test."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tests/cases.rs",
+      "sha256": "578beccb8f4a2d5e9747c993dc01a5b0e5c876616e493b42ce64f15a4eee3804",
+      "lines": [
+        124,
+        165
+      ],
+      "additionalLines": [
+        191,
+        249
+      ],
+      "contract": "Explicit type/field/function/module documentation values are asserted in generator output; normal doc attributes are not a tested equivalence pair."
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/tests/reflection_docs.rs",
+      "sha256": "324cf4a7bab6c172d55df7d3dd59d64c6910b8d9f9bf7d43b28abba1b8f36f18",
+      "lines": [
+        392,
+        538
+      ],
+      "contract": "Actual derive/attribute macro fixture expects explicit test vector/x axis docs in registration/descriptors and registers/calls generated double export. Inspected only, not executed."
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs",
+      "sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "lines": [
+        10,
+        49
+      ],
+      "contract": "Runtime ZrReflect fixture asserts metadata and derives a component registration. Selected ranges were read; no entire outside consumer audit or test execution is claimed."
+    }
+  ],
+  "sourceTextObservability": {
+    "test": "zircon_runtime/reflection_macros/src/tests/cases.rs:6-15",
+    "includeStrSources": [
+      "../derive_type.rs",
+      "../module.rs"
+    ],
+    "sourceCommentsIncludedInTestStrings": true,
+    "currentStaticPredicateObservations": {
+      "executedAsRustTest": false,
+      "deriveContainsFieldTokens": true,
+      "deriveForbiddenOldGeneratorsAbsent": true,
+      "moduleContainsSingleItemLoop": true,
+      "moduleOldFilterSpellingAbsent": true
+    },
+    "rustTestExecuted": false,
+    "meaning": "Raw source-string contents change when source comments change. The current four guard conditions match statically, but this does not prove execution or exact generated compiler token equality."
+  },
+  "compilerFacingLimits": {
+    "ordinaryDocAttributesCompilerVisible": true,
+    "attributeMacrosPreserveDocs": true,
+    "deriveGeneratedImplInputDocsReemitted": false,
+    "compilerFacingTokenEqualityClaimed": false,
+    "commentsOnlyModeForced": false,
+    "spanOrDiagnosticEquivalenceProven": false,
+    "rustdocAcceptance": false,
+    "thirdPartyDeriveAcceptance": false,
+    "ABIFormalAcceptance": false,
+    "sourceCopiesOrExpansionArtifactsCreated": false,
+    "generatedImplClaimScope": "The non-re-emission statement concerns these derive output impl templates, not deletion of original target item attributes from the compiler input."
+  },
+  "existingIssueTagReferences": [
+    {
+      "id": "CR-REFLECT-0001",
+      "path": "zircon_reflect_derive/src/attributes.rs",
+      "sha256": "182240eb3e4b3b5126198104739f41c811419b8b71b513264ebdcf724198da00",
+      "line": 165,
+      "state": "Existing TODO kept read-only; unrelated virtual empty name/value-path timing remains outside this doc-observability decision"
+    }
+  ],
+  "issueIds": [],
+  "newIssues": [],
+  "sourceIssueLabelMutations": 0,
+  "nativeReadReceipts": [
+    {
+      "execCell": "57",
+      "finalChunkId": "332d4d",
+      "exitCode": 0,
+      "scope": "Focused macro .rs/manifests inventory, definition/attribute sites, interface names and manifests; initial direct HEAD not recorded"
+    },
+    {
+      "execCell": "58",
+      "finalChunkId": "ff2a6b",
+      "exitCode": 0,
+      "scope": "Complete Reflect lib/attributes/derive read"
+    },
+    {
+      "execCell": "58",
+      "finalChunkId": "2fe946",
+      "exitCode": 0,
+      "scope": "Reflect fields/tests output partially folded; missing ranges consumed through replacement cell 59"
+    },
+    {
+      "execCell": "59",
+      "finalChunkId": "3b6773",
+      "exitCode": 0,
+      "scope": "Reflect fields 141-513 and tests 1-95 complete missing-range read"
+    },
+    {
+      "execCell": "59",
+      "finalChunkId": "4573f1",
+      "exitCode": 0,
+      "scope": "Complete script lib/attrs/args/tokens read"
+    },
+    {
+      "execCell": "59",
+      "finalChunkId": "7ef23b",
+      "exitCode": 0,
+      "scope": "Complete script derive/function/module generators read"
+    },
+    {
+      "execCell": "62",
+      "nativeSession": 88903,
+      "initialChunkId": "134b8e",
+      "finalChunkId": "14e495",
+      "exitCode": 0,
+      "scope": "Complete script macro tests before the later unrelated large derive listing; candidate scan; whole JSON later truncated and not used as complete data object"
+    },
+    {
+      "execCell": "64",
+      "nativeSession": 70470,
+      "initialChunkId": "1d5e12",
+      "finalChunkId": "af2dbe",
+      "exitCode": 0,
+      "scope": "Complete parseable named macro invocation/helper attribute inventory plus unique interface derive names; token-masking inventory is static, not syn/compiler execution"
+    },
+    {
+      "execCell": "65",
+      "finalChunkId": "8fb8f8",
+      "exitCode": 0,
+      "scope": "Runtime documentation/registry/fingerprint source sites and exact initial consumer pins"
+    },
+    {
+      "execCell": "68",
+      "finalChunkId": "5e0f0d",
+      "exitCode": 0,
+      "scope": "Interface metadata constructors/serde docs fields and fingerprint docs encoding"
+    },
+    {
+      "execCell": "68",
+      "finalChunkId": "a584f4",
+      "exitCode": 0,
+      "scope": "Complete Runtime script descriptor conversion and macro export facade"
+    },
+    {
+      "execCell": "68",
+      "finalChunkId": "a40477",
+      "exitCode": 0,
+      "scope": "Actual math descriptor/register and Runtime macro fixture assertions, component adapter entry"
+    },
+    {
+      "execCell": "71",
+      "finalChunkId": "07546c",
+      "exitCode": 0,
+      "scope": "Markdown documentation branches, interface Cargo/trait, alias scan, registration sites, static raw-source guard predicates"
+    },
+    {
+      "execCell": "72",
+      "finalChunkId": "a71b92",
+      "exitCode": 0,
+      "scope": "Host registry storage, built-in reflected registration, fingerprint helpers and focused function/test inventory; CIM query inside had non-terminating access-denied stderr and is not a passing process-absence check"
+    },
+    {
+      "execCell": "75",
+      "finalChunkId": "f0df39",
+      "exitCode": 0,
+      "scope": "44 raw source/manifest/caller pins, two frozen evidence inputs, new evidence path absence and exact final template/filter line anchors"
+    }
+  ],
+  "incompleteOrRejectedReads": {
+    "spawnRejection": {
+      "execCell": "59",
+      "group": "script-tests-and-consumer-index",
+      "nativeSessionCreated": false,
+      "message": "CreateProcess wait for runner spawn_ready; retried only the missing readonly group through cell 62"
+    },
+    "foldedOriginalThirdRead": {
+      "execCell": "58",
+      "group": "third generator read",
+      "originalTerminalReceiptConsumed": false,
+      "independentCompleteReadReplacement": "cell 59 / chunk 7ef23b / exit 0",
+      "originalNativeTerminationClaimed": false
+    },
+    "scopeProcessObservation": {
+      "exitCode": 0,
+      "matchingScopedParentProcesses": "",
+      "stderr": "Get-CimInstance : 拒绝访问 \r\nAt line:1 char:56\r\n+ ... ript-' + 'macro-generators'); @(Get-CimInstance Win32_Process | Where ...\r\n+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (root\\cimv2:Win32_Process:String) [Get-CimInstance], CimException\r\n    + FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand",
+      "scope": "Unique third-read group marker from cell 58 only; no process was restarted or terminated; absence is not an original native exit receipt.",
+      "status": "not-established: CIM access denied in stderr despite shell exit 0",
+      "matchingProcessAbsenceProven": false,
+      "processesRestartedOrKilled": 0
+    },
+    "meaning": "No rejection/truncation/access-denied result is counted as a passing native process-absence or formal compiler check."
+  },
+  "frozenEarlierEvidence": [
+    {
+      "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+      "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+      "writeAllowed": false
+    },
+    {
+      "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+      "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+      "writeAllowed": false
+    }
+  ],
+  "validation": {
+    "staticReadAndPinDecision": "ready-for-independent-review",
+    "cargoRun": false,
+    "rustdocRun": false,
+    "compilerMacroExpansionRun": false,
+    "generatedSourceOrCacheCreated": false,
+    "formalJenkinsAcceptance": "pending",
+    "commitStatus": "pending; external HEAD transition not used as acceptance",
+    "sourceMutationCount": 0,
+    "oldMetadataMutationCount": 0,
+    "gitWrites": false,
+    "finalInputPinGuard": {
+      "status": "passed",
+      "sourcePins": 44,
+      "frozenEarlierEvidence": 2,
+      "sourceWrites": 0,
+      "execCell": "75",
+      "finalChunkId": "f0df39",
+      "exitCode": 0
+    }
+  },
+  "artifactLifecycle": {
+    "buildProductsCreated": 0,
+    "compilerCachesCreated": 0,
+    "temporaryHelpersCreated": 0,
+    "sourceCopiesCreated": 0,
+    "generatedExpansionFilesCreated": 0,
+    "bytesFreed": 0,
+    "backgroundServicesIntentionallyStarted": 0,
+    "allOriginalNativeReadProcessesTerminationClaimed": false,
+    "unconsumedNativeReceipt": "cell 58 folded third readonly result remains unclosed as a terminal-receipt claim; no process identity/absence established by denied CIM query",
+    "retainedCanonicalEvidence": "docs/tests/source-comment-review-evidence-doc-macro-observability-006.json",
+    "cleanupPerformed": false
+  },
+  "observedAtUtc": "2026-10-13T14:24:37.286194+00:00",
+  "head": "1de7f1af1f86b124645acdb2743bfe9064f6da8b"
+}

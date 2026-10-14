@@ -9,7 +9,9 @@ param(
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ReuseCapsuleSha256,
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedInstalledSha256,
     [switch]$ResumePreparedInstallation,
-    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedEntrySourceSha256
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedEntrySourceSha256,
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedLocalCargoSourceSha256,
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedCapsuleSha256
 )
 $ErrorActionPreference = 'Stop'
 function Assert-Physical([string]$Path) {
@@ -30,7 +32,61 @@ function Hash-Bytes([byte[]]$Bytes) {
     try { return ([BitConverter]::ToString($digest.ComputeHash($Bytes))).Replace('-','').ToLowerInvariant() }
     finally { $digest.Dispose() }
 }
+function Assert-ManagementJob([xml]$Job, [string]$Pipeline, [string]$Driver, [string]$Runtime) {
+    $taskRoot = $Job.DocumentElement
+    if ($taskRoot.LocalName -cne 'flow-definition') { throw 'Management job type differs' }
+    if ($taskRoot.HasAttribute('plugin') -and $taskRoot.GetAttribute('plugin') -cnotmatch '^workflow-job(?:@[A-Za-z0-9_.-]+)?$') { throw 'Management job plugin differs' }
+    $taskKeep = $taskRoot.SelectSingleNode('keepDependencies')
+    if ($null -ne $taskKeep -and ($taskKeep.InnerText -cne 'false' -or $taskKeep.Attributes.Count -ne 0 -or @($taskKeep.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element }).Count)) { throw 'Management job dependency retention differs' }
+    $taskDefinition = $taskRoot.SelectSingleNode('definition')
+    if ($null -eq $taskDefinition -or $taskDefinition.GetAttribute('plugin') -cnotmatch '^workflow-cps(?:@[A-Za-z0-9_.-]+)?$' -or
+            (@($taskDefinition.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element } | ForEach-Object { $_.LocalName } | Sort-Object) -join '|') -cne 'sandbox|script') { throw 'Management pipeline definition differs' }
+    $taskElements = @($taskRoot.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element })
+    $taskAllowed = @('actions','description','keepDependencies','properties','definition','triggers','disabled')
+    if (@($taskElements | Where-Object { $_.LocalName -cnotin $taskAllowed }).Count -or
+            @($taskElements | Group-Object LocalName | Where-Object { $_.Count -ne 1 }).Count) { throw 'Management job contains unreviewed configuration' }
+    if ($taskRoot.description -cne 'Bounded Jenkins management MVP; no M8 acceptance' -or
+            $taskRoot.disabled -cne 'false' -or $taskRoot.definition.class -cne 'org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition' -or
+            $taskRoot.definition.script -cne $Pipeline -or $taskRoot.definition.sandbox -cne 'true') { throw 'Management job binding differs' }
+    if (@($taskRoot.triggers.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element }).Count -or
+            @($taskRoot.actions.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element }).Count) { throw 'Management job has unreviewed triggers or actions' }
+    if ($taskRoot.SelectSingleNode('properties').Attributes.Count -ne 0) { throw 'Management property container attributes differ' }
+    $taskProperties = @($taskRoot.properties.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element })
+    if ($taskProperties.Count -ne 1 -or $taskProperties[0].LocalName -cne 'hudson.model.ParametersDefinitionProperty') { throw 'Management job properties differ' }
+    $taskPropertyChildren = @($taskProperties[0].ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element })
+    if ($taskPropertyChildren.Count -ne 1 -or $taskPropertyChildren[0].LocalName -cne 'parameterDefinitions' -or $taskProperties[0].Attributes.Count -ne 0) { throw 'Management parameter property contains unreviewed settings' }
+    if ($taskPropertyChildren[0].Attributes.Count -ne 0) { throw 'Management parameter container attributes differ' }
+    $taskParameters = @($taskProperties[0].parameterDefinitions.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element })
+    $taskNames = @('SESSION_ID','REQUEST_ID','OPERATION_ID','ACTION','INPUT_JSON','EXPECTED_DRIVER_DIGEST','RUNTIME_OPERATION_ID','QUERY_ONLY')
+    if ($taskParameters.Count -ne $taskNames.Count -or
+            (@($taskParameters | ForEach-Object { [string]$_.name } | Sort-Object) -join '|') -cne
+            (@($taskNames | Sort-Object) -join '|')) { throw 'Management job parameter inventory differs' }
+    foreach ($taskParameter in $taskParameters) {
+        $taskName = [string]$taskParameter.name
+        $taskFields = @($taskParameter.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element })
+        $taskExpectedFields = if ($taskName -ceq 'QUERY_ONLY') { @('name','defaultValue') } else { @('name','defaultValue','trim') }
+        $taskDescription = $taskParameter.SelectSingleNode('description')
+        if ($null -ne $taskDescription) { $taskExpectedFields += 'description'; if ($taskDescription.InnerText -cne '') { throw 'Management parameter description differs' } }
+        if ($taskParameter.Attributes.Count -ne 0 -or
+                (@($taskFields | ForEach-Object { $_.LocalName } | Sort-Object) -join '|') -cne (@($taskExpectedFields | Sort-Object) -join '|') -or
+                @($taskFields | Where-Object { $_.Attributes.Count -ne 0 -or @($_.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element }).Count }).Count) { throw 'Management parameter contains unreviewed nested settings' }
+        if ($taskName -ceq 'QUERY_ONLY') {
+            if ($taskParameter.LocalName -cne 'hudson.model.BooleanParameterDefinition' -or $taskParameter.defaultValue -cne 'false') { throw 'Management query parameter differs' }
+        } else {
+            $taskDefault = if ($taskName -ceq 'EXPECTED_DRIVER_DIGEST') { $Driver } elseif ($taskName -ceq 'RUNTIME_OPERATION_ID') { $Runtime } else { '' }
+            if ($taskParameter.LocalName -cne 'hudson.model.StringParameterDefinition' -or
+                    [string]$taskParameter.defaultValue -cne $taskDefault -or $taskParameter.trim -cne 'true') { throw 'Management parameter binding differs' }
+        }
+    }
+}
 $repo = Assert-Physical $RepoRoot
+$taskInstallLock = $null
+try {
+if (-not $CheckOnly) {
+    $taskLockFolder = Assert-Physical "$repo/.jenkins/state/management"
+    [void][IO.Directory]::CreateDirectory($taskLockFolder)
+    $taskInstallLock = [IO.File]::Open((Assert-Physical "$taskLockFolder/install.lock"), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+}
 $selected = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment/driver.json" | ConvertFrom-Json
 $operation = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment-operation.json" | ConvertFrom-Json
 if ($selected.driverDigest -ne $ExpectedDriverDigest -or $selected.runtimeOperationId -ne $ExpectedRuntimeOperationId) {
@@ -45,29 +101,48 @@ if ($spec.agent.name -ne 'zircon-windows-agent' -or $BaseUrl.TrimEnd('/') -ne 'h
 }
 $taskReuse = -not [string]::IsNullOrEmpty($ReuseCapsuleSha256)
 $taskPostedAlready = $false
-if ($ResumePreparedInstallation -and -not $taskReuse) { throw 'Resume requires exact original reuse pins' }
-if ($ExpectedEntrySourceSha256 -and -not $taskReuse) { throw 'Reviewed entry pin requires the original capsule and installed hashes' }
-if ($taskReuse -ne (-not [string]::IsNullOrEmpty($ExpectedInstalledSha256))) { throw 'Reuse requires both original capsule and installed hashes' }
+if ($ResumePreparedInstallation -and [string]::IsNullOrEmpty($ExpectedInstalledSha256)) { throw 'Resume requires the exact original installed pin' }
 $taskInstalledPath = Assert-Physical "$repo/.jenkins/state/management/installed.json"
+$taskPrior = Test-Path -LiteralPath $taskInstalledPath
+if ($taskPrior -and [string]::IsNullOrEmpty($ExpectedInstalledSha256)) { throw 'Updating an existing installation requires its exact original installed hash' }
+if (-not $taskPrior -and ($taskReuse -or $ExpectedInstalledSha256)) { throw 'Original installation is absent; reconcile instead of rebinding it' }
 $taskSourceRoot = "$repo/tools/jenkins-management"
-if ($taskReuse) {
+if ($taskPrior) {
     $taskOldInstalledBytes = [IO.File]::ReadAllBytes($taskInstalledPath)
     if ((Hash-Bytes $taskOldInstalledBytes) -ne $ExpectedInstalledSha256) { throw 'Original installed record changed' }
     $taskOldInstalled = [Text.Encoding]::UTF8.GetString($taskOldInstalledBytes) | ConvertFrom-Json
-    $taskSourceRoot = Assert-Physical "$repo/.jenkins/runtime/management/$ReuseCapsuleSha256"
-    if ($taskOldInstalled.job -ne 'zircon-management' -or $taskOldInstalled.capsuleSha256 -ne $ReuseCapsuleSha256 -or $taskOldInstalled.capsule -ne $taskSourceRoot) { throw 'Original capsule owner differs' }
-    $taskOldMetadataBytes = [IO.File]::ReadAllBytes((Assert-Physical "$taskSourceRoot/capsule.json"))
-    if ((Hash-Bytes $taskOldMetadataBytes) -ne $ReuseCapsuleSha256) { throw 'Original capsule metadata changed' }
+    $taskOldCapsuleSha256 = [string]$taskOldInstalled.capsuleSha256
+    if ($taskOldCapsuleSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Original capsule identity is invalid' }
+    $taskOldSourceRoot = Assert-Physical "$repo/.jenkins/runtime/management/$taskOldCapsuleSha256"
+    if ($taskOldInstalled.job -ne 'zircon-management' -or $taskOldInstalled.capsule -ne $taskOldSourceRoot) { throw 'Original capsule owner differs' }
+    if ($taskReuse -and $ReuseCapsuleSha256 -ne $taskOldCapsuleSha256) { throw 'Requested original capsule differs' }
+    $taskOldMetadataBytes = [IO.File]::ReadAllBytes((Assert-Physical "$taskOldSourceRoot/capsule.json"))
+    if ((Hash-Bytes $taskOldMetadataBytes) -ne $taskOldCapsuleSha256) { throw 'Original capsule metadata changed' }
     $taskOldMetadata = [Text.Encoding]::UTF8.GetString($taskOldMetadataBytes) | ConvertFrom-Json
     if ($taskOldMetadata.schemaVersion -ne 1 -or $taskOldMetadata.repositoryRoot -ne $repo -or
             $taskOldMetadata.agentLabel -ne 'zircon-windows-agent' -or
             $taskOldMetadata.driverDigest -ne $taskOldInstalled.driverDigest -or
             $taskOldMetadata.runtimeOperationId -ne $taskOldInstalled.runtimeOperationId -or
             $taskOldInstalled.formalAcceptance -ne $false) { throw 'Original capsule contract differs' }
-    if ((@($taskOldMetadata.files.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'runner.py|source_preparation.py|zircon-management.groovy') { throw 'Original capsule inventory differs' }
+    $taskOldInventory = (@($taskOldMetadata.files.PSObject.Properties.Name | Sort-Object) -join '|')
+    if ($taskOldInventory -cnotin @('runner.py|source_preparation.py|zircon-management.groovy','checkout_guard.py|runner.py|source_preparation.py|zircon-management.groovy')) { throw 'Original capsule inventory differs' }
+    foreach ($taskOldName in $taskOldMetadata.files.PSObject.Properties.Name) {
+        $taskOldHash = [string]$taskOldMetadata.files.PSObject.Properties[$taskOldName].Value
+        if ($taskOldHash -notmatch '^[0-9a-f]{64}$' -or
+                (Hash-Bytes ([IO.File]::ReadAllBytes((Assert-Physical "$taskOldSourceRoot/$taskOldName")))) -ne $taskOldHash) { throw 'Original capsule code changed' }
+    }
+    $taskOldClients = @('tools/dev/local_cargo.py','tools/dev/local-cargo.ps1','tools/dev/dev-fast-build.ps1',
+        'tools/dev/submit-jenkins-management.ps1','tools/jenkins/frontend.py','tools/jenkins-management/entry.py')
+    if ((@($taskOldMetadata.clientSources.PSObject.Properties.Name | Sort-Object) -join '|') -cne
+            (@($taskOldClients | Sort-Object) -join '|')) { throw 'Original public entry inventory differs' }
+    foreach ($taskOldClientName in $taskOldClients) {
+        if ([string]$taskOldMetadata.clientSources.PSObject.Properties[$taskOldClientName].Value -notmatch '^[0-9a-f]{64}$') { throw 'Original public entry hash is invalid' }
+    }
+    if ($taskReuse) { $taskSourceRoot = $taskOldSourceRoot }
 }
 $files = [ordered]@{}
-foreach ($name in @('runner.py','source_preparation.py','zircon-management.groovy')) {
+$taskCapsuleNames = if ($taskReuse) { @($taskOldMetadata.files.PSObject.Properties.Name) } else { @('runner.py','source_preparation.py','zircon-management.groovy','checkout_guard.py') }
+foreach ($name in $taskCapsuleNames) {
     $source = Assert-Physical "$taskSourceRoot/$name"
     $files[$name] = Hash-Bytes ([IO.File]::ReadAllBytes($source))
     if ($taskReuse -and $files[$name] -ne $taskOldMetadata.files.PSObject.Properties[$name].Value) { throw 'Original capsule file changed' }
@@ -79,27 +154,40 @@ foreach ($clientName in @('tools/dev/local_cargo.py','tools/dev/local-cargo.ps1'
     $clientSources[$clientName] = Hash-Bytes $taskClientBytes
     if ($clientName -eq 'tools/jenkins-management/entry.py' -and $ExpectedEntrySourceSha256 -and
             $clientSources[$clientName] -ne $ExpectedEntrySourceSha256) { throw 'Reviewed public entry pin differs' }
-    if ($taskReuse) {
+    if ($clientName -eq 'tools/dev/local_cargo.py' -and $ExpectedLocalCargoSourceSha256 -and
+            $clientSources[$clientName] -ne $ExpectedLocalCargoSourceSha256) { throw 'Reviewed native helper pin differs' }
+    if ($taskPrior) {
         $taskOldClient = $taskOldMetadata.clientSources.PSObject.Properties[$clientName]
         if ($null -eq $taskOldClient) { throw 'Original public entry inventory differs' }
         if ($clientSources[$clientName] -ne $taskOldClient.Value) {
-            # Only this public client can change under an explicit reviewed raw-byte pin.
+            # Changed public clients require an explicit reviewed raw-byte pin.
             $taskNormalized = [Text.Encoding]::UTF8.GetString($taskClientBytes).Replace(([string][char]13 + [char]10), [string][char]10)
             $taskReviewedEntry = $clientName -eq 'tools/jenkins-management/entry.py' -and
                 $ExpectedEntrySourceSha256 -and $clientSources[$clientName] -eq $ExpectedEntrySourceSha256
-            if ($clientName -ne 'tools/jenkins-management/entry.py' -or (-not $taskReviewedEntry -and
-                    (Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskNormalized))) -ne $taskOldClient.Value)) { throw 'Unreviewed public entry change' }
+            $taskReviewedNative = $clientName -eq 'tools/dev/local_cargo.py' -and
+                $ExpectedLocalCargoSourceSha256 -and $clientSources[$clientName] -eq $ExpectedLocalCargoSourceSha256
+            if (-not $taskReviewedNative -and ($clientName -ne 'tools/jenkins-management/entry.py' -or (-not $taskReviewedEntry -and
+                    (Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskNormalized))) -ne $taskOldClient.Value))) { throw 'Unreviewed public entry change' }
         }
     }
 }
-if ($taskReuse -and @($taskOldMetadata.clientSources.PSObject.Properties).Count -ne $clientSources.Count) { throw 'Original public entry inventory differs' }
+if ($taskPrior -and @($taskOldMetadata.clientSources.PSObject.Properties).Count -ne $clientSources.Count) { throw 'Original public entry inventory differs' }
 $ordinaryEntry = [ordered]@{enabled=$true;actions=@('validate');formalAcceptance=$false;m8Accepted=$false}
-if ($taskReuse -and (($taskOldMetadata.ordinaryEntry | ConvertTo-Json -Compress) -cne ($ordinaryEntry | ConvertTo-Json -Compress) -or
+if ($taskPrior -and (($taskOldMetadata.ordinaryEntry | ConvertTo-Json -Compress) -cne ($ordinaryEntry | ConvertTo-Json -Compress) -or
         ($taskOldInstalled.ordinaryEntry | ConvertTo-Json -Compress) -cne ($ordinaryEntry | ConvertTo-Json -Compress))) { throw 'Original capability differs' }
 $metadata = [ordered]@{schemaVersion=1;repositoryRoot=$repo;driverDigest=$ExpectedDriverDigest;
     runtimeOperationId=$ExpectedRuntimeOperationId;agentLabel='zircon-windows-agent';files=$files;clientSources=$clientSources;ordinaryEntry=$ordinaryEntry}
+if ('checkout_guard.py' -in $files.Keys) {
+    if ($taskReuse -and ($taskOldMetadata.checkoutValidation.enabled -ne $true -or
+            $taskOldMetadata.checkoutValidation.policy -cne 'actual-checkout' -or
+            $taskOldMetadata.checkoutValidation.guard -cne 'checkout_guard.py' -or
+            @($taskOldMetadata.checkoutValidation.PSObject.Properties).Count -ne 3)) { throw 'Original capsule has no proven checkout capability; a reviewed fresh candidate is required' }
+    $metadata.checkoutValidation = [ordered]@{enabled=$true;policy='actual-checkout';guard='checkout_guard.py'}
+}
 $bytes = [Text.UTF8Encoding]::new($false).GetBytes(($metadata | ConvertTo-Json -Depth 12 -Compress))
 $digest = Hash-Bytes $bytes
+if ($ExpectedCapsuleSha256 -and $ExpectedCapsuleSha256 -ne $digest) { throw 'Reviewed candidate capsule differs' }
+if (-not $CheckOnly -and [string]::IsNullOrEmpty($ExpectedCapsuleSha256)) { throw 'Installation requires the exact reviewed candidate capsule hash from CheckOnly' }
 $capsule = Assert-Physical "$repo/.jenkins/runtime/management/$digest"
 $python = Assert-Physical "$repo/.jenkins/runtime/python/python.exe"
 $codex = Assert-Physical $CodexExe
@@ -147,10 +235,16 @@ $base = $BaseUrl.TrimEnd('/')
 $crumb = Invoke-RestMethod -Method Get -Uri "$base/crumbIssuer/api/json" -Headers $headers
 $headers[$crumb.crumbRequestField] = $crumb.crumb
 $uri = "$base/job/zircon-management/config.xml"
+$taskControllerReady = Invoke-RestMethod -Uri ($base + '/api/json?tree=numExecutors,quietingDown') -Headers $headers -TimeoutSec 15
+$taskNodesReady = Invoke-RestMethod -Uri ($base + '/computer/api/json?tree=computer[displayName,offline,temporarilyOffline]') -Headers $headers -TimeoutSec 15
+$taskOnlyAgent = @($taskNodesReady.computer | Where-Object { $_.displayName -ne 'Built-In Node' })
+if ($taskControllerReady.numExecutors -ne 0 -or $taskControllerReady.quietingDown -ne $false -or
+        $taskOnlyAgent.Count -ne 1 -or $taskOnlyAgent[0].displayName -ne 'zircon-windows-agent' -or
+        $taskOnlyAgent[0].offline -ne $false -or $taskOnlyAgent[0].temporarilyOffline -ne $false) { throw 'Selected runtime is not ready for installation' }
 foreach ($taskClientName in $clientSources.Keys) {
     if ((Hash-Bytes ([IO.File]::ReadAllBytes((Assert-Physical "$repo/$taskClientName")))) -ne $clientSources[$taskClientName]) { throw 'Public entry changed before POST' }
 }
-if ($taskReuse) {
+if ($taskPrior) {
     if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Original install changed before POST' }
     $taskSelectedNow = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment/driver.json" | ConvertFrom-Json
     $taskOperationNow = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment-operation.json" | ConvertFrom-Json
@@ -182,15 +276,14 @@ if ($taskReuse) {
         [xml]$taskOldJob = ([Text.Encoding]::UTF8.GetString($taskOldConfigBytes) -replace '^\s*<\?xml[^?]*\?>', '')
         $taskPostedAlready = $true
     }
-    $taskOldPipeline = $taskPipelineTemplate
+    $taskOldPipeline = [IO.File]::ReadAllText((Assert-Physical "$taskOldSourceRoot/zircon-management.groovy")).Replace(([string][char]13 + [char]10), [string][char]10)
     $taskOldTokens = @{AGENT='zircon-windows-agent';REPOSITORY=$repo;PYTHON=$python;CODEX=$codex;
-        CAPSULE=$taskSourceRoot;DRIVER=$taskOldInstalled.driverDigest;RUNTIME=$taskOldInstalled.runtimeOperationId}
+        CAPSULE=$taskOldSourceRoot;DRIVER=$taskOldInstalled.driverDigest;RUNTIME=$taskOldInstalled.runtimeOperationId}
     foreach ($taskKey in $taskOldTokens.Keys) {
         $taskOldValue = $taskOldTokens[$taskKey].Replace('\','/').Replace("'","\'")
         $taskOldPipeline = $taskOldPipeline.Replace("@@$taskKey@@", $taskOldValue)
     }
-    if ($taskOldJob.'flow-definition'.definition.script -cne $taskOldPipeline -or
-            $taskOldJob.'flow-definition'.definition.sandbox -ne 'true') { throw 'Original job owner or script changed' }
+    Assert-ManagementJob $taskOldJob $taskOldPipeline $taskOldInstalled.driverDigest $taskOldInstalled.runtimeOperationId
     $taskHistory = Assert-Physical "$repo/.jenkins/state/management/install-history"
     [void][IO.Directory]::CreateDirectory($taskHistory)
     foreach ($taskHistoryItem in @(@{path="$taskHistory/$ExpectedInstalledSha256.json";bytes=$taskOldInstalledBytes},
@@ -199,30 +292,76 @@ if ($taskReuse) {
             if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskHistoryItem.path))) -ne (Hash-Bytes $taskHistoryItem.bytes)) { throw 'Original history differs' }
         } else { [IO.File]::WriteAllBytes($taskHistoryItem.path, $taskHistoryItem.bytes) }
     }
+} else {
+    try {
+        $null = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 15
+        throw 'Existing management job has no exactly pinned installation'
+    } catch {
+        if ($null -eq $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 404) { throw }
+    }
+}
+$taskSelectedFinal = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment/driver.json" | ConvertFrom-Json
+$taskOperationFinal = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment-operation.json" | ConvertFrom-Json
+if ($taskSelectedFinal.driverDigest -ne $ExpectedDriverDigest -or $taskSelectedFinal.runtimeOperationId -ne $ExpectedRuntimeOperationId -or
+        $taskOperationFinal.operationId -ne $ExpectedRuntimeOperationId -or $taskOperationFinal.state -ne 'running') { throw 'Selected runtime changed before POST' }
+foreach ($taskName in $files.Keys) {
+    if ((Hash-Bytes ([IO.File]::ReadAllBytes((Assert-Physical "$capsule/$taskName")))) -ne $files[$taskName]) { throw 'Candidate capsule changed before POST' }
+}
+if ((Hash-Bytes ([IO.File]::ReadAllBytes((Assert-Physical "$capsule/capsule.json")))) -ne $digest) { throw 'Candidate metadata changed before POST' }
+foreach ($taskClientName in $clientSources.Keys) {
+    if ((Hash-Bytes ([IO.File]::ReadAllBytes((Assert-Physical "$repo/$taskClientName")))) -ne $clientSources[$taskClientName]) { throw 'Public entry changed before POST' }
+}
+if ($taskPrior) {
+    if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Original install changed before POST' }
+    $taskFinalRuns = Invoke-RestMethod -Uri ($base + '/job/zircon-management/api/json?tree=builds[building]') -Headers $headers -TimeoutSec 15
+    if (@($taskFinalRuns.builds | Where-Object { $_.building }).Count) { throw 'Management build started during installation' }
+    $taskFinalResponse = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 15
+    [xml]$taskFinalJob = ($taskFinalResponse.Content -replace '^\s*<\?xml[^?]*\?>', '')
+    $taskExpectedPriorPipeline = if ($taskPostedAlready) { $pipeline } else { $taskOldPipeline }
+    $taskPriorDriver = if ($taskPostedAlready) { $ExpectedDriverDigest } else { $taskOldInstalled.driverDigest }
+    $taskPriorRuntime = if ($taskPostedAlready) { $ExpectedRuntimeOperationId } else { $taskOldInstalled.runtimeOperationId }
+    Assert-ManagementJob $taskFinalJob $taskExpectedPriorPipeline $taskPriorDriver $taskPriorRuntime
+} elseif (Test-Path -LiteralPath $taskInstalledPath) { throw 'Installation appeared during creation' }
+$taskFinalQueue = Invoke-RestMethod -Uri ($base + '/queue/api/json?tree=items[task[name]]') -Headers $headers -TimeoutSec 15
+if (@($taskFinalQueue.items | Where-Object { $_.task.name -eq 'zircon-management' }).Count) { throw 'Queued management work requires reconciliation' }
+$taskActivationRecord = [ordered]@{schemaVersion=1;job='zircon-management';capsule=$capsule;capsuleSha256=$digest;
+    driverDigest=$ExpectedDriverDigest;runtimeOperationId=$ExpectedRuntimeOperationId;ordinaryEntry=$ordinaryEntry;formalAcceptance=$false}
+$taskActivationBytes = [Text.UTF8Encoding]::new($false).GetBytes(($taskActivationRecord | ConvertTo-Json -Compress))
+$taskPreparedPath = Assert-Physical "$repo/.jenkins/state/management/installed.json.startup.tmp"
+if (Test-Path -LiteralPath $taskPreparedPath) {
+    if (-not $ResumePreparedInstallation -or (Hash-Bytes ([IO.File]::ReadAllBytes($taskPreparedPath))) -ne (Hash-Bytes $taskActivationBytes)) { throw 'Prepared install exists; reconcile its exact original POST' }
+} else {
+    if ($ResumePreparedInstallation) { throw 'Original prepared installation is absent' }
+    [IO.File]::WriteAllBytes($taskPreparedPath, $taskActivationBytes)
 }
 if (-not $taskPostedAlready) {
 try {
     Invoke-WebRequest -UseBasicParsing -Method Post -Uri $uri -Headers $headers -ContentType 'application/xml; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($xml)) | Out-Null
 } catch {
-    if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
+    if ($taskPrior -or $null -eq $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 404) { throw }
     Invoke-WebRequest -UseBasicParsing -Method Post -Uri "$base/createItem?name=zircon-management" -Headers $headers -ContentType 'application/xml; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($xml)) | Out-Null
 }
 }
-if ($taskReuse) {
-    $taskUpdatedResponse = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 15
-    [xml]$taskUpdatedJob = ($taskUpdatedResponse.Content -replace '^\s*<\?xml[^?]*\?>', '')
-    if ($taskUpdatedJob.'flow-definition'.definition.script -cne $pipeline -or $taskUpdatedJob.'flow-definition'.definition.sandbox -ne 'true') { throw 'Updated job requires reconciliation' }
-    if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Install changed while updating job' }
-}
+$taskUpdatedResponse = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 15
+[xml]$taskUpdatedJob = ($taskUpdatedResponse.Content -replace '^\s*<\?xml[^?]*\?>', '')
+Assert-ManagementJob $taskUpdatedJob $pipeline $ExpectedDriverDigest $ExpectedRuntimeOperationId
+if ($taskPrior -and (Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Install changed while updating job' }
+if (-not $taskPrior -and (Test-Path -LiteralPath $taskInstalledPath)) { throw 'Installation appeared while updating job' }
 foreach ($taskClientName in $clientSources.Keys) {
     if ((Hash-Bytes ([IO.File]::ReadAllBytes((Assert-Physical "$repo/$taskClientName")))) -ne $clientSources[$taskClientName]) { throw 'Public entry changed while updating job' }
 }
-$record = [ordered]@{schemaVersion=1;job='zircon-management';capsule=$capsule;capsuleSha256=$digest;
-    driverDigest=$ExpectedDriverDigest;runtimeOperationId=$ExpectedRuntimeOperationId;ordinaryEntry=$ordinaryEntry;formalAcceptance=$false}
+$taskSelectedAfter = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment/driver.json" | ConvertFrom-Json
+$taskOperationAfter = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment-operation.json" | ConvertFrom-Json
+if ($taskSelectedAfter.driverDigest -ne $ExpectedDriverDigest -or $taskSelectedAfter.runtimeOperationId -ne $ExpectedRuntimeOperationId -or
+        $taskOperationAfter.operationId -ne $ExpectedRuntimeOperationId -or $taskOperationAfter.state -ne 'running') { throw 'Selected runtime changed after POST' }
+$record = $taskActivationRecord
 $folder = Assert-Physical "$repo/.jenkins/state/management"
 [void][IO.Directory]::CreateDirectory($folder)
 $taskRecordTemp = "$folder/installed.json.startup.tmp"
-[IO.File]::WriteAllText($taskRecordTemp,($record | ConvertTo-Json -Compress),[Text.UTF8Encoding]::new($false))
+if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskRecordTemp))) -ne (Hash-Bytes $taskActivationBytes)) { throw 'Prepared installation bytes changed before activation' }
+if ($taskPrior -and (Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Original install changed before activation' }
 if (Test-Path -LiteralPath "$folder/installed.json") { [IO.File]::Replace($taskRecordTemp, "$folder/installed.json", [Management.Automation.Language.NullString]::Value) }
 else { [IO.File]::Move($taskRecordTemp, "$folder/installed.json") }
 $record | ConvertTo-Json
+
+} finally { if ($null -ne $taskInstallLock) { $taskInstallLock.Dispose() } }

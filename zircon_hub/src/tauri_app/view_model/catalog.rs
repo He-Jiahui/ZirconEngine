@@ -3,7 +3,7 @@
 
 use crate::assets::{AssetCatalogEntry, PROJECT_ASSET_SOURCE, SELECTED_PROJECT_ASSET_SOURCE};
 use crate::learn::{LearnCatalogEntry, SOURCE_ENGINE_LEARN_SOURCE};
-use crate::plugins::{PluginCatalogEntry, ENGINE_PLUGIN_SCOPE, PROJECT_PLUGIN_SCOPE};
+use crate::plugins::{ENGINE_PLUGIN_SCOPE, PROJECT_PLUGIN_SCOPE, PluginCatalogEntry};
 use crate::settings::HubLanguage;
 use crate::state::HubSnapshot;
 

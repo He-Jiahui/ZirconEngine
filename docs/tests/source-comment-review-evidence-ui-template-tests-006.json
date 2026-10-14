@@ -1,0 +1,1132 @@
+{
+  "schemaVersion": "zircon-source-comment-review-evidence/v1",
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "ui-template-tests-006",
+  "owner": "/root/public_assets",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignment": {
+    "baseHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "coverageLedger": "docs/tests/source-comment-review-coverage-03.json",
+    "coverageLedgerSha256": "69db16f80ad2d58198730516717bb358534fff46edc3c27f8b07f041428b6ff1",
+    "revision": 13,
+    "sourceFileCount": 7,
+    "evidencePath": "docs/tests/source-comment-review-evidence-ui-template-tests-006.json"
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs",
+      "beforeSha256": "228e93961895eae999462b040528d9cbe2ffc00c6fde3805563d723a2a987f59",
+      "afterSha256": "6d42b16c5e1be64f577708fc4bd843033c03fab85a183e38e6cdf943ffe085fe",
+      "lineCountBefore": 82,
+      "lineCountAfter": 89,
+      "lineEnding": "LF",
+      "addedLines": 7,
+      "deletedLines": 0,
+      "existingIssueTags": [],
+      "change": "Chinese documentation/comment insertions only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/evaluator.rs",
+      "beforeSha256": "4296cde7e0a82f3abe91dbb6a5423be8c0dca599c945d8398472d7bed0be24e5",
+      "afterSha256": "11c9e754add6801efbca9dfdcd4cecaebfdb1628b7ed42df046f6db304eeec7b",
+      "lineCountBefore": 51,
+      "lineCountAfter": 55,
+      "lineEnding": "LF",
+      "addedLines": 4,
+      "deletedLines": 0,
+      "existingIssueTags": [],
+      "change": "Chinese documentation/comment insertions only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/diagnostic.rs",
+      "beforeSha256": "7d62fa7b3ce06bb42ce4d644ff22dff4ae21ad7e23e7cf15d2fafa712f2b4dd5",
+      "afterSha256": "9264ccb9d5760102e1f8f26e48a7df0a716752973b8f4093b3f4835e80812f25",
+      "lineCountBefore": 53,
+      "lineCountAfter": 56,
+      "lineEnding": "LF",
+      "addedLines": 3,
+      "deletedLines": 0,
+      "existingIssueTags": [],
+      "change": "Chinese documentation/comment insertions only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs",
+      "beforeSha256": "6d15469518f616fea96516838629d142cafeedefe545167a9678470a99722e08",
+      "afterSha256": "a3f364462c8937e40cf5c69e297095ffb8ffefd3eda2f7769f8f162fc835753f",
+      "lineCountBefore": 133,
+      "lineCountAfter": 170,
+      "lineEnding": "LF",
+      "addedLines": 37,
+      "deletedLines": 0,
+      "existingIssueTags": [],
+      "change": "Chinese documentation/comment insertions only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "beforeSha256": "69f070fbd47abb5ddcba085cccc56fa090ce23a4ce9ec840f20f343c2f9bcc6e",
+      "afterSha256": "d8b1c0356737789513e1013e350b44ef7ca052631a4a48fc0aa7a5285c180d3a",
+      "lineCountBefore": 299,
+      "lineCountAfter": 331,
+      "lineEnding": "LF",
+      "addedLines": 32,
+      "deletedLines": 0,
+      "existingIssueTags": [],
+      "change": "Chinese documentation/comment insertions only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "beforeSha256": "9b89fe4d2d1d852396725649a27af9837e447f52ebe4b77fcf9d3f2c85cf7042",
+      "afterSha256": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "lineCountBefore": 45,
+      "lineCountAfter": 51,
+      "lineEnding": "LF",
+      "addedLines": 6,
+      "deletedLines": 0,
+      "existingIssueTags": [],
+      "change": "Chinese documentation/comment insertions only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "beforeSha256": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d",
+      "afterSha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "lineCountBefore": 75,
+      "lineCountAfter": 79,
+      "lineEnding": "LF",
+      "addedLines": 4,
+      "deletedLines": 0,
+      "existingIssueTags": [],
+      "change": "Chinese documentation/comment insertions only"
+    }
+  ],
+  "diff": {
+    "addedLines": 93,
+    "deletedLines": 0,
+    "replacements": 0,
+    "nonCommentInsertions": 0,
+    "physicalSourceEol": "LF",
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "stderr": "Git reported possible LF-to-CRLF conversion from configured autocrlf; physical files stayed LF."
+    }
+  },
+  "objectEvidence": [
+    {
+      "id": "UI06-O001",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs",
+      "object": "schema test module and action_payload_schema_names_round_trip_and_reject_unknown",
+      "members": [
+        "tests (use super::*)",
+        "action_payload_schema_names_round_trip_and_reject_unknown"
+      ],
+      "entered": "Loaded from schema.rs by #[cfg(test)] #[path = \"tests/schema.rs\"].",
+      "status": "Checks every ALL value round-trips through schema_name/from_schema_name; surfaceEntity and unknown return None.",
+      "impact": "Covers name mapping only, not expected_value_kind or Runtime semantic validation.",
+      "callers": [
+        "UI06-C03"
+      ],
+      "blocks": [
+        [
+          "module scope",
+          "test harness compiles child module and imports UiActionPayloadFieldName."
+        ],
+        [
+          "ALL loop",
+          "each enum value returns the same variant after name conversion."
+        ],
+        [
+          "unknown assertions",
+          "surfaceEntity and unknown map to None."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O002",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs",
+      "object": "action_payload_schema_name_dispatch_release_benchmark",
+      "members": [
+        "action_payload_schema_name_dispatch_release_benchmark"
+      ],
+      "entered": "Explicit invocation only; marked #[ignore].",
+      "status": "Compares linear and direct lookup across 11 samples of 200000 cyclic reads, including unknown.",
+      "impact": "Requires direct P95 <= 80% of linear P95; benchmark was not run in this task.",
+      "callers": [
+        "UI06-C03"
+      ],
+      "blocks": [
+        [
+          "input setup",
+          "adds unknown after ALL names."
+        ],
+        [
+          "lookup closures",
+          "linear scan and direct parser each measure 200000 reads."
+        ],
+        [
+          "sample loop / alternating if",
+          "switches measurement order each of 11 rounds."
+        ],
+        [
+          "sort / percentiles",
+          "P50 uses middle sample; P95 uses final sample."
+        ],
+        [
+          "final assert",
+          "saturating arithmetic enforces direct*5 <= linear*4."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O003",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/evaluator.rs",
+      "object": "evaluator test module and binding_expression_evaluator_resolves_values_and_preserves_short_circuiting",
+      "members": [
+        "tests (Cell and super imports)",
+        "binding_expression_evaluator_resolves_values_and_preserves_short_circuiting"
+      ],
+      "entered": "Loaded through evaluator.rs cfg(test) path; directly constructs AST and calls evaluate_with.",
+      "status": "Equality resolves param/property to equal Int values; Or(true, unresolved control) returns true.",
+      "impact": "Cell proves right control resolver is never called on this short-circuit path.",
+      "callers": [
+        "UI06-C04",
+        "UI06-C08",
+        "UI06-C09",
+        "UI06-C10"
+      ],
+      "blocks": [
+        [
+          "AST",
+          "And(Equals(ParamRef,PropRef), Or(true,ControlPropRef))."
+        ],
+        [
+          "resolver closures",
+          "provide matching Int values and count control reads."
+        ],
+        [
+          "assertions",
+          "result is Bool(true), control read count is zero."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O004",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/evaluator.rs",
+      "object": "binding_expression_evaluator_rejects_over_depth_programs_without_recursing",
+      "members": [
+        "binding_expression_evaluator_rejects_over_depth_programs_without_recursing"
+      ],
+      "entered": "Builds public Not AST variants and directly calls evaluate_with.",
+      "status": "Wraps a literal MAX_DEPTH times and expects BudgetExceeded {budget:\"depth\", limit:MAX_DEPTH}.",
+      "impact": "Tests evaluator handling of a constructed AST beyond depth budget; does not establish parser acceptance.",
+      "callers": [
+        "UI06-C04"
+      ],
+      "blocks": [
+        [
+          "Not construction loop",
+          "wraps once per depth count without evaluating recursively."
+        ],
+        [
+          "assertion",
+          "checks exact depth budget error and configured limit."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O005",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/diagnostic.rs",
+      "object": "diagnostic test module and binding_diagnostic_identity_contract_is_unique_and_stable",
+      "members": [
+        "tests (UiBindingDiagnosticCode import)",
+        "binding_diagnostic_identity_contract_is_unique_and_stable"
+      ],
+      "entered": "Loaded through diagnostic.rs cfg(test) path.",
+      "status": "Checks ALL order and five code/error string/diagnostic ID/localization key tuples.",
+      "impact": "Nested suffix loop proves three identity values are pairwise unique; message text is outside this contract.",
+      "callers": [
+        "UI06-C06",
+        "UI06-C12",
+        "UI06-C13"
+      ],
+      "blocks": [
+        [
+          "expected tuples",
+          "sets identities for five public variants."
+        ],
+        [
+          "ALL loop",
+          "checks order and all accessors."
+        ],
+        [
+          "nested uniqueness loop",
+          "asserts error strings, IDs and localization keys differ pairwise."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O006",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs",
+      "object": "UiBindingReport and methods",
+      "members": [
+        "UiBindingReport",
+        "diagnostics",
+        "is_valid",
+        "first_error"
+      ],
+      "entered": "Runtime collect_asset_binding_report constructs it; Editor service forwards it.",
+      "status": "Serde-default diagnostics list; is_valid rejects any Error; first_error returns first Error by stored order.",
+      "impact": "Public construction/deserialization is not validation; empty diagnostics does not prove validation occurred.",
+      "callers": [
+        "UI06-C06",
+        "UI06-C14"
+      ],
+      "blocks": [
+        [
+          "diagnostics field",
+          "missing serialized value defaults to empty list."
+        ],
+        [
+          "is_valid all predicate",
+          "any Error returns false; warnings do not; empty list is true by all semantics."
+        ],
+        [
+          "first_error find",
+          "skips warnings and returns first Error or None."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O007",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs",
+      "object": "UiBindingDiagnostic and identity accessors",
+      "members": [
+        "UiBindingDiagnostic",
+        "code",
+        "severity",
+        "path",
+        "node_id",
+        "binding_id",
+        "message",
+        "error_code",
+        "diagnostic_id",
+        "localization_key"
+      ],
+      "entered": "Runtime ValidationContext::push_error creates record; Runtime and Editor consume it.",
+      "status": "Carries stable code/severity, asset location IDs and message; three const accessors forward to code identity.",
+      "impact": "Construction/deserialization does not validate field consistency; machine logic uses code, not message parsing.",
+      "callers": [
+        "UI06-C06",
+        "UI06-C15"
+      ],
+      "blocks": [
+        [
+          "record fields",
+          "producer writes category, severity, path/node/binding IDs and message."
+        ],
+        [
+          "identity accessors",
+          "return static enum-derived strings without allocation."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O008",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs",
+      "object": "UiBindingDiagnosticCode, UiBindingDiagnosticIdentity and code impl",
+      "members": [
+        "UiBindingDiagnosticCode::{InvalidTarget,InvalidValueKind,UnresolvedRef,UnsupportedOperator,UnsupportedBindingMode}",
+        "UiBindingDiagnosticIdentity",
+        "ALL",
+        "identity",
+        "error_code",
+        "diagnostic_id",
+        "localization_key",
+        "as_str"
+      ],
+      "entered": "Runtime validator selects fixed categories; Editor adapter maps as_str; local identity test checks table.",
+      "status": "Five enum values map through static match to fixed error strings, ZUI-BIND IDs and localization keys; ALL preserves order.",
+      "impact": "Identity is static, uniqueness is asserted, and no dynamic code registration exists.",
+      "callers": [
+        "UI06-C06",
+        "UI06-C12",
+        "UI06-C13",
+        "UI06-C15"
+      ],
+      "blocks": [
+        [
+          "variant set",
+          "selects one of five validation categories."
+        ],
+        [
+          "ALL array",
+          "returns the five variants in contract order."
+        ],
+        [
+          "identity match",
+          "each variant maps to a fixed identity tuple."
+        ],
+        [
+          "accessor methods",
+          "project static values; as_str aliases error_code."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O009",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs",
+      "object": "UiBindingDiagnosticSeverity",
+      "members": [
+        "UiBindingDiagnosticSeverity::{Error,Warning}"
+      ],
+      "entered": "Runtime producer assigns severity; report validity and Editor adapter consume it.",
+      "status": "Serde snake_case Error and Warning; Error invalidates report while Warning remains non-fatal.",
+      "impact": "Severity effect is consumed independently from human message.",
+      "callers": [
+        "UI06-C06",
+        "UI06-C15"
+      ],
+      "blocks": [
+        [
+          "Error/Warning variants",
+          "Error changes is_valid; Warning remains in diagnostics without invalidating report."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O010",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs",
+      "object": "diagnostic test module path",
+      "members": [
+        "#[cfg(test)] #[path = \"tests/diagnostic.rs\"] mod tests"
+      ],
+      "entered": "Test compilation only.",
+      "status": "Connects identity test to this implementation module.",
+      "impact": "No production runtime registration.",
+      "callers": [
+        "UI06-C01"
+      ],
+      "blocks": [
+        [
+          "cfg/path module declaration",
+          "child test is included only under cfg(test)."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O011",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "object": "UiBindingExpressionEvaluationError and Display/Error impls",
+      "members": [
+        "UnresolvedParameter",
+        "UnresolvedProperty",
+        "UnresolvedControlProperty",
+        "ExpectedBoolean",
+        "BudgetExceeded",
+        "InvalidProgram",
+        "fmt::Display",
+        "std::error::Error"
+      ],
+      "entered": "evaluate_with returns structured errors; callers may branch or display them.",
+      "status": "Variants separate unresolved references, boolean type failure, nodes/depth budgets and invalid value-stack structure; Display formats each.",
+      "impact": "Structured enum is machine-facing; display text is not a stable identity key.",
+      "callers": [
+        "UI06-C08",
+        "UI06-C09",
+        "UI06-C10"
+      ],
+      "blocks": [
+        [
+          "resolver None branches",
+          "return corresponding named unresolved error."
+        ],
+        [
+          "boolean conversion",
+          "non-Bool operand returns ExpectedBoolean."
+        ],
+        [
+          "budget guards",
+          "return budget label and limit."
+        ],
+        [
+          "value stack failures",
+          "empty pop or final length != 1 returns InvalidProgram."
+        ],
+        [
+          "Display match",
+          "formats each of six variants."
+        ],
+        [
+          "Error impl",
+          "adds standard error interoperability."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O012",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "object": "BinaryOperator and EvaluationFrame",
+      "members": [
+        "BinaryOperator::{Equals,NotEquals}",
+        "Enter",
+        "BinaryAfterLeft",
+        "BinaryAfterRight",
+        "AndAfterLeft",
+        "AndAfterRight",
+        "OrAfterLeft",
+        "OrAfterRight",
+        "NotAfterValue"
+      ],
+      "entered": "evaluate_with pushes private frames and consumes them iteratively.",
+      "status": "Frames encode AST entry and the ordered continuations needed for comparisons, boolean operators and Not.",
+      "impact": "Explicit continuation preserves left-first resolver effects and branch short-circuiting without recursive walk.",
+      "callers": [
+        "UI06-C04"
+      ],
+      "blocks": [
+        [
+          "Enter",
+          "counts/validates node then dispatches."
+        ],
+        [
+          "binary continuations",
+          "evaluate left, then right, then compare."
+        ],
+        [
+          "And continuations",
+          "false skips right; true schedules right."
+        ],
+        [
+          "Or continuations",
+          "true skips right; false schedules right."
+        ],
+        [
+          "Not continuation",
+          "requires Bool and pushes inverse."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O013",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "object": "EvaluationStack<T> and methods",
+      "members": [
+        "inline",
+        "inline_len",
+        "spill",
+        "new",
+        "push",
+        "pop",
+        "len"
+      ],
+      "entered": "Used for evaluator frame and value stacks.",
+      "status": "Uses inline slots then spill Vec; push enforces MAX_DEPTH+1; pop drains spill before inline and returns None when empty.",
+      "impact": "Bounds stack growth and avoids spill allocation for small expressions.",
+      "callers": [
+        "UI06-C04"
+      ],
+      "blocks": [
+        [
+          "new",
+          "initializes empty inline slots and Vec."
+        ],
+        [
+          "push",
+          "rejects excess depth, fills inline capacity then spills."
+        ],
+        [
+          "pop",
+          "takes spill first, else inline slot, or None."
+        ],
+        [
+          "len",
+          "sums inline and spill lengths."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O014",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "object": "UiBindingExpression::evaluate_with",
+      "members": [
+        "evaluate_with<Param,Property,ControlProperty>"
+      ],
+      "entered": "Direct Runtime action and Editor callers pass resolver closures; ordinary binding compile path separately lowers AST.",
+      "status": "Iteratively enters nodes, counts visits, checks depth, calls each reached resolver and constructs UiValue.",
+      "impact": "None becomes typed unresolved error; And/Or skip unreachable resolver; final stack must hold exactly one value.",
+      "callers": [
+        "UI06-C04",
+        "UI06-C07",
+        "UI06-C08",
+        "UI06-C09",
+        "UI06-C10"
+      ],
+      "blocks": [
+        [
+          "frame loop",
+          "processes frames until empty or early error."
+        ],
+        [
+          "Enter budget guards",
+          "counts actually entered nodes; enforces node and depth maxima."
+        ],
+        [
+          "leaf dispatch",
+          "literal pushes value; each reference calls its resolver and errors on None."
+        ],
+        [
+          "binary dispatch",
+          "left is evaluated before right, then Bool comparison."
+        ],
+        [
+          "And",
+          "false short-circuits; true schedules right and requires Bool."
+        ],
+        [
+          "Or",
+          "true short-circuits; false schedules right and requires Bool."
+        ],
+        [
+          "Not",
+          "requires Bool and pushes negation."
+        ],
+        [
+          "final stack check",
+          "returns sole value only when stack length equals one."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O015",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "object": "pop_value, bool_value, budget_error and evaluator test path",
+      "members": [
+        "pop_value",
+        "bool_value",
+        "budget_error",
+        "#[cfg(test)] #[path = \"../tests/evaluator.rs\"] mod tests"
+      ],
+      "entered": "Private helpers called by evaluate_with; test path only in test compilation.",
+      "status": "Centralizes empty-stack, Bool-kind and budget-error construction; links direct AST tests.",
+      "impact": "No public API change or runtime registration.",
+      "callers": [
+        "UI06-C04"
+      ],
+      "blocks": [
+        [
+          "pop_value",
+          "None maps to InvalidProgram."
+        ],
+        [
+          "bool_value",
+          "only UiValue::Bool succeeds; other value is ExpectedBoolean."
+        ],
+        [
+          "budget_error",
+          "packages label and limit."
+        ],
+        [
+          "cfg/path",
+          "loads evaluator tests only under cfg(test)."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O016",
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "object": "selector contract module and tests",
+      "members": [
+        "module imports",
+        "ui_selector_contracts_parse_reject_trailing_child_and_serialize",
+        "ui_selector_specificity_contract_uses_public_template_api"
+      ],
+      "entered": "Loaded through lib.rs test root -> tests/mod.rs -> contracts.rs -> contracts/selector.rs.",
+      "status": "First test checks a parsed AST/Serde round-trip and a trailing-child parse failure; second checks specificity tuple, legacy score and one ordering comparison.",
+      "impact": "These tests do not run Runtime matcher or style cascade.",
+      "callers": [
+        "UI06-C01",
+        "UI06-C02",
+        "UI06-C16",
+        "UI06-C17",
+        "UI06-C19"
+      ],
+      "blocks": [
+        [
+          "valid parse",
+          "Button.primary > Label:part(text) yields two expected segments/tokens."
+        ],
+        [
+          "Serde and invalid parse",
+          "round trip preserves AST; Button > returns InvalidSelector."
+        ],
+        [
+          "specificity assertions",
+          "expect (1,2,2), legacy score 122 and ID precedence over (0,99,99)."
+        ]
+      ]
+    },
+    {
+      "id": "UI06-O017",
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "object": "test module root and all module path declarations",
+      "members": [
+        "abi_safety_contracts -> abi_safety_contracts.rs",
+        "accessibility_contracts -> accessibility_contracts.rs",
+        "binding_conversion_contracts -> binding_conversion_contracts.rs",
+        "binding_value_contracts -> binding_value_contracts.rs",
+        "boundary -> boundary.rs",
+        "contracts -> contracts.rs",
+        "dispatch_reply_contracts -> dispatch_reply_contracts.rs",
+        "editor_design_tokens -> editor_design_tokens.rs",
+        "input_response_contracts -> input_response_contracts.rs",
+        "layout_engine_contracts -> layout_engine_contracts.rs",
+        "model_context_contracts -> model_context_contracts.rs",
+        "model_schema_contracts -> model_schema_contracts.rs",
+        "pipeline_contracts -> pipeline_contracts.rs",
+        "plugin_api_contracts -> plugin_api_contracts.rs",
+        "reflect_contracts -> reflect_contracts.rs",
+        "reflect_value_budget_contracts -> reflect_value_budget_contracts.rs",
+        "render_contracts -> render_contracts.rs",
+        "render_parity_key_reuse_performance_contracts -> render_parity_key_reuse_perf_contracts.rs",
+        "resource_contracts -> resource_contracts.rs",
+        "runtime_operation -> runtime_operation.rs",
+        "runtime_owned_result -> runtime_owned_result.rs",
+        "surface_frame_contracts -> surface_frame_contracts.rs",
+        "ui_contract_spine -> ui_contract_spine.rs",
+        "ui_dispatch_error_contracts -> ui_dispatch_error_contracts.rs",
+        "ui_ecs_node_lookup_contracts -> ui_ecs_node_lookup_contracts.rs",
+        "ui_ecs_projection_contracts -> ui_ecs_projection_contracts.rs",
+        "ui_geometry_metrics -> ui_geometry_metrics.rs",
+        "ui_layout -> ui_layout.rs",
+        "ui_painter_style_contracts -> ui_painter_style_contracts.rs",
+        "ui_skin_contracts -> ui_skin_contracts.rs",
+        "ui_theme_contracts -> ui_theme_contracts.rs",
+        "ui_v2_contracts -> ui_v2_contracts.rs",
+        "window_input_contracts -> window_input_contracts.rs",
+        "window_runtime_event_adapter_contracts -> window_runtime_event_adapter_contracts.rs",
+        "window_transient_contracts -> window_transient_contracts.rs",
+        "world_sync_contracts -> world_sync_contracts.rs",
+        "window_runtime_event_borrowing_contracts -> window_runtime_event_borrowing_contracts.rs"
+      ],
+      "entered": "Loaded by crate lib.rs under cfg(test).",
+      "status": "37 #[path] statements map module names to sibling files; contracts is the nested parent of selector test.",
+      "impact": "Declarations provide test-tree reachability only; this task did not build or execute these tests.",
+      "callers": [
+        "UI06-C01",
+        "UI06-C02"
+      ],
+      "blocks": [
+        [
+          "#[path = \"abi_safety_contracts.rs\"] mod abi_safety_contracts",
+          "maps test module abi_safety_contracts to abi_safety_contracts.rs."
+        ],
+        [
+          "#[path = \"accessibility_contracts.rs\"] mod accessibility_contracts",
+          "maps test module accessibility_contracts to accessibility_contracts.rs."
+        ],
+        [
+          "#[path = \"binding_conversion_contracts.rs\"] mod binding_conversion_contracts",
+          "maps test module binding_conversion_contracts to binding_conversion_contracts.rs."
+        ],
+        [
+          "#[path = \"binding_value_contracts.rs\"] mod binding_value_contracts",
+          "maps test module binding_value_contracts to binding_value_contracts.rs."
+        ],
+        [
+          "#[path = \"boundary.rs\"] mod boundary",
+          "maps test module boundary to boundary.rs."
+        ],
+        [
+          "#[path = \"contracts.rs\"] mod contracts",
+          "maps test module contracts to contracts.rs."
+        ],
+        [
+          "#[path = \"dispatch_reply_contracts.rs\"] mod dispatch_reply_contracts",
+          "maps test module dispatch_reply_contracts to dispatch_reply_contracts.rs."
+        ],
+        [
+          "#[path = \"editor_design_tokens.rs\"] mod editor_design_tokens",
+          "maps test module editor_design_tokens to editor_design_tokens.rs."
+        ],
+        [
+          "#[path = \"input_response_contracts.rs\"] mod input_response_contracts",
+          "maps test module input_response_contracts to input_response_contracts.rs."
+        ],
+        [
+          "#[path = \"layout_engine_contracts.rs\"] mod layout_engine_contracts",
+          "maps test module layout_engine_contracts to layout_engine_contracts.rs."
+        ],
+        [
+          "#[path = \"model_context_contracts.rs\"] mod model_context_contracts",
+          "maps test module model_context_contracts to model_context_contracts.rs."
+        ],
+        [
+          "#[path = \"model_schema_contracts.rs\"] mod model_schema_contracts",
+          "maps test module model_schema_contracts to model_schema_contracts.rs."
+        ],
+        [
+          "#[path = \"pipeline_contracts.rs\"] mod pipeline_contracts",
+          "maps test module pipeline_contracts to pipeline_contracts.rs."
+        ],
+        [
+          "#[path = \"plugin_api_contracts.rs\"] mod plugin_api_contracts",
+          "maps test module plugin_api_contracts to plugin_api_contracts.rs."
+        ],
+        [
+          "#[path = \"reflect_contracts.rs\"] mod reflect_contracts",
+          "maps test module reflect_contracts to reflect_contracts.rs."
+        ],
+        [
+          "#[path = \"reflect_value_budget_contracts.rs\"] mod reflect_value_budget_contracts",
+          "maps test module reflect_value_budget_contracts to reflect_value_budget_contracts.rs."
+        ],
+        [
+          "#[path = \"render_contracts.rs\"] mod render_contracts",
+          "maps test module render_contracts to render_contracts.rs."
+        ],
+        [
+          "#[path = \"render_parity_key_reuse_perf_contracts.rs\"] mod render_parity_key_reuse_performance_contracts",
+          "maps test module render_parity_key_reuse_performance_contracts to render_parity_key_reuse_perf_contracts.rs."
+        ],
+        [
+          "#[path = \"resource_contracts.rs\"] mod resource_contracts",
+          "maps test module resource_contracts to resource_contracts.rs."
+        ],
+        [
+          "#[path = \"runtime_operation.rs\"] mod runtime_operation",
+          "maps test module runtime_operation to runtime_operation.rs."
+        ],
+        [
+          "#[path = \"runtime_owned_result.rs\"] mod runtime_owned_result",
+          "maps test module runtime_owned_result to runtime_owned_result.rs."
+        ],
+        [
+          "#[path = \"surface_frame_contracts.rs\"] mod surface_frame_contracts",
+          "maps test module surface_frame_contracts to surface_frame_contracts.rs."
+        ],
+        [
+          "#[path = \"ui_contract_spine.rs\"] mod ui_contract_spine",
+          "maps test module ui_contract_spine to ui_contract_spine.rs."
+        ],
+        [
+          "#[path = \"ui_dispatch_error_contracts.rs\"] mod ui_dispatch_error_contracts",
+          "maps test module ui_dispatch_error_contracts to ui_dispatch_error_contracts.rs."
+        ],
+        [
+          "#[path = \"ui_ecs_node_lookup_contracts.rs\"] mod ui_ecs_node_lookup_contracts",
+          "maps test module ui_ecs_node_lookup_contracts to ui_ecs_node_lookup_contracts.rs."
+        ],
+        [
+          "#[path = \"ui_ecs_projection_contracts.rs\"] mod ui_ecs_projection_contracts",
+          "maps test module ui_ecs_projection_contracts to ui_ecs_projection_contracts.rs."
+        ],
+        [
+          "#[path = \"ui_geometry_metrics.rs\"] mod ui_geometry_metrics",
+          "maps test module ui_geometry_metrics to ui_geometry_metrics.rs."
+        ],
+        [
+          "#[path = \"ui_layout.rs\"] mod ui_layout",
+          "maps test module ui_layout to ui_layout.rs."
+        ],
+        [
+          "#[path = \"ui_painter_style_contracts.rs\"] mod ui_painter_style_contracts",
+          "maps test module ui_painter_style_contracts to ui_painter_style_contracts.rs."
+        ],
+        [
+          "#[path = \"ui_skin_contracts.rs\"] mod ui_skin_contracts",
+          "maps test module ui_skin_contracts to ui_skin_contracts.rs."
+        ],
+        [
+          "#[path = \"ui_theme_contracts.rs\"] mod ui_theme_contracts",
+          "maps test module ui_theme_contracts to ui_theme_contracts.rs."
+        ],
+        [
+          "#[path = \"ui_v2_contracts.rs\"] mod ui_v2_contracts",
+          "maps test module ui_v2_contracts to ui_v2_contracts.rs."
+        ],
+        [
+          "#[path = \"window_input_contracts.rs\"] mod window_input_contracts",
+          "maps test module window_input_contracts to window_input_contracts.rs."
+        ],
+        [
+          "#[path = \"window_runtime_event_adapter_contracts.rs\"] mod window_runtime_event_adapter_contracts",
+          "maps test module window_runtime_event_adapter_contracts to window_runtime_event_adapter_contracts.rs."
+        ],
+        [
+          "#[path = \"window_transient_contracts.rs\"] mod window_transient_contracts",
+          "maps test module window_transient_contracts to window_transient_contracts.rs."
+        ],
+        [
+          "#[path = \"world_sync_contracts.rs\"] mod world_sync_contracts",
+          "maps test module world_sync_contracts to world_sync_contracts.rs."
+        ],
+        [
+          "#[path = \"window_runtime_event_borrowing_contracts.rs\"] mod window_runtime_event_borrowing_contracts",
+          "maps test module window_runtime_event_borrowing_contracts to window_runtime_event_borrowing_contracts.rs."
+        ]
+      ]
+    }
+  ],
+  "objectEvidenceGroupCount": 17,
+  "blockEvidenceCount": 94,
+  "statementBlockCoverage": "All seven files were read in full. Each test, public/private item, method/helper, enum/variant set, and module entry is listed above. Behavior-relevant loops, conditional branches, error paths and assertions have explicit transitions; simple accessors are grouped with their owning impl.",
+  "callerPins": [
+    {
+      "id": "UI06-C01",
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "symbols": "crate test root",
+      "relationship": "#[cfg(test)] loads tests/mod.rs.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C02",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "symbols": "contracts module",
+      "relationship": "#[path] loads contracts/selector.rs.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C03",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "sha256": "547b076a7f54c129ef7730d665634d3e83920df79a5ea631274e1ef200eda7a5",
+      "symbols": "UiActionPayloadFieldName::{ALL,schema_name,from_schema_name,expected_value_kind}",
+      "relationship": "Name mapping is distinct from expected value-kind validation.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C04",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "sha256": "c59dc1e83f2d146f2926be71e97eb8d3512cd2a1ac09669a66241b59b78a39b3",
+      "symbols": "UiBindingExpression AST, parse, budget constants",
+      "relationship": "Parser creates AST; direct evaluator separately accepts AST and has evaluation budgets.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C05",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "sha256": "25f1308b1db9df7de102b2b06e013f69f57734f0216e1be99acc9a088159d5b6",
+      "symbols": "binding re-exports",
+      "relationship": "Confirms public binding exposure; this batch changes no exports.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C06",
+      "path": "zircon_runtime/src/ui/template/asset/binding/validation.rs",
+      "sha256": "4a8f764339df4bda489c291dce03bb24323dbf5d3101d818949a21df95eb3c84",
+      "symbols": "collect_asset_binding_report; validate_asset_bindings; push_error",
+      "relationship": "Runtime constructs diagnostic records and reads UiBindingReport::first_error.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C07",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/binding_program.rs",
+      "sha256": "b45b8db697a9c4e2fd865cc50d4eb20b889f073c5987227514c604e8aab86f2a",
+      "symbols": "compile_expression",
+      "relationship": "Ordinary binding path lowers parsed AST into UiCompiledBindingExpression; not the only evaluator path.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C08",
+      "path": "zircon_runtime/src/ui/surface/surface/pointer_component_events/action.rs",
+      "sha256": "1466d34a5a03b5143535b6de8544b5198261c79d7abe103e76fa6d303f9c2705",
+      "symbols": "evaluate_with at line 232",
+      "relationship": "Runtime action path directly evaluates AST.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C09",
+      "path": "zircon_editor/src/ui/runtime/runtime/projection.rs",
+      "sha256": "6a03e9a79ab818cf4d4fc2fa3533cf1bcc958d0148f7df0b88cc7197e3954657",
+      "symbols": "evaluate_with at line 724",
+      "relationship": "Editor projection directly evaluates AST for preview.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C10",
+      "path": "zircon_editor/src/ui/runtime/runtime/compiled_template_action.rs",
+      "sha256": "3eedae39b7b7946813707dd2d2ad76b6a4ac229a46de00f190c12e540cb7fbfd",
+      "symbols": "evaluate_with at line 125",
+      "relationship": "Editor action path directly evaluates AST payload.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C11",
+      "path": "zircon_runtime/src/ui/tests/asset_binding/schema_naming.rs",
+      "sha256": "69f2b29d096618551f1e36550848c858cd7f5b226c9df7e3e9fbc9b488224375",
+      "symbols": "action_payload_field_schema_owns_known_names_and_value_kinds; binding_contract_terms_are_distinct_stable_and_drive_name_diagnostics",
+      "relationship": "Asserts checked -> Bool, surface_entity -> Int, unknown names and term/name diagnostics; no index -> Int claim.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C12",
+      "path": "zircon_runtime/src/ui/tests/asset_binding.rs",
+      "sha256": "083c780e566850a61a93204d0e9f30bb28f1b324bebf90c61f88a7f258af6cce",
+      "symbols": "binding diagnostic integration cases",
+      "relationship": "Exercises InvalidTarget, InvalidValueKind, UnresolvedRef and UnsupportedOperator.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C13",
+      "path": "zircon_runtime/src/ui/tests/asset_binding/compiled_program.rs",
+      "sha256": "4a404117950b37646dff2b89e7e307bfa4aeecfbe738705bc4185de6745ceff4",
+      "symbols": "UnsupportedBindingMode test",
+      "relationship": "Covers the remaining unsupported-mode category.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C14",
+      "path": "zircon_editor/src/ui/template/service.rs",
+      "sha256": "ec5e112a80d9cbe594f5ed98cce5890da9cd1cfd94fe55a0ce6044627ae952e7",
+      "symbols": "UiEditorAssetService::collect_binding_report",
+      "relationship": "Editor service forwards report for editor tooling.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C15",
+      "path": "zircon_editor/src/ui/asset_editor/diagnostics/binding.rs",
+      "sha256": "3f5cacc7312e91e3bac218a4686f67a8a0a44f7ccd4ba0ce83f2eacb5f0d0fdd",
+      "symbols": "map_binding_diagnostic",
+      "relationship": "Maps code.as_str, severity and message; does not parse message text for identity.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C16",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/style_apply.rs",
+      "sha256": "138964bb1de4c3f886335e36bb01c6940c8cf5245d3675bf3f8363d186d4dc53",
+      "symbols": "specificity and sort at line 94",
+      "relationship": "Compiler-side style order uses (specificity, source order).",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C17",
+      "path": "zircon_runtime/src/ui/template/asset/style.rs",
+      "sha256": "e4b7f50f45ad67f997f3fa6808fb736021993c51c1991efd27e3f8a733ff0fb0",
+      "symbols": "matches_token; Part => false",
+      "relationship": "Parser acceptance does not imply generic Runtime matcher support.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C18",
+      "path": "zircon_runtime/src/ui/template/asset/style/tests/single_match_tests.rs",
+      "sha256": "3bf232fc471b837ed142b00f14177c1c552c0088ca4bbe296ddbac780558efd2",
+      "symbols": "single-token matcher tests",
+      "relationship": "Runtime matching tests are separate from interface AST tests.",
+      "access": "read-only cross-file trace"
+    },
+    {
+      "id": "UI06-C19",
+      "path": "zircon_editor/src/ui/asset_editor/style/matched_rule_inspection.rs",
+      "sha256": "af6fa0aa3a16ec8bf8ba0f6058ae63bbda4fefc6b44ce1dc010d6e1b9c1105d1",
+      "symbols": "collect_matching_rules; sort at 84; legacy display at 108",
+      "relationship": "Editor sorts by cascade specificity/source order; legacy score is display-only.",
+      "access": "read-only cross-file trace"
+    }
+  ],
+  "callerPinsCount": 19,
+  "historicalUI005Continuity": [
+    {
+      "priorEvidence": "docs/tests/source-comment-review-evidence-ui-template-005.json",
+      "priorEvidenceSha256": "e75067d5bc09b187b11bd1d1d8c22b7fa16b9f2debfc8d0df3d7739b60aedb58",
+      "historicalId": "TPL05-C20",
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "oldPin": "9b89fe4d2d1d852396725649a27af9837e447f52ebe4b77fcf9d3f2c85cf7042",
+      "currentPin": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "priorClaim": "checks parse shape, token grammar and specificity ordering at interface layer",
+      "verifiedScope": "one parsed AST/Serde round-trip; trailing-child parse rejection; specificity (1,2,2), legacy score 122 and one ordering comparison. No Runtime matching or cascade.",
+      "continuity": "Same test file, doc-only changes; Runtime compiler, matcher and Editor inspector have independent pins UI06-C16..C19."
+    },
+    {
+      "priorEvidence": "docs/tests/source-comment-review-evidence-ui-template-005.json",
+      "priorEvidenceSha256": "e75067d5bc09b187b11bd1d1d8c22b7fa16b9f2debfc8d0df3d7739b60aedb58",
+      "historicalId": "TPL05-C21",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs",
+      "oldPin": "228e93961895eae999462b040528d9cbe2ffc00c6fde3805563d723a2a987f59",
+      "currentPin": "6d42b16c5e1be64f577708fc4bd843033c03fab85a183e38e6cdf943ffe085fe",
+      "priorClaim": "checks contract terms, payload name rules, known field mappings and value-kind mapping",
+      "verifiedScope": "only ALL-name round-trip, surfaceEntity/unknown -> None and ignored release benchmark. It does not test contract terms or expected_value_kind. Runtime schema_naming.rs pin UI06-C11 verifies checked -> Bool and surface_entity -> Int.",
+      "continuity": "Same file, doc-only changes. Previous broader claim is narrowed to assertions actually present; the Runtime test pin supplies value-kind evidence."
+    }
+  ],
+  "restorationHistory": [
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "event": "Original evaluate_with summary was temporarily superseded while drafting and then restored byte-for-byte.",
+      "restoredText": "由宿主解析参数和属性；逻辑运算短路，未解析引用或预算超限会返回错误。",
+      "finalState": "Original summary remains first; new explanatory paragraphs follow. Final diff is insertions only."
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "event": "A new explanatory doc on BudgetExceeded made rustfmt request compaction of the existing multiline variant.",
+      "observedFailure": {
+        "exitCode": 1,
+        "receiptId": "unavailable in retained native log",
+        "effect": "No formatting rewrite was retained."
+      },
+      "correction": "Moved that explanation to enum-level docs and removed only the new variant-level sentence; baseline multiline variant/code layout is preserved.",
+      "finalCheck": "Exact7 Rust 2021 rustfmt exit0 in exec cell 170, chunk d6a6c0."
+    },
+    {
+      "path": "all seven files",
+      "event": "One broad patch attempt failed context matching before application.",
+      "effect": "No source mutation from that attempt; final diff remains insertion-only."
+    },
+    {
+      "path": "evidence serialization",
+      "event": "First Python serialization command was rejected by Windows CreateProcess error 206 because command length exceeded the shell limit.",
+      "effect": "Process did not start and the evidence destination was not opened; no file change."
+    }
+  ],
+  "attributesAndImplReview": {
+    "schema tests": "#[test], #[ignore], assert_eq!/assert!; no custom macros, trait impls, registration, FFI or unsafe.",
+    "evaluator tests": "#[test], assert_eq!; direct AST construction only.",
+    "diagnostic tests": "#[test], assert_eq!/assert_ne!; identity assertions.",
+    "diagnostic implementation": "Serde derives for Clone/Debug/Default/equality/serialization; serde(default), rename_all snake_case; inherent methods; no custom macro_rules, dynamic registration, FFI or unsafe.",
+    "expression evaluator": "Manual Display and std::error::Error impls, inherent evaluator/stack methods, cfg(test)/path; no custom macro, registry, FFI or unsafe.",
+    "selector tests": "Built-in test/assert/matches macros and serde_json calls; no custom macro, FFI or unsafe.",
+    "test module root": "37 built-in #[path] declarations; no custom macro, registration, FFI or unsafe."
+  },
+  "macroAndDocAttributeObservability": "New /// and //! lines become compiler-facing doc attributes. Serde derives remain present and can observe item attributes; non-doc source tokens are unchanged. No Cargo doc/macro execution was run, and formal documentation-stage acceptance remains pending.",
+  "issueTags": {
+    "existing": [],
+    "new": [],
+    "scan": "No TODO/BUG/FIXME marker found in the seven assigned files; ledger rows had no existing tags."
+  },
+  "validation": {
+    "rustfmt": {
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact seven files>",
+      "exitCode": 0,
+      "receipt": "exec cell 170; chunk d6a6c0"
+    },
+    "diffCheck": {
+      "command": "git --no-optional-locks diff --check -- <exact seven paths>",
+      "exitCode": 0,
+      "receipt": "exec cell 173",
+      "note": "Only Git LF-to-CRLF conversion warnings; no whitespace errors."
+    },
+    "changeGuard": {
+      "command": "change_guard.py --json patch --git --base d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef --path <exact seven paths>",
+      "exitCode": 0,
+      "receipt": "exec cell 174; nested chunk 385e4a",
+      "patchDigest": "da336e7180189dbd83e077228b53dedfa7733f0fe16eb8e445a71b291c8bfdd0",
+      "writeGrantCheck": true,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    "cargoBuildDocs": "not run; documentation/comment-only batch, no Cargo stage requested.",
+    "formalJenkinsAcceptance": "pending; local receipts are not formal Jenkins acceptance."
+  },
+  "priorBatch": {
+    "batchId": "ui-template-005",
+    "evidencePath": "docs/tests/source-comment-review-evidence-ui-template-005.json",
+    "evidenceSha256": "e75067d5bc09b187b11bd1d1d8c22b7fa16b9f2debfc8d0df3d7739b60aedb58",
+    "state": "read-only; frozen"
+  },
+  "limits": [
+    "Ignored release benchmark not run.",
+    "No Cargo test/build/doc run.",
+    "Interface selector test does not establish Runtime matching or cascade.",
+    "AST evaluator has both direct evaluate_with callers and a separate ordinary compile-to-IR path.",
+    "Cross-file caller/test paths are read-only."
+  ]
+}

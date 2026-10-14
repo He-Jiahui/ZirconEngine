@@ -1,7 +1,12 @@
+//! Windows watcher 线程 TLS 析构未结束时，短销毁必须保留会话和重试责任。
+//!
+//! 本模块由 registry/tests/cases 的 windows 条件接入；使用真实线程退出屏障。
+
 use std::cell::RefCell;
 
 use super::*;
 
+/// 放在真实 worker 的 TLS 中，Drop 通知进入析构并等待测试主线程放行。
 struct ThreadExitLatch {
     entered: mpsc::SyncSender<()>,
     release: mpsc::Receiver<()>,
@@ -9,16 +14,19 @@ struct ThreadExitLatch {
 
 impl Drop for ThreadExitLatch {
     fn drop(&mut self) {
+        // 有限等待防止回归把测试 worker 永久留住；回执仍须确认真正的线程退出。
         let _ = self.entered.send(());
         let _ = self.release.recv_timeout(Duration::from_secs(2));
     }
 }
 
 thread_local! {
+    // 不从 TLS 取出此值，确保屏障发生在操作系统线程终止前的真实 TLS 析构阶段。
     static EXIT_LATCH: RefCell<Option<ThreadExitLatch>> = const { RefCell::new(None) };
 }
 
 #[test]
+/// watcher 主函数退出后仍堵在 TLS Drop；短销毁与零预算重试均不得提前删除槽位。
 fn astra_life_a4_destroy_retains_project_watcher_during_tls_destruction() {
     let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
     let core = session.runtime.handle();
@@ -48,6 +56,7 @@ fn astra_life_a4_destroy_retains_project_watcher_during_tls_destruction() {
     let retry_closing = session_is_closing(handle);
 
     // Release and reap before asserting so a regression cannot strand a session worker.
+    // 先解除 TLS 屏障并让最终 destroy 回收 worker，再断言失败分类和重复销毁结果。
     let _ = release.send(());
     let completed = destroy_session_slot(handle).status_code();
     let repeated = destroy_session_slot(handle).status_code();

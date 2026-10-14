@@ -16,14 +16,14 @@ mod storage_recovery;
 mod store;
 
 pub use config::CloudConfig;
-pub use manifest::{Manifest, MAX_BLOB_BYTES, MAX_MANIFEST_BYTES};
-pub use quota::{usage, Usage};
+pub use manifest::{MAX_BLOB_BYTES, MAX_MANIFEST_BYTES, Manifest};
+pub use quota::{Usage, usage};
 pub use retention::{
-    get as retention, maintain, update as update_retention, MaintenanceReport, MaintenanceRequest,
-    RetentionOutcome, RetentionPolicy, RetentionRequest, RetentionState,
+    MaintenanceReport, MaintenanceRequest, RetentionOutcome, RetentionPolicy, RetentionRequest,
+    RetentionState, get as retention, maintain, update as update_retention,
 };
-pub use snapshot::{authorize_receipt, commit, head, CommitOutcome, CommitRequest};
-pub use store::{read_blob, upload, BlobStore};
+pub use snapshot::{CommitOutcome, CommitRequest, authorize_receipt, commit, head};
+pub use store::{BlobStore, read_blob, upload};
 
 #[cfg(test)]
 #[path = "tests/mod.rs"]

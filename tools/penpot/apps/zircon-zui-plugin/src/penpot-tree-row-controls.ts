@@ -2,7 +2,7 @@ import type { Board, Text } from '@penpot/plugin-types';
 import type { ZuiDocument, ZuiNode } from './bridge/zui-document';
 import { nativePainterComponent } from './bridge/zui-native-painter-role';
 import { treeRowContent } from './bridge/zui-tree-row-content';
-import { refreshNativePainterContent } from './penpot-control-content';
+import { refreshTreeRowPainterContent } from './penpot-control-content';
 import {
   guardControlParts,
   updateControlTextGeometryGuard,
@@ -21,8 +21,8 @@ export function refreshTreeRowContent(
 ): boolean {
   if (!node || !isTreeRowPainter(node) || !document['penpot_host_theme_source'])
     return false;
-  refreshNativePainterContent(board, node, document);
-  guardControlParts(
+  const updated = refreshTreeRowPainterContent(board, node, document);
+  if (updated) guardControlParts(
     board,
     board.children.filter(
       (child) =>

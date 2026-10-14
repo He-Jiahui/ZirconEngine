@@ -62,11 +62,13 @@ impl Session {
                     &library.sha256,
                     128 * 1024 * 1024,
                 )?);
-                let mut paths = vec![library
-                    .path
-                    .parent()
-                    .ok_or(AccountError::PackageUnavailable)?
-                    .to_path_buf()];
+                let mut paths = vec![
+                    library
+                        .path
+                        .parent()
+                        .ok_or(AccountError::PackageUnavailable)?
+                        .to_path_buf(),
+                ];
                 paths.extend(std::env::split_paths(
                     &std::env::var_os("PATH").unwrap_or_default(),
                 ));

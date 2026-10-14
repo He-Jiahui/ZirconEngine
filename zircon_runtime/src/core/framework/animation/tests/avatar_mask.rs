@@ -21,7 +21,7 @@ fn optimization_batch_20260830cc_avatar_mask_rejects_include_miss_before_scannin
         .find("if !self.included_target_ids.is_empty()")
         .expect("an include miss must have an explicit early-return guard");
     let exclusion_scan = allows_target
-        .find("self.excluded_target_ids")
+        .find(".excluded_target_ids")
         .expect("avatar-mask exclusions must remain enforced");
 
     assert!(

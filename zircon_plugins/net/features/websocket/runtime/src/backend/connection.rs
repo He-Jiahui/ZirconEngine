@@ -146,10 +146,7 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
             self.reader_cancel.notify.notify_one();
         }
         if received_close {
-            *self
-                .state
-                .lock()
-                .expect("net WebSocket state mutex poisoned") = NetConnectionState::Closed;
+            self.set_state(NetConnectionState::Closed);
         }
         frames
     }

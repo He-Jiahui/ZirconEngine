@@ -1,0 +1,702 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "owner-thread-receipt-009",
+  "author": "/root/core_owner_receipt",
+  "requestedModel": "gpt-6.1-sol max",
+  "rootChatId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignment": {
+    "canonicalLedger": "docs/tests/source-comment-review-coverage-03.json",
+    "assignmentLedgerSha256": "7b5bfa8e09e827294fa40724610b97e6a32c0b015a6ba4bfc2b8952458a29342",
+    "revision": 14,
+    "owner": "/root/core_owner_receipt",
+    "evidenceWriteGrant": "docs/tests/source-comment-review-evidence-owner-thread-receipt-009.json",
+    "baseHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "grant": "root exact nine canonical source paths plus this sole author evidence; every other source/metadata readonly",
+    "rootReadReceipt": "29ab3d metadata/pin subsegment before unrelated old Jenkins notice path read failure",
+    "authorPrewriteReceipt": "19/b49289 exit0; revision/owner/grant/exact before9/evidence absence verified",
+    "handoff": "replaced ended /root/core_review after its repeated remote compaction failures; all nine physical before pins unchanged",
+    "issueIdException": "CR-OWNER-0001 permitted by root continuation decision"
+  },
+  "standard": {
+    "path": "docs/tests/source-comment-review-standard.md",
+    "sha256": "fd4665076c529273a59ef74b08f83a2d572099a438c5d20ac81e6b14a7047b73",
+    "policy": "module //!; declaration ///; private invariants //; existing comments and physical LF retained; no behavior/API/string/assertion/cfg/macro/resource changes"
+  },
+  "state": "frozen-author-review-awaiting-root-and-coordinator",
+  "files": [
+    {"id":"S1","path":"zircon_runtime/src/dynamic_api/session/registry/session_owner.rs","beforeSha256":"88364113b01be72b323ed5252487ec62fb3db702f6f874253b78c43f55e73dc1","beforeLineCount":478,"readReceipt":"6/7871d4 (1-322); 7/039f96 (323-478)","afterSha256":"649c96e952c9b57e69483af9576c2b5b0e802d926d735e6b3745844a17132352","afterLineCount":578,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,7],[28,28],[30,30],[37,37],[41,41],[43,43],[46,46],[53,53],[55,55],[57,57],[59,59],[64,64],[79,80],[85,85],[90,90],[95,96],[104,104],[106,106],[108,108],[110,110],[112,112],[116,116],[118,118],[120,120],[128,128],[139,139],[153,153],[181,181],[183,183],[185,185],[187,187],[189,189],[191,191],[197,204],[206,206],[208,208],[210,210],[213,213],[215,215],[217,217],[223,223],[233,239],[261,261],[284,290],[320,320],[336,340],[373,376],[387,390],[408,408],[416,416],[462,462],[477,477],[489,489],[494,494],[500,501],[521,521],[527,527],[544,544],[552,552],[556,557],[563,563]],"baselineLineShiftSegments":[[1,20,7],[21,21,8],[22,27,9],[28,30,10],[31,31,11],[32,33,12],[34,39,13],[40,40,14],[41,41,15],[42,42,16],[43,46,17],[47,60,18],[61,64,20],[65,68,21],[69,72,22],[73,79,24],[80,80,25],[81,81,26],[82,82,27],[83,83,28],[84,86,29],[87,87,30],[88,88,31],[89,95,32],[96,105,33],[106,118,34],[119,145,35],[146,146,36],[147,147,37],[148,148,38],[149,149,39],[150,150,40],[151,155,41],[156,156,49],[157,157,50],[158,158,51],[159,160,52],[161,161,53],[162,162,54],[163,167,55],[168,176,56],[177,197,63],[198,219,64],[220,248,71],[249,263,72],[264,295,77],[296,305,81],[306,322,85],[323,329,86],[330,374,87],[375,388,88],[389,399,89],[400,403,90],[404,408,91],[409,427,93],[428,432,94],[433,448,95],[449,455,96],[456,458,97],[459,463,99],[464,478,100]],"tokenCount":3255,"beforeTokenSha256":"028041ddb733a947187bcd1adf3f9ef30f7a0bf1fb2b00eb15ed6b57cccc761c","afterTokenSha256":"028041ddb733a947187bcd1adf3f9ef30f7a0bf1fb2b00eb15ed6b57cccc761c","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G001","G002","G003","G004","G005","G006","G007","G008","G009","G010","G011","G012","G013","G014","G015","G016","G017","G018","G019","G020","G021","G022","G023","G024","G025"]},
+    {"id":"S2","path":"zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs","beforeSha256":"7024bdc2aeb047bbd6849f0f40f41c901266847120a4c3e32746ab0a88365f4a","beforeLineCount":301,"readReceipt":"6/7871d4 (1-301)","afterSha256":"fce656417cd516756b48cd51e2472a886c877ab43c3178df908ee8a4d95e9a48","afterLineCount":365,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,6],[26,26],[30,30],[32,32],[34,34],[38,38],[40,40],[42,42],[44,44],[49,49],[52,52],[61,61],[73,73],[95,95],[106,113],[115,115],[117,117],[125,125],[140,147],[201,201],[214,218],[226,227],[232,234],[284,286],[293,294],[299,300],[317,317],[322,322],[343,348]],"baselineLineShiftSegments":[[1,19,6],[20,22,7],[23,23,8],[24,24,9],[25,27,10],[28,28,11],[29,29,12],[30,30,13],[31,34,14],[35,36,15],[37,44,16],[45,55,17],[56,76,18],[77,86,19],[87,87,27],[88,88,28],[89,95,29],[96,109,30],[110,162,38],[163,174,39],[175,181,44],[182,185,46],[186,234,49],[235,240,52],[241,244,54],[245,260,56],[261,264,57],[265,284,58],[285,301,64]],"tokenCount":2003,"beforeTokenSha256":"7c7d8477b4e71686ec2271b912a71414d606270930dae0d1078b75094d0a7a91","afterTokenSha256":"7c7d8477b4e71686ec2271b912a71414d606270930dae0d1078b75094d0a7a91","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":["CR-OWNER-0001"],"objectIds":["G026","G027","G028","G029","G030","G031","G032","G033","G034","G035","G036","G037","G038","G039","G040","G041","G042","G043","G044"]},
+    {"id":"S3","path":"zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs","beforeSha256":"c6faf2919ac2af6c370b259c3e9e73df7b5d56fc4265dc2f601bfbe243ba6823","beforeLineCount":48,"readReceipt":"18/8c0e36 complete baseline read","afterSha256":"3562a1cc60a4701f416c719e1bdb427c86f16aae6a495a25f89e21a329c994aa","afterLineCount":70,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,4],[12,12],[15,15],[17,17],[25,35],[37,37],[51,52],[62,62]],"baselineLineShiftSegments":[[1,7,4],[8,9,5],[10,10,6],[11,17,7],[18,18,18],[19,31,19],[32,40,21],[41,48,22]],"tokenCount":251,"beforeTokenSha256":"ff16bb882f6eb4ac5b168e63959201c9c0440fa307ee9d0a29f10dd3f26fba1e","afterTokenSha256":"ff16bb882f6eb4ac5b168e63959201c9c0440fa307ee9d0a29f10dd3f26fba1e","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G045","G046","G047","G048","G049"]},
+    {"id":"S4","path":"zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/cases.rs","beforeSha256":"fb5ba654b204415dc976c5a6ad1d135f2ac02f090d37a0280f290461366bebac","beforeLineCount":177,"readReceipt":"7/039f96","afterSha256":"b08e460378f26e256dcf4e6343dcd82157e5859d5bbe02720eb504b9bb2699d4","afterLineCount":191,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,4],[13,13],[22,22],[29,29],[54,54],[78,78],[95,95],[120,120],[148,148],[164,164],[179,179]],"baselineLineShiftSegments":[[1,8,4],[9,16,5],[17,22,6],[23,46,7],[47,69,8],[70,85,9],[86,109,10],[110,136,11],[137,151,12],[152,165,13],[166,177,14]],"tokenCount":1543,"beforeTokenSha256":"b7505bb50854477f98b1b466f055a387f52a9932c24faac941d4fa12b6b53806","afterTokenSha256":"b7505bb50854477f98b1b466f055a387f52a9932c24faac941d4fa12b6b53806","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G050","G051","G052","G053","G054","G055","G056"]},
+    {"id":"S5","path":"zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/runtime.rs","beforeSha256":"6c616a2deba6f42d24685e571eca607e427572705215f461c00e1df173715349","beforeLineCount":224,"readReceipt":"7/039f96","afterSha256":"36b20fee6429ede918f79740fd213899c37e064c66080b49e31287b5bc4d8edc","afterLineCount":236,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,4],[17,17],[88,88],[102,102],[135,136],[142,142],[198,198],[220,220]],"baselineLineShiftSegments":[[1,12,4],[13,82,5],[83,95,6],[96,127,7],[128,132,9],[133,187,10],[188,208,11],[209,224,12]],"tokenCount":1799,"beforeTokenSha256":"148c32c0cf1fd35071d749e3f8266923afa682042a8dae03708b4b573e1de1a0","afterTokenSha256":"148c32c0cf1fd35071d749e3f8266923afa682042a8dae03708b4b573e1de1a0","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G057","G058","G059","G060","G061","G062"]},
+    {"id":"S6","path":"zircon_runtime/src/dynamic_api/session/registry/tests/abi_status.rs","beforeSha256":"340ffb6a035c9c88d0540fa19e5d80449cdf67c4e4fab616ac6ff1c73fc5b1ed","beforeLineCount":15,"readReceipt":"7/039f96","afterSha256":"c71172c95ae33415dc09861601974a434c0f71a388b39a1ac9a1864740e8a98b","afterLineCount":20,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,2],[6,6],[10,10],[15,15]],"baselineLineShiftSegments":[[1,3,2],[4,6,3],[7,10,4],[11,15,5]],"tokenCount":109,"beforeTokenSha256":"e0d98f5408ccb5eb55a79be1db552f64a55faa65624461884a9b162d0ab2e3fe","afterTokenSha256":"e0d98f5408ccb5eb55a79be1db552f64a55faa65624461884a9b162d0ab2e3fe","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G063"]},
+    {"id":"S7","path":"zircon_runtime/src/dynamic_api/session/registry/tests/receipt_publication.rs","beforeSha256":"4702bccf980e05d3baee98e333d7b69a26d885feacfa0b89ed1166799b4466c2","beforeLineCount":469,"readReceipt":"8/a85a80","afterSha256":"bbec9888ad1a2bade340911a8c3715cc68603637832a15c3b9186e1586d049b7","afterLineCount":527,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[2,5],[20,20],[24,24],[26,26],[38,38],[40,40],[43,43],[48,48],[53,53],[58,58],[65,65],[70,70],[72,72],[74,74],[76,76],[82,82],[86,86],[91,91],[100,100],[119,119],[124,124],[129,129],[143,144],[168,168],[177,177],[201,201],[210,210],[221,221],[232,232],[243,243],[255,256],[273,273],[280,280],[299,299],[314,314],[324,324],[335,336],[377,377],[402,403],[432,432],[450,451],[492,500]],"baselineLineShiftSegments":[[1,1,0],[2,15,4],[16,18,5],[19,19,6],[20,30,7],[31,31,8],[32,33,9],[34,37,10],[38,41,11],[42,45,12],[46,51,13],[52,55,14],[56,56,15],[57,57,16],[58,58,17],[59,63,18],[64,66,19],[67,70,20],[71,78,21],[79,96,22],[97,100,23],[101,104,24],[105,117,25],[118,140,27],[141,148,28],[149,171,29],[172,179,30],[180,189,31],[190,199,32],[200,209,33],[210,220,34],[221,236,36],[237,242,37],[243,260,38],[261,274,39],[275,283,40],[284,293,41],[294,333,43],[334,357,44],[358,385,46],[386,402,47],[403,442,49],[443,469,58]],"tokenCount":3382,"beforeTokenSha256":"ec7f0051d31e8947d4d9d766a76a629825ad8419f9b4e62b493a4ca4c9330891","afterTokenSha256":"ec7f0051d31e8947d4d9d766a76a629825ad8419f9b4e62b493a4ca4c9330891","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G064","G065","G066","G067","G068","G069","G070","G071","G072","G073","G074","G075","G076","G077","G078","G079","G080","G081","G082","G083","G084","G085","G086","G087","G088"]},
+    {"id":"S8","path":"zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs","beforeSha256":"37fc1012912a5ab8ce6172e78dd3a24719842363394c0e9945e96bde510ee24a","beforeLineCount":164,"readReceipt":"7/039f96","afterSha256":"cc0450e6beb624d0416e94b667a79a8175c193c492144761e252e11df51e8b42","afterLineCount":181,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,4],[28,28],[32,32],[44,44],[53,53],[57,57],[72,72],[78,78],[93,93],[101,101],[131,132],[135,135],[159,159]],"baselineLineShiftSegments":[[1,23,4],[24,26,5],[27,37,6],[38,45,7],[46,48,8],[49,62,9],[63,67,10],[68,81,11],[82,88,12],[89,117,13],[118,119,15],[120,142,16],[143,164,17]],"tokenCount":1072,"beforeTokenSha256":"322adfe7f29c69e5cfd7e232c932a85a0c99f5026bb0b8c88558fd42e91592d2","afterTokenSha256":"322adfe7f29c69e5cfd7e232c932a85a0c99f5026bb0b8c88558fd42e91592d2","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G089","G090","G091","G092","G093","G094","G095"]},
+    {"id":"S9","path":"zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs","beforeSha256":"cf05c0891541eaffbca659dfac79f52d336acd29140f8eec10547e31735f03b1","beforeLineCount":63,"readReceipt":"7/039f96","afterSha256":"82cfd4a537313212575f55e702e4e58b68fa8d10c3c6d0288f2737544eb022d1","afterLineCount":72,"EOL":"LF","BOM":false,"fullBaselineRead":true,"insertedLineRanges":[[1,4],[9,9],[17,17],[24,24],[29,29],[59,59]],"baselineLineShiftSegments":[[1,4,4],[5,11,5],[12,17,6],[18,21,7],[22,50,8],[51,63,9]],"tokenCount":529,"beforeTokenSha256":"8705d7751df83fb4d62bfeb0c9d48ad2c630dd25cb9f98bef27df79fd0014382","afterTokenSha256":"8705d7751df83fb4d62bfeb0c9d48ad2c630dd25cb9f98bef27df79fd0014382","preservation":{"originalPhysicalLinesIncludingCommentsAndEol":true,"insertionsOnlyStandaloneCommentsOrBlank":true,"nonDocumentCodeTokensIdentical":true},"coverageState":"author-reviewed-awaiting-root-and-coordinator","existingIssueTags":[],"issueIds":[],"objectIds":["G096","G097","G098","G099","G100","G101"]}
+  ],
+  "objects": [
+    {"sourceId":"S1","beforeSpan":[1,20],"object":"owner module graph/imports","members":["abi_status","runtime","cfg(all(test,windows)) receipt_publication","TaskPool/channel/sync imports"],"callerRefs":["C01","C02","C03","C04","S2","S3","S7"],"flows":[{"beforeSpan":[10,17],"afterSpan":[17,24],"entry":"path/cfg module接入","state":"三个现有子模块按原条件加载","effect":"仅文档补充，路径与可见性token不变"}],"id":"G001","afterSpan":[8,27],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[21,38],"object":"command/receipt constants and transport types","members":["COMMAND_CAPACITY","RECEIPT_PENDING","RECEIPT_SUCCEEDED","RECEIPT_RETRYABLE","RECEIPT_PANICKED","ACTIVE_SESSION_OWNERS","OwnerAction<'a,S>","OwnerCleanup<S>","OwnerCommand::{Action,Scoped,Shutdown}"],"callerRefs":["C05","S4","S7"],"flows":[{"beforeSpan":[27,29],"afterSpan":[36,39],"entry":"线程TLS访问","state":"存储当前owner地址栈","effect":"is_current_thread拒绝同owner同步重入"},{"beforeSpan":[31,38],"afterSpan":[42,51],"entry":"命令构造","state":"回调Send，S留在task；scoped另借用栈","effect":"run_owner串行处理三种所有权形式"}],"id":"G002","afterSpan":[29,51],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[39,57],"object":"ScopedAction structure/new","members":["callback","invoke","completed","impl ScopedAction::new<A>"],"callerRefs":["S1","S4"],"flows":[{"beforeSpan":[47,57],"afterSpan":[65,75],"entry":"dispatch_scoped传&mut Option<A>","state":"同一泛型实例配对擦除指针与invoke，持唯一完成Sender","effect":"caller必须等待命令Drop才回收栈回调"}],"id":"G003","afterSpan":[52,75],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[58,67],"object":"ScopedAction unsafe Send and Drop","members":["unsafe impl Send","impl Drop::drop"],"callerRefs":["S1","S4"],"flows":[{"beforeSpan":[58,61],"afterSpan":[76,81],"entry":"跨命令通道移交","state":"A:Send，owner唯一解引用；caller保持Option有效","effect":"不要求S:Send，安全前提由构造/完成协议建立"},{"beforeSpan":[63,67],"afterSpan":[83,88],"entry":"执行/队列销毁/发送失败","state":"Drop发送一次completed","effect":"借用动作已结束或不再可能执行"}],"id":"G004","afterSpan":[76,88],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[68,77],"object":"invoke_scoped<S,A>","members":["callback type cast","Option<A>::take","FnOnce invocation"],"callerRefs":["S1"],"flows":[{"beforeSpan":[69,77],"afterSpan":[91,101],"entry":"由new配对的函数指针调用","state":"独占有效Option<A>，仅take一次","effect":"在同一owner的&mut S上执行，Drop随后解除caller等待"}],"id":"G005","afterSpan":[89,101],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[78,85],"object":"OwnerDispatchError variants","members":["Closing","Reentrant","Terminated","AdmissionIncomplete"],"callerRefs":["C05","C06","S4"],"flows":[{"beforeSpan":[80,85],"afterSpan":[105,114],"entry":"队列/锁/重入准入失败","state":"返回四种分类","effect":"不把已准入动作取消或把deadline当执行超时"}],"id":"G006","afterSpan":[102,114],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[86,104],"object":"CleanupReceipt structure/new","members":["state","wait","changed","cfg(test,windows) publication","impl CleanupReceipt::new"],"callerRefs":["S7"],"flows":[{"beforeSpan":[96,104],"afterSpan":[129,137],"entry":"每次新清理尝试准入前","state":"真实AtomicU8=Pending，Mutex/Condvar新建，test schedule可附着","effect":"同一在途命令由Arc共享回执"}],"id":"G007","afterSpan":[115,137],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[105,117],"object":"CleanupReceipt::publish","members":["Mutex guard","test publisher_locked/published","Release store","notify_all"],"callerRefs":["S7","C17"],"flows":[{"beforeSpan":[106,117],"afterSpan":[140,151],"entry":"cleanup返回结果","state":"先持真实wait Mutex，再store和notify","effect":"成功publish与worker/TLS join不同；store前锁竞争路径真实存在"}],"id":"G008","afterSpan":[138,151],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[118,143],"object":"CleanupReceipt::wait_until","members":["before_wait hook","try_lock Ok/Poisoned/WouldBlock","wait_timeout_while","Acquire result"],"callerRefs":["S7","C17"],"flows":[{"beforeSpan":[119,132],"afterSpan":[154,167],"entry":"清理等待开始","state":"WouldBlock直接Pending，未确认deadline耗尽","effect":"startup只接受Joined|Panicked时可进既有fatal"},{"beforeSpan":[133,143],"afterSpan":[168,178],"entry":"取得等待Mutex","state":"沿剩余原deadline等原子结果非Pending","effect":"不改变回执；返回当次可观察值"}],"id":"G009","afterSpan":[152,178],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[144,153],"object":"OwnerShutdownReceipt variants","members":["Pending","Retryable","Poisoned","Panicked","Joined"],"callerRefs":["C05","C06","S2","S4"],"flows":[{"beforeSpan":[146,152],"afterSpan":[182,193],"entry":"映射清理/池关闭","state":"Pending保留；false可新尝试；panic需恢复；terminal+join可Panicked","effect":"只有已join结果允许控制器正常Drop，正常资源清理成功为Joined"}],"id":"G010","afterSpan":[179,194],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[154,175],"object":"SessionOwner<S> and Drop","members":["pool","terminal","identity","sender","shutdown","joined","_code_owner","impl Drop::drop"],"callerRefs":["C08","C22","C23","S4"],"flows":[{"beforeSpan":[166,175],"afterSpan":[221,231],"entry":"控制器Drop","state":"joined=false执行既有fatal abort","effect":"保留未完成清理/执行代码责任；不声称Arc<()>是外部DLL实体pin"}],"id":"G011","afterSpan":[195,231],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[176,216],"object":"SessionOwner::create","members":["S:'static impl","factory","code_owner","pool construction","spawn closure"],"callerRefs":["C08","S2","S4","S7"],"flows":[{"beforeSpan":[182,190],"afterSpan":[245,253],"entry":"创建owner","state":"单worker托管池、有界命令通道、Arc身份","effect":"仅回调跨线程，S在task栈创建"},{"beforeSpan":[195,206],"afterSpan":[258,270],"entry":"owner任务执行","state":"登记TLS身份；catch_unwind包括factory/action/state drop；随后terminal Release","effect":"terminal早于真实worker退出，工厂错误经启动握手/join观察"},{"beforeSpan":[207,216],"afterSpan":[271,280],"entry":"返回控制器","state":"shutdown=None、joined=false，code_owner持有","effect":"尚未证明工厂已成功；调用者继续握手/关闭"}],"id":"G012","afterSpan":[232,280],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[217,262],"object":"SessionOwner::dispatch_scoped","members":["action:FnOnce+Send","R:Send","stack callback Option","result Mutex","completed channel"],"callerRefs":["C05","C06","S2","S4"],"flows":[{"beforeSpan":[225,235],"afterSpan":[296,306],"entry":"回调准入","state":"同owner拒Reentrant，关闭登记锁不可得或Some拒Closing","effect":"未创建能越过调用栈的命令"},{"beforeSpan":[236,249],"afterSpan":[307,321],"entry":"命令发送","state":"回调捕获action并catch panic，结果进入共享Mutex","effect":"Send失败的未入队ScopedAction同步Drop才传播Terminated"},{"beforeSpan":[250,262],"afterSpan":[322,334],"entry":"发送成功","state":"放开shutdown锁，等completed后取结果","effect":"断连/无结果返回Terminated；panic仅在借用结束后resume_unwind"}],"id":"G013","afterSpan":[281,334],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[263,293],"object":"SessionOwner::dispatch owned","members":["deadline","action/R:Send+'static","result Receiver","send_timeout mappings"],"callerRefs":["C05","C06","S2","S8"],"flows":[{"beforeSpan":[270,280],"afterSpan":[347,357],"entry":"准入","state":"同owner/关闭拒绝；建立owned结果通道","effect":"不需要栈回调寿命擦除"},{"beforeSpan":[281,293],"afterSpan":[358,370],"entry":"有界send_timeout","state":"Timeout丢未准入命令并AdmissionIncomplete，Disconnected为Terminated","effect":"入队后回调可在deadline之后执行，接收端独立等结果"}],"id":"G014","afterSpan":[335,370],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[294,304],"object":"SessionOwner::shutdown_until","members":["cleanup:FnOnce->bool+Send+'static","deadline","normal recovery=false"],"callerRefs":["S2","S4"],"flows":[{"beforeSpan":[296,303],"afterSpan":[377,384],"entry":"正常清理请求","state":"沿用shutdown_until_inner，已有pending共享","effect":"true销毁S；false保留；panic不正常重跑"}],"id":"G015","afterSpan":[371,385],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[305,322],"object":"SessionOwner::recover_poisoned_until","members":["recovery","owner busy error","owner is not poisoned error"],"callerRefs":["S4"],"flows":[{"beforeSpan":[311,322],"afterSpan":[396,407],"entry":"显式恢复","state":"只允许已发布Panicked回执，锁忙或其他状态Err","effect":"恢复作为新清理提交；测试实际用到此内部入口"}],"id":"G016","afterSpan":[386,407],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[323,345],"object":"shutdown_until_inner terminal branch","members":["task_is_terminal","pool.shutdown_until","joined Release","Joined/Panicked return"],"callerRefs":["C08","C22","C23","S4"],"flows":[{"beforeSpan":[329,345],"afterSpan":[415,432],"entry":"owner任务已terminal","state":"先真正pool join，成功后joined=true","effect":"成功回执Joined，否则Panicked；terminal本身不允许Drop"}],"id":"G017","afterSpan":[409,432],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[346,384],"object":"shutdown_until_inner receipt admission","members":["shutdown lock","retry decision","CleanupReceipt::new","try_send","admitted hook"],"callerRefs":["S4","S7"],"flows":[{"beforeSpan":[346,359],"afterSpan":[433,446],"entry":"任务未terminal","state":"锁忙Pending，poisoned取inner；None/Retryable正常重试，Panicked仅recovery","effect":"其他状态共享已在途回执"},{"beforeSpan":[360,384],"afterSpan":[447,472],"entry":"需要新清理","state":"try_send失败记录Retryable但本次Pending；成功只登记一个回执","effect":"已有pending不能被调用方新回调替换/重复执行"}],"id":"G018","afterSpan":[433,472],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[385,398],"object":"shutdown_until_inner wait/join result","members":["Retryable","Poisoned","Succeeded pool join","default Pending"],"callerRefs":["S2","S7","C17"],"flows":[{"beforeSpan":[385,398],"afterSpan":[473,487],"entry":"等待真实receipt","state":"retryable/panic直接分类；success仍等pool join","effect":"WouldBlock Pending提前传播到startup fatal；未修行为"}],"id":"G019","afterSpan":[473,487],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[399,407],"object":"terminal/current-thread observers","members":["task_is_terminal","is_current_thread"],"callerRefs":["S4","S7"],"flows":[{"beforeSpan":[400,407],"afterSpan":[490,498],"entry":"只读观察","state":"Acquire terminal与TLS地址栈比对","effect":"不执行清理/join；仅同owner同步重入被拒"}],"id":"G020","afterSpan":[488,498],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[408,426],"object":"SessionOwner::shutdown_receipt","members":["shutdown try_lock","Acquire state","joined gate"],"callerRefs":["C05","S2"],"flows":[{"beforeSpan":[409,426],"afterSpan":[502,519],"entry":"无等待观察","state":"无请求None，锁忙Pending；success需joined为Joined","effect":"不重跑清理，也不把terminal直接映射为Panicked"}],"id":"G021","afterSpan":[499,519],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[427,438],"object":"OwnerThreadGuard structure/enter","members":["identity","impl enter","TLS push"],"callerRefs":["S1"],"flows":[{"beforeSpan":[433,438],"afterSpan":[528,533],"entry":"owner任务开始","state":"Arc保持地址存活，整数只比较，TLS push","effect":"回调重入能匹配同一身份"}],"id":"G022","afterSpan":[520,533],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[439,447],"object":"OwnerThreadGuard Drop","members":["TLS pop","debug_assert identity"],"callerRefs":["S1"],"flows":[{"beforeSpan":[441,447],"afterSpan":[536,542],"entry":"任务作用域退出","state":"按LIFO撤销身份","effect":"不改变pool join证据，地址不反解引用"}],"id":"G023","afterSpan":[534,542],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[448,475],"object":"run_owner<S> loop and command branches","members":["factory","receiver.recv","Action","Scoped","Shutdown/catch_unwind"],"callerRefs":["S4","S7"],"flows":[{"beforeSpan":[449,458],"afterSpan":[545,555],"entry":"factory/owned命令","state":"S在worker栈创建；Action panic让外层终止并销毁state","effect":"后续不访问展开状态"},{"beforeSpan":[459,462],"afterSpan":[558,561],"entry":"Scoped命令","state":"配对invoke在caller尚等completed时一次执行","effect":"ScopedAction Drop解除借用等待"},{"beforeSpan":[463,475],"afterSpan":[562,575],"entry":"Shutdown命令","state":"true先drop S再publish success并return；false可重试；panic发布poison","effect":"Drop S panic没有虚假成功回执，仍交外层任务边界"}],"id":"G024","afterSpan":[543,575],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S1","beforeSpan":[476,478],"object":"generic owner test wiring","members":["cfg(test) path session_owner/tests/cases.rs"],"callerRefs":["S4"],"flows":[{"beforeSpan":[476,478],"afterSpan":[576,578],"entry":"test配置","state":"接入六个现有真实owner测试","effect":"非生产API，测试未执行"}],"id":"G025","afterSpan":[576,578],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[1,21],"object":"runtime adapter imports/startup budget","members":["owner/state/construction/status/log/plugin imports","OWNER_STARTUP_SHUTDOWN_WAIT"],"callerRefs":["C05","C09","C11","C12"],"flows":[{"beforeSpan":[20,20],"afterSpan":[27,27],"entry":"failed startup","state":"一次五秒原deadline","effect":"没有新引入budget或隐式延长"}],"id":"G026","afterSpan":[7,28],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[22,33],"object":"runtime owner creation error and retained failure types","members":["RuntimeSessionOwnerCreateError::{Owner,Session}","RuntimeSessionStartupFailure::{status,construction,dynamic_process_log}"],"callerRefs":["C05","C11","S3"],"flows":[{"beforeSpan":[23,32],"afterSpan":[31,46],"entry":"启动错误保存","state":"owned诊断副本与typed primary/Core/log分开拥有","effect":"清理错误不替换原诊断"}],"id":"G027","afterSpan":[29,47],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[34,43],"object":"RuntimeSessionStartupFailure::capture","members":["error_status(primary)","unsafe OwnedSessionStatus::capture","Self fields"],"callerRefs":["C09","C11","C20","S3"],"flows":[{"beforeSpan":[35,43],"afterSpan":[50,59],"entry":"owner工厂返回failure","state":"同线程刚写TLS后同步复制；完整construction move进状态","effect":"SAFETY来源有效期在下一次错误调用之前结束"}],"id":"G028","afterSpan":[48,59],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[44,55],"object":"RuntimeSessionStartupFailure::with_dynamic_process_log","members":["pending Core branch","log.shutdown fatal policy"],"callerRefs":["C11","S5"],"flows":[{"beforeSpan":[45,55],"afterSpan":[62,72],"entry":"附加log lease","state":"pending Core时保留；无pending时直接shutdown","effect":"失败沿用现有abort，不提前Drop未完成日志"}],"id":"G029","afterSpan":[60,72],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[56,76],"object":"RuntimeSessionStartupFailure::shutdown_until","members":["construction retry","secondary diagnostic","log shutdown","deadline comparison"],"callerRefs":["C11","S5"],"flows":[{"beforeSpan":[57,65],"afterSpan":[75,83],"entry":"原Core关闭未完成","state":"记录secondary并false","effect":"原failure/log保持供重试"},{"beforeSpan":[66,76],"afterSpan":[84,94],"entry":"Core已关闭","state":"关闭并移除成功log lease，最后核对deadline","effect":"true才允许通用owner销毁状态"}],"id":"G030","afterSpan":[74,94],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[77,86],"object":"shutdown_owner_state_until","members":["Result state match Ok/Err"],"callerRefs":["C11","C12","S5"],"flows":[{"beforeSpan":[77,85],"afterSpan":[96,104],"entry":"owner cleanup","state":"成功会话走state规范关闭；失败走construction+log关闭","effect":"同一callback结果返回通用owner"}],"id":"G031","afterSpan":[96,105],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[87,94],"object":"RuntimeSessionOwner structure/impl","members":["owner","wake","cfg(test) startup_observation"],"callerRefs":["C05","C10","C14"],"flows":[{"beforeSpan":[87,94],"afterSpan":[114,123],"entry":"包装通用owner","state":"两种state都留在task；wake/观察器共享登记","effect":"槽位动作计数仍由SessionSlot负责"}],"id":"G032","afterSpan":[114,123],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[95,109],"object":"test from_session","members":["session move factory","wake","code_owner","observation=None"],"callerRefs":["C05","S5","S8","S9"],"flows":[{"beforeSpan":[96,109],"afterSpan":[126,139],"entry":"测试已构造state移交","state":"SessionOwner::create(move||Ok(session))","effect":"不冒称生产创建线程路径；测试装配原样"}],"id":"G033","afterSpan":[124,139],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[110,151],"object":"RuntimeSessionOwner::create factory/control","members":["profile","project","wake","code_owner","test observation","log factory","Result state"],"callerRefs":["C05","C09","C11","C12","C14","S1"],"flows":[{"beforeSpan":[116,144],"afterSpan":[154,182],"entry":"pool工厂","state":"owner线程new真实session，成功attach wake/log，失败capture并retain log","effect":"factory观察只记录真实failure"},{"beforeSpan":[145,151],"afterSpan":[183,189],"entry":"控制器构成","state":"持原owner/wake/观察器","effect":"此时还未通过startup握手"}],"id":"G034","afterSpan":[148,189],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[152,174],"object":"RuntimeSessionOwner::create startup handshake","members":["dispatch_scoped startup","Ok success","Session(error)","Owner(error)"],"callerRefs":["C05","S1","S3"],"flows":[{"beforeSpan":[152,174],"afterSpan":[190,213],"entry":"借用命令读取state结果","state":"成功可回上层构槽；失败先join_failed_startup","effect":"原诊断副本已可跨线程，未把失败槽位发布"}],"id":"G035","afterSpan":[190,213],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[175,185],"object":"RuntimeSessionOwner::dispatch","members":["owned action","deadline","Receiver<Result<R,OwnedSessionStatus>>"],"callerRefs":["C05","C06","C13","S1","S3"],"flows":[{"beforeSpan":[181,185],"afterSpan":[225,231],"entry":"owned动作执行","state":"fail state克隆owned error；runtime error在owner同步capture","effect":"准入与执行分离，不传TLS指针"}],"id":"G036","afterSpan":[219,231],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[186,216],"object":"RuntimeSessionOwner::create_with_linked_plugins factory","members":["registrations","owner_wake","test observation","linked factory","controller"],"callerRefs":["C05","C12","C14","S1"],"flows":[{"beforeSpan":[193,216],"afterSpan":[242,265],"entry":"linked插件启动","state":"消费真实登记报告，创建session或保留failure","effect":"该分支未获取普通工厂的process log lease"}],"id":"G037","afterSpan":[235,265],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[217,234],"object":"linked startup handshake","members":["state dispatch_scoped","return branches","failed startup join"],"callerRefs":["C05","S1","S3"],"flows":[{"beforeSpan":[217,234],"afterSpan":[266,283],"entry":"linked启动握手","state":"同一控制器分类成功/会话错误/owner错误","effect":"失败先canonical cleanup+join，再回原分类"}],"id":"G038","afterSpan":[266,283],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[235,244],"object":"RuntimeSessionOwner::dispatch_scoped","members":["borrowing action","nested Result","synchronous status copy"],"callerRefs":["C05","C06","C13","S1","S3"],"flows":[{"beforeSpan":[239,244],"afterSpan":[291,298],"entry":"scoped动作在owner","state":"读取state，立即copy同线程Runtime/static诊断","effect":"完成信号保护caller借用；slot guard由上层保持"}],"id":"G039","afterSpan":[287,298],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[245,260],"object":"RuntimeSessionOwner::shutdown_until","members":["disable wake entries","wait_for_callbacks","shutdown_owner_state_until closure"],"callerRefs":["C10","C12","S1","S5"],"flows":[{"beforeSpan":[249,260],"afterSpan":[305,316],"entry":"状态清理前","state":"停止新增wake并排空；未排空Pending，否则用同deadline cleanup","effect":"不以回执等待超时重新调用pending callback"}],"id":"G040","afterSpan":[301,316],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[261,264],"object":"RuntimeSessionOwner::shutdown_receipt","members":["owner delegated observer"],"callerRefs":["C05","S1"],"flows":[{"beforeSpan":[261,264],"afterSpan":[318,321],"entry":"观察","state":"不执行wake/cleanup/join","effect":"None/Pending等保持通用owner语义"}],"id":"G041","afterSpan":[318,321],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[265,282],"object":"join_failed_startup deadline/actual cleanup","members":["fixed deadline","test startup hook","shutdown callback","observations"],"callerRefs":["C11","C14","C17","S1","S7"],"flows":[{"beforeSpan":[265,282],"afterSpan":[323,340],"entry":"启动握手失败","state":"沿同一deadline清理原Result状态，真实callback entered/completed计数","effect":"不重建Core/owner/插件代次"}],"id":"G042","afterSpan":[323,340],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[283,294],"object":"join_failed_startup receipt/fatal","members":["record_owner_receipt","Joined|Panicked accepted","fatal stderr","process abort","CR-OWNER-0001"],"callerRefs":["C14","C17","S1","S7"],"flows":[{"beforeSpan":[283,294],"afterSpan":[341,358],"entry":"shutdown实际返回","state":"接受已join回执，否则既有abort","effect":"真实publish锁竞争可提前Pending；原late Play错误无法返回，静态已证实不声称已跑"}],"id":"G043","afterSpan":[341,358],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S2","beforeSpan":[295,301],"object":"runtime test module wiring","members":["cfg(test) startup_observation path","cfg(test) tests/runtime path"],"callerRefs":["C14","S5"],"flows":[{"beforeSpan":[295,301],"afterSpan":[359,365],"entry":"test接入","state":"观察器与两测试可达","effect":"生产条件/路径token不变"}],"id":"G044","afterSpan":[359,365],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S3","beforeSpan":[1,14],"object":"owned status module/imports/type","members":["OwnedSessionStatus","code","diagnostics","Clone/Debug","impl"],"callerRefs":["C09","C20","C21","S2"],"flows":[{"beforeSpan":[9,14],"afterSpan":[14,21],"entry":"capture结果","state":"独立String+已解释状态码","effect":"不拥有allocation；未知码保守解释Error"}],"id":"G045","afterSpan":[5,21],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S3","beforeSpan":[15,31],"object":"OwnedSessionStatus::capture","members":["Safety precondition","checked_slice budget","lossy UTF8","invalid carrier fallback"],"callerRefs":["C09","C20","C21","S2","S6"],"flows":[{"beforeSpan":[18,31],"afterSpan":[36,50],"entry":"本线程已完成runtime调用","state":"调用方保证单allocation/初始化/可读/寿命；即刻按预算复制","effect":"checked_slice不验证任意地址，不延长提供方借用"}],"id":"G046","afterSpan":[22,50],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S3","beforeSpan":[32,40],"object":"OwnedSessionStatus::into_abi","members":["Ok branch","error_status String","code replacement"],"callerRefs":["C05","C06","C09","C21","S6"],"flows":[{"beforeSpan":[32,40],"afterSpan":[53,61],"entry":"接收线程转换","state":"成功无diag；失败当前TLS写入owned字节再恢复状态码","effect":"下一同线程错误可覆盖，调用方需先读"}],"id":"G047","afterSpan":[53,61],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S3","beforeSpan":[41,45],"object":"OwnedSessionStatus::into_message","members":["owned String move"],"callerRefs":["C06"],"flows":[{"beforeSpan":[41,45],"afterSpan":[63,67],"entry":"linked Store错误转换","state":"仅移交诊断，状态码不随String保留","effect":"不构造ABI指针借用"}],"id":"G048","afterSpan":[63,67],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S3","beforeSpan":[46,48],"object":"abi status test wiring","members":["cfg(test) path ../tests/abi_status.rs"],"callerRefs":["S6"],"flows":[{"beforeSpan":[46,48],"afterSpan":[68,70],"entry":"测试编译装配","state":"确实指向registry/tests/abi_status","effect":"无新增生产入口，测试未执行"}],"id":"G049","afterSpan":[68,70],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S4","beforeSpan":[1,21],"object":"generic owner tests imports/AffineState/Drop","members":["_not_send Rc","owner ThreadId","drops Arc<Mutex<Vec>>","impl Drop"],"callerRefs":["S1"],"flows":[{"beforeSpan":[15,21],"afterSpan":[20,27],"entry":"真实S析构","state":"assert同工厂ThreadId并记录真正drop","effect":"不以callback进入或terminal替代析构证据"}],"id":"G050","afterSpan":[5,27],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S4","beforeSpan":[22,84],"object":"non-Send state/pending cleanup test","members":["astra_life_a4_managed_owner_keeps_non_send_state_and_pending_cleanup_on_one_thread","real factory","dispatch","three shutdown calls","code-owner Weak"],"callerRefs":["S1","C08"],"flows":[{"beforeSpan":[23,44],"afterSpan":[30,51],"entry":"创建/dispatch","state":"S留worker且线程不同caller","effect":"非Send状态可用"},{"beforeSpan":[45,68],"afterSpan":[52,76],"entry":"阻塞原cleanup两次短等待","state":"回调一次进入，state/code仍保留","effect":"Pending不替换原callback"},{"beforeSpan":[69,84],"afterSpan":[77,93],"entry":"释放原callback并等join","state":"drop线程唯一且code owner直到controller Drop才释放","effect":"真实Joined与terminal均观察"}],"id":"G051","afterSpan":[28,93],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S4","beforeSpan":[85,108],"object":"retryable cleanup test","members":["astra_life_a4_owner_cleanup_failure_retains_state_for_explicit_retry"],"callerRefs":["S1"],"flows":[{"beforeSpan":[86,108],"afterSpan":[96,118],"entry":"第一次false","state":"Retryable保持状态、普通动作拒绝；新callback true","effect":"两次canonical清理尝试最后Joined"}],"id":"G052","afterSpan":[94,118],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S4","beforeSpan":[109,135],"object":"poisoned cleanup recovery test","members":["astra_life_a4_owner_cleanup_panic_requires_explicit_recovery_and_retains_code_owner"],"callerRefs":["S1"],"flows":[{"beforeSpan":[110,135],"afterSpan":[121,146],"entry":"清理panic","state":"Poisoned保留owner；正常重试不重跑；显式recovery true","effect":"恢复join后Drop才释放code owner"}],"id":"G053","afterSpan":[119,146],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S4","beforeSpan":[136,150],"object":"factory panic terminal test","members":["astra_life_a4_owner_factory_panic_has_joinable_terminal_receipt","deadline loop"],"callerRefs":["S1","C08"],"flows":[{"beforeSpan":[137,150],"afterSpan":[149,162],"entry":"工厂panic","state":"轮询terminal后shutdown真join","effect":"返回Panicked仍合法Drop，不要求Joined"}],"id":"G054","afterSpan":[147,162],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S4","beforeSpan":[151,164],"object":"scoped borrow completion test","members":["astra_life_a4_scoped_dispatch_completes_before_borrowed_output_is_released"],"callerRefs":["S1"],"flows":[{"beforeSpan":[152,164],"afterSpan":[165,177],"entry":"栈Vec借用动作","state":"dispatch_scoped同步返回再读取Vec","effect":"完成信号保护借用寿命"}],"id":"G055","afterSpan":[163,177],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S4","beforeSpan":[165,177],"object":"same-owner scoped reentry test","members":["astra_life_a4_scoped_dispatch_rejects_same_owner_reentry_and_remains_usable"],"callerRefs":["S1"],"flows":[{"beforeSpan":[166,177],"afterSpan":[180,191],"entry":"外层动作尝试同owner递归","state":"内层Reentrant，随后普通动作可修改state","effect":"控制器未损坏，正常cleanup Joined"}],"id":"G056","afterSpan":[178,191],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S5","beforeSpan":[1,12],"object":"runtime test imports/assembly","members":["atomic/mpsc/Mutex","plugin event ABI","RuntimeEventMirrorRegistration","super imports"],"callerRefs":["S2","C12"],"flows":[{"beforeSpan":[1,12],"afterSpan":[5,16],"entry":"test编译上下文","state":"装配真实Core与事件能力","effect":"未替换生产工厂"}],"id":"G057","afterSpan":[5,16],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S5","beforeSpan":[13,80],"object":"retained construction regression setup","members":["failed_startup_callback_retains_core_scope_and_plugins_until_canonical_retry","Core/scope/modules","blocked IO task","primary CoreStep"],"callerRefs":["C11","C12","S2"],"flows":[{"beforeSpan":[21,63],"afterSpan":[26,68],"entry":"真实Core/scope构造并task入队","state":"task入口屏障使check_until(Instant::now())关闭未完成","effect":"原Core/插件代次留在failure"},{"beforeSpan":[64,80],"afterSpan":[69,85],"entry":"观察原failure","state":"同Core身份、pending、secondary、Running模块","effect":"保留事实来自真实对象，不是假收据"}],"id":"G058","afterSpan":[18,85],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S5","beforeSpan":[81,126],"object":"retained construction retry/report assertions","members":["test log lease callback","shutdown_owner_state_until retries","catalog/plan Weak","worker report"],"callerRefs":["C11","S2"],"flows":[{"beforeSpan":[81,95],"afterSpan":[86,101],"entry":"未放行task时cleanup","state":"false且log未shutdown，catalog/plan仍活","effect":"Core在日志之前关闭"},{"beforeSpan":[96,126],"afterSpan":[103,133],"entry":"释放task后canonical retry","state":"原Core报告三worker全部join，模块Unloaded，log一次，drop释放代次","effect":"测试断言不变，未执行"}],"id":"G059","afterSpan":[86,133],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S5","beforeSpan":[127,134],"object":"blocked event test constants","members":["astra_life_a4_runtime_owner_bounds_blocking_event_callback_without_reinvocation","EVENT","SCHEMA","SHUTDOWN_BUDGET","SHUTDOWN_SCHEDULER_CEILING"],"callerRefs":["S2"],"flows":[{"beforeSpan":[129,134],"afterSpan":[138,144],"entry":"计时配置","state":"25ms原shutdown budget与250ms调度容差分离","effect":"不以容差延長engine deadline"}],"id":"G060","afterSpan":[134,144],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S5","beforeSpan":[135,186],"object":"blocked event actual callback setup","members":["owner create","Atomic counters/barriers","runtime event mirror registration","subscribe_plugin_event","owned dispatch"],"callerRefs":["S2","C12"],"flows":[{"beforeSpan":[135,186],"afterSpan":[145,196],"entry":"实际会话注册/订阅","state":"退订count=0回调在owner线程阻塞一次","effect":"不是替代shutdown callback，动作完成后开始close"}],"id":"G061","afterSpan":[145,196],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S5","beforeSpan":[187,224],"object":"blocked event shutdown retries/results","members":["two short waits","callback started proof","release","Retryable then Joined","code owner Weak"],"callerRefs":["S1","S2"],"flows":[{"beforeSpan":[187,209],"afterSpan":[197,221],"entry":"两次短close","state":"同pending callback实际进入未完成且只调用一次","effect":"code owner保持"},{"beforeSpan":[210,224],"afterSpan":[222,236],"entry":"放行原callback","state":"原deadline已过形成Retryable，新cleanup Joined","effect":"不能把后来放行当原budget延长"}],"id":"G062","afterSpan":[197,236],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S6","beforeSpan":[1,15],"object":"owned TLS status regression","members":["super import","astra_life_a4_owned_status_survives_owner_tls_reuse_and_preserves_status_code","capture unsafe","diagnostic read unsafe"],"callerRefs":["S3","C09","C20","C21"],"flows":[{"beforeSpan":[4,15],"afterSpan":[7,20],"entry":"同线程error_status随后覆盖","state":"capture先copy，into_abi再写本线程TLS","effect":"LimitExceeded与原诊断保持；两个unsafe读有效期具体可证"}],"id":"G063","afterSpan":[3,20],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[1,17],"object":"Windows real startup scheduling module/imports/bound","members":["module doc","MAX_WITNESS_BYTES","RuntimeStartupObservation","CleanupReceipt","OwnerShutdownReceipt"],"callerRefs":["C14","C17","S1","S2"],"flows":[{"beforeSpan":[1,17],"afterSpan":[1,22],"entry":"cfg(all(test,windows))接入","state":"共享实际公开失败尝试，见证预算32KiB","effect":"无独立生产入口；本批未运行fixture生成"}],"id":"G064","afterSpan":[1,22],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[18,29],"object":"Primary typed-error record","members":["allocated_handle","diagnostic","step","read_path","read_source","read_source_debug","read_os_error","read_kind","Clone/Debug/Eq"],"callerRefs":["C14","C17"],"flows":[{"beforeSpan":[19,29],"afterSpan":[25,36],"entry":"记录原ProjectStep/ReadPlayScene","state":"同项目路径与原IO错误所有字段","effect":"allocated_handle仅分配身份，尚不证明published slot"}],"id":"G065","afterSpan":[23,36],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[30,55],"object":"State schedule facts/flags","members":["owner","receipt","worker","deadline","primary","primary_records","admitted","callback_entries","callback_completions","callback_completed","publisher_locked","would_block","would_block_state","release_publisher","published_state","terminal","tls_entered","release_tls","tls_completed","tls_worker","owner_receipt","core","Default"],"callerRefs":["S1","S2","C14","C17"],"flows":[{"beforeSpan":[31,55],"afterSpan":[39,69],"entry":"Mutex保护的调度记录","state":"分别记录原地址、ThreadId、结果与屏障，不把标志写回engine","effect":"已存事实不是伪造cleanup成功"}],"id":"G066","afterSpan":[37,69],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[56,70],"object":"Schedule/Publication/TLS registration","members":["nonce","play_path","witness","state","changed","Publication=Arc<Schedule>","CURRENT","EXIT_LATCH","thread_local!"],"callerRefs":["C16","C17","S1"],"flows":[{"beforeSpan":[56,70],"afterSpan":[71,90],"entry":"为一次真实调用创建共享调度","state":"父进程nonce/canonical path/独占见证位置；TLS保存Arc","effect":"整数身份不反解引用，真实worker退出屏障留TLS"}],"id":"G067","afterSpan":[71,90],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[71,78],"object":"RestoreCurrent and Drop","members":["Option<Publication>","CURRENT restore","take"],"callerRefs":["S1","S7"],"flows":[{"beforeSpan":[74,78],"afterSpan":[95,99],"entry":"正常作用域退出","state":"恢复上次CURRENT，不取走WorkerExit","effect":"不伪造真实TLS析构"}],"id":"G068","afterSpan":[92,99],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[79,96],"object":"wait_engine","members":["ready predicate","label","original deadline","Condvar wait loop"],"callerRefs":["S7","C17"],"flows":[{"beforeSpan":[79,96],"afterSpan":[101,118],"entry":"deadline已附着且ready尚未满足","state":"只用原engine剩余预算等ready，超时断言","effect":"不重启五秒预算；label只诊断"}],"id":"G069","afterSpan":[101,118],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[97,104],"object":"worker/current observers","members":["assert_worker","current"],"callerRefs":["S1","S2","S7"],"flows":[{"beforeSpan":[97,104],"afterSpan":[120,128],"entry":"真实worker hook/无调度","state":"ThreadId严格匹配；current返回同Arc或None","effect":"未附着普通调用不参与测试调度"}],"id":"G070","afterSpan":[120,128],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[105,117],"object":"bind_owner","members":["one owner assertion","identity!=0","owner storage"],"callerRefs":["S1","C17"],"flows":[{"beforeSpan":[105,117],"afterSpan":[130,142],"entry":"SessionOwner::create","state":"绑定一个真实Arc地址，解除schedule lock再返回","effect":"本次失败不得用另一owner替代"}],"id":"G071","afterSpan":[130,142],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[118,140],"object":"worker_enter","members":["CURRENT replace","worker ThreadId","EXIT_LATCH WorkerExit","RestoreCurrent"],"callerRefs":["S1","S7"],"flows":[{"beforeSpan":[118,140],"afterSpan":[145,167],"entry":"真实owner task进入","state":"当前worker无旧调度，写唯一ThreadId，TLS安装退出latch","effect":"task scope仅恢复CURRENT，WorkerExit仍由OS线程退出Drop"}],"id":"G072","afterSpan":[145,167],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[141,171],"object":"WorkerExit and Drop","members":["schedule","worker","impl Drop","terminal check","TLS entered/completed","release barrier"],"callerRefs":["S1","C22","C23"],"flows":[{"beforeSpan":[147,160],"afterSpan":[175,189],"entry":"实际Windows TLS Drop","state":"核对原worker和已terminal，记录tls_entered并notify","effect":"任务terminal不等于TLS完成"},{"beforeSpan":[161,171],"afterSpan":[190,200],"entry":"控制线程放行原TLS","state":"沿原engine deadline等release_tls后记录tls_completed","effect":"真实worker同一析构路径，未手工取出Drop"}],"id":"G073","afterSpan":[169,200],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[172,179],"object":"startup_deadline","members":["current optional","deadline.replace assertion","notify"],"callerRefs":["S2","C17"],"flows":[{"beforeSpan":[172,179],"afterSpan":[202,209],"entry":"join_failed_startup创建原deadline","state":"只允许首次附着","effect":"control后续不使用新的budget"}],"id":"G074","afterSpan":[202,209],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[180,189],"object":"prepare_receipt","members":["publication optional","owner/deadline equality","receipt pointer integer"],"callerRefs":["S1"],"flows":[{"beforeSpan":[180,189],"afterSpan":[211,220],"entry":"真实回执准入之前","state":"原owner、deadline匹配且receipt尚未绑定","effect":"记录实际地址，不重新建替代回执"}],"id":"G075","afterSpan":[211,220],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[190,199],"object":"admitted","members":["receipt identity","admitted+=1","one assertion","notify"],"callerRefs":["S1","C17"],"flows":[{"beforeSpan":[190,199],"afterSpan":[222,231],"entry":"try_send实际成功之后","state":"记录同一回执唯一入队","effect":"不把失败准入当执行/不重跑cleanup"}],"id":"G076","afterSpan":[222,231],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[200,209],"object":"callback_entered","members":["worker/deadline assertions","callback_entries"],"callerRefs":["S2"],"flows":[{"beforeSpan":[200,209],"afterSpan":[233,242],"entry":"原cleanup进入","state":"同worker、deadline，entry恰一次","effect":"事实观察不调用第二cleanup"}],"id":"G077","afterSpan":[233,242],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[210,220],"object":"callback_completed","members":["actual completed bool","callback_completions"],"callerRefs":["S2","C14"],"flows":[{"beforeSpan":[210,220],"afterSpan":[244,254],"entry":"原shutdown_owner_state_until返回","state":"同worker与deadline，记录真实bool","effect":"成功依据真实cleanup而非测试置位"}],"id":"G078","afterSpan":[244,254],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[221,242],"object":"publisher_locked","members":["real receipt identity","value SUCCEEDED","callback completion assertions","publisher flag","wait_engine release"],"callerRefs":["S1","C17"],"flows":[{"beforeSpan":[221,235],"afterSpan":[257,271],"entry":"原publish持真实wait Mutex","state":"确认真实callback成功，标记publisher_locked","effect":"原AtomicU8尚未store"},{"beforeSpan":[236,242],"afterSpan":[272,279],"entry":"持原Mutex跨测试等待","state":"仅释放schedule state锁后等release_publisher","effect":"真正wait Mutex仍由上层publish guard持有"}],"id":"G079","afterSpan":[257,279],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[243,260],"object":"before_wait","members":["same deadline","actual publisher ready predicate"],"callerRefs":["S1","C17"],"flows":[{"beforeSpan":[243,260],"afterSpan":[281,298],"entry":"wait_until原try_lock前","state":"等原publisher已持锁","effect":"迫使下一步实际WouldBlock，不伪造分支"}],"id":"G080","afterSpan":[281,298],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[261,274],"object":"actual_would_block","members":["receipt/deadline/publisher assertions","Acquire Pending read","count/state witness"],"callerRefs":["S1","C17"],"flows":[{"beforeSpan":[261,274],"afterSpan":[300,313],"entry":"真实try_lock WouldBlock分支","state":"直接Acquire原state确为Pending并notify controller","effect":"根BUG路径完整，无成功状态写入"}],"id":"G081","afterSpan":[300,313],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[275,283],"object":"published","members":["worker assertion","Acquire state after actual store"],"callerRefs":["S1","C17"],"flows":[{"beforeSpan":[275,283],"afterSpan":[315,323],"entry":"原publish store/notify之后","state":"记录真实发布结果","effect":"与callback/terminal/TLS状态分离"}],"id":"G082","afterSpan":[315,323],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[284,293],"object":"terminal_published","members":["same worker","actual terminal bool","notify"],"callerRefs":["S1","C17"],"flows":[{"beforeSpan":[284,293],"afterSpan":[325,334],"entry":"实际任务terminal发布之后","state":"保存真值且核对同worker","effect":"不声称已join"}],"id":"G083","afterSpan":[325,334],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[294,333],"object":"record_primary","members":["optional schedule","typed ProjectStep/ReadPlayScene","InvalidData","canonical path","Primary comparison/count"],"callerRefs":["C14","C16","C17"],"flows":[{"beforeSpan":[294,317],"afterSpan":[337,360],"entry":"工厂/cleanup观察真实failure","state":"必须typed ordinary ReadPlayScene+InvalidData，同canonical Play路径","effect":"不靠人工错误字符串替代原primary"},{"beforeSpan":[318,333],"afterSpan":[361,376],"entry":"保存或重复核对","state":"所有字段相等，最多两次原primary记录","effect":"清理保留最初错误，未把secondary升级primary"}],"id":"G084","afterSpan":[337,376],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[334,357],"object":"snapshot JSON macro","members":["serde_json::json!","identity/primary","receipt facts","worker/TLS","conditional Store lookup","core"],"callerRefs":["C14","C17"],"flows":[{"beforeSpan":[334,357],"afterSpan":[378,401],"entry":"持schedule state锁汇总","state":"宏载荷不改；public_call_returned=false时slot观察为None","effect":"公共create callback内不重入Store，返回后才查失败句柄"}],"id":"G085","afterSpan":[378,401],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[358,402],"object":"owner_returned actual receipt/witness","members":["OwnerShutdownReceipt","RuntimeStartupObservation","original primary equality","Core report JSON","create_new witness/write/flush/sync"],"callerRefs":["C14","C16","C17"],"flows":[{"beforeSpan":[358,384],"afterSpan":[404,430],"entry":"shutdown实际返回观察","state":"两个原primary记录一致；保存实receipt与同Core report摘要","effect":"包含真实owned graph worker join而非推定"},{"beforeSpan":[385,402],"afterSpan":[431,449],"entry":"现有fatal之前","state":"bounded snapshot(false)，exclusive create_new并flush/sync_all","effect":"可在abort后由父进程辨认该red，不查询in-progress Store"}],"id":"G086","afterSpan":[404,449],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[403,442],"object":"control watchdog and barrier sequencing","members":["outer deadline attachment loop","original wait_engine","release_publisher","release_tls","TLS completion"],"callerRefs":["C17"],"flows":[{"beforeSpan":[403,421],"afterSpan":[452,470],"entry":"原deadline尚未附着","state":"外部watchdog仅限此前等待","effect":"有deadline后不延长engine budget"},{"beforeSpan":[422,442],"afterSpan":[471,491],"entry":"实际WouldBlock已记录","state":"放行原publisher，等真实TLS entered后放行，等TLS complete","effect":"只写测试屏障，实际成功/terminal来自原engine"}],"id":"G087","afterSpan":[452,491],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S7","beforeSpan":[443,469],"object":"with_schedule_for_test<R>","members":["Schedule allocation","CURRENT bind/restore","control thread","original action","join","snapshot(true)"],"callerRefs":["C14","C16","C17"],"flows":[{"beforeSpan":[443,469],"afterSpan":[501,527],"entry":"一次真实公开失败调用","state":"父进程owned参数共享，action原样调用，正常返回后join controller","effect":"现有abort时父进程读durable witness；未运行或生成本批fixture"}],"id":"G088","afterSpan":[501,527],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S8","beforeSpan":[1,22],"object":"owned event test imports and FFI wiring","members":["ffi","SessionStore destroy/with_session","real RuntimeDynamicSession","input/Core handles","ABI event/buffer/status"],"callerRefs":["C06","C07","C13","C20"],"flows":[{"beforeSpan":[1,22],"afterSpan":[5,26],"entry":"现有registry测试模块接入","state":"导入真实event路径与close观察","effect":"无替代FFI入口"}],"id":"G089","afterSpan":[5,26],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S8","beforeSpan":[23,44],"object":"caller-thread status test","members":["owned_event_preserves_status_diagnostics_on_the_calling_thread","create/insert","unsupported event","diagnostic read","destroy"],"callerRefs":["C06","C13","C20","S2","S3"],"flows":[{"beforeSpan":[24,44],"afterSpan":[29,51],"entry":"真实headless handle","state":"空负载事件同步call返回静态UnsupportedVersion诊断","effect":"调用线程预算内读取，后续destroy回收原会话"}],"id":"G090","afterSpan":[27,51],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S8","beforeSpan":[45,87],"object":"payload pre-dispatch rejection test","members":["owned_event_rejects_oversized_and_invalid_payloads_before_dispatch","oversized Vec","null/nonzero carrier","invalid handle","static statuses"],"callerRefs":["C13","C20"],"flows":[{"beforeSpan":[46,67],"afterSpan":[54,77],"entry":"超预算真实Vec","state":"Vec在调用期间存活，checked_slice预算分支先拒绝","effect":"不dispatch invalid handle，静态诊断可读"},{"beforeSpan":[68,87],"afterSpan":[79,99],"entry":"null/nonzero载体","state":"形状拒绝在from_raw_parts之前，未解引用null","effect":"观察InvalidArgument静态诊断，不误当野指针可读"}],"id":"G091","afterSpan":[52,99],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S8","beforeSpan":[88,108],"object":"blocked owned event setup and previous owner action","members":["astra_life_a4_blocked_owner_payload_event_survives_short_destroy_retries","Core/input handle","real session insert","with_session blocking thread"],"callerRefs":["C05","C06","S2"],"flows":[{"beforeSpan":[89,108],"afterSpan":[102,121],"entry":"第一动作已进入owner","state":"真实屏障阻塞长期owner","effect":"后续owned事件排队但guard继续持槽位"}],"id":"G092","afterSpan":[100,121],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S8","beforeSpan":[109,133],"object":"owned event action/admission observation","members":["payload Vec","ZrRuntimeEventV1::file_dropped","ffi synchronous call","two active guard loop"],"callerRefs":["C06","C13","C20"],"flows":[{"beforeSpan":[109,125],"afterSpan":[122,141],"entry":"第二调用线程","state":"Vec在同步ffi返回前有效，FFI先copy后排queue","effect":"跨排队只移动Vecowned副本"},{"beforeSpan":[126,133],"afterSpan":[142,149],"entry":"等待active actions=2","state":"deadline有界观察两guard已登记，事件未结束","effect":"不以入队deadline当执行超时"}],"id":"G093","afterSpan":[122,149],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S8","beforeSpan":[134,146],"object":"two short destroy attempts","members":["Closing flag","Error status","still-active event"],"callerRefs":["C05","C06","S1","S2"],"flows":[{"beforeSpan":[134,146],"afterSpan":[150,163],"entry":"owner被原动作阻塞","state":"两短close未完成，Closing保留原槽位","effect":"已准入事件不丢失、不重复调用"}],"id":"G094","afterSpan":[150,163],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S8","beforeSpan":[147,164],"object":"release/join/input/final destroy","members":["owner/event thread joins","real manager resolve/drain","exactly one expected event","destroy Ok"],"callerRefs":["C05","C06","C13"],"flows":[{"beforeSpan":[147,164],"afterSpan":[164,181],"entry":"放行原阻塞动作","state":"先join自有调用线程，再从同Core输入队列核对唯一交付，完整destroy","effect":"真实状态未提前释放；测试未执行"}],"id":"G095","afterSpan":[164,181],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S9","beforeSpan":[1,4],"object":"Windows watcher test imports","members":["RefCell","super registry tests imports"],"callerRefs":["C07","C18","C19"],"flows":[{"beforeSpan":[1,4],"afterSpan":[5,8],"entry":"cfg(windows)接入","state":"真实watcher测试环境","effect":"无生产入口"}],"id":"G096","afterSpan":[5,8],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S9","beforeSpan":[5,16],"object":"ThreadExitLatch structure/Drop","members":["entered","release","impl Drop"],"callerRefs":["C18","C22"],"flows":[{"beforeSpan":[11,16],"afterSpan":[16,22],"entry":"真正TLS析构","state":"通知进入、最多两秒等放行","effect":"真实watcher未OS终止，不能只看主函数结束"}],"id":"G097","afterSpan":[10,22],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S9","beforeSpan":[17,20],"object":"EXIT_LATCH TLS macro","members":["thread_local RefCell<Option<ThreadExitLatch>>"],"callerRefs":["C22"],"flows":[{"beforeSpan":[17,20],"afterSpan":[23,27],"entry":"worker安装latch","state":"保持TLS直到线程自然退出，不手动取走","effect":"屏障来自真实线程退出"}],"id":"G098","afterSpan":[23,27],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S9","beforeSpan":[21,41],"object":"watcher teardown regression setup","members":["astra_life_a4_destroy_retains_project_watcher_during_tls_destruction","real project asset manager","actual thread/stop channel","install_project_watcher_for_test","insert session"],"callerRefs":["C05","C07","C18"],"flows":[{"beforeSpan":[22,41],"afterSpan":[30,49],"entry":"真实watcher thread安装","state":"主函数stop后TLS仍阻塞，由AssetWatcher持JoinHandle","effect":"真实Core/manager保留watcher"}],"id":"G099","afterSpan":[28,49],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S9","beforeSpan":[42,50],"object":"short destroy and zero-budget retry observations","members":["short deadline","TLS entered","Closing","zero retry"],"callerRefs":["C05","C06","C18","C22"],"flows":[{"beforeSpan":[42,50],"afterSpan":[50,58],"entry":"主函数结束但TLS未放行","state":"短close与零预算都不完整并保留Closing","effect":"不提前移除槽位或Drop阻塞watcher"}],"id":"G100","afterSpan":[50,58],"reviewState":"author-static-reviewed"},
+    {"sourceId":"S9","beforeSpan":[51,63],"object":"release/reap before assertions","members":["release TLS","final destroy","repeated NotFound","assert status/timing"],"callerRefs":["C05","C06","C18","C19"],"flows":[{"beforeSpan":[51,63],"afterSpan":[60,72],"entry":"先释放真实退出屏障","state":"最终destroy完成join，再核对Error/Error/Ok/NotFound","effect":"断言失败也不把自有worker遗留在本测试"}],"id":"G101","afterSpan":[60,72],"reviewState":"author-static-reviewed"}
+  ],
+  "callerEvidence": [
+    {"id":"C01","path":"zircon_runtime/src/lib.rs","sha256":"0dec0ee6e7ebd0280a1f04653e1aa1026d754bc08dc1c7d5e91f69d5243ed774","lineCount":87,"readRanges":[[1,87]],"contract":"dynamic-api feature接入dynamic_api；crate根未改。","readReceipt":"28/b39481","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C02","path":"zircon_runtime/src/dynamic_api/mod.rs","sha256":"97135adf8680d62b8527b1e8ef0595efc2a5e6c6325306aeb8fa6a4ef53de0a8","lineCount":38,"readRanges":[[1,38]],"contract":"exports V8 getter与session模块接线；owner无单独公开FFI导出。","readReceipt":"28/b39481","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C03","path":"zircon_runtime/src/dynamic_api/session.rs","sha256":"9a109aaec2b13464e81ca2779487aa71c232afb7050e45a12aa4744aab6de17f","lineCount":106,"readRanges":[[1,74]],"contract":"path接入registry/construction/state/status/ffi；只读模块路径证据。","readReceipt":"15/c78b13","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C04","path":"zircon_runtime/src/dynamic_api/session/registry/mod.rs","sha256":"d08afe86d4244e99d78ea4bfb8b5d7709911c847e465e3e5093d18e446731736","lineCount":57,"readRanges":[[11,30],[41,57]],"contract":"session_owner私有模块；Slot/Store使用内部类型，cfg(test)导出观察器与回执。","readReceipt":"8/a85a80;27/daf866","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C05","path":"zircon_runtime/src/dynamic_api/session/registry/session_slot.rs","sha256":"1f0f59d6cb20cd745e8c2265f29bd8272d680e08970cf4d759fbe87b0df6c790","lineCount":265,"readRanges":[[1,265]],"contract":"create/create_with_linked_plugins调用RuntimeSessionOwner；dispatch_scoped/dispatch_owned不替代动作准入；shutdown前先关闭槽位和等待guard。","readReceipt":"10/98ce37;27/daf866","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C06","path":"zircon_runtime/src/dynamic_api/session/registry/session_store.rs","sha256":"a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f","lineCount":660,"readRanges":[[276,314],[574,633]],"contract":"with_session_owned先begin_action，owned结果recv后重建调用线程TLS再drop guard；dispatch_session_action将scoped owned诊断转换为ABI。","readReceipt":"9/38204c;27/daf866","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C07","path":"zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs","sha256":"1fa81cdc5aea6b5e28c3c3b407b60b5ab3ca8c773a171ed40c55eb0650a0e48d","lineCount":949,"readRanges":[[37,46]],"contract":"cfg(windows)接入watcher_thread_exit；owned_event普通test模块接入，继承真实registry测试装配。","readReceipt":"8/a85a80;27/daf866","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C08","path":"zircon_runtime/src/core/runtime/tasks/pool.rs","sha256":"e28b5b99c7ff1ad70536e484bdf53c04409d201d9d32d4a332f07bd32880111e","lineCount":475,"readRanges":[[86,160],[161,256]],"contract":"try_new通过托管worker创建真实rayon池；spawn提交单长期任务；shutdown_until检查submission/worker退出与join census。","readReceipt":"9/73d500;18/8c0e36","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C09","path":"zircon_runtime/src/dynamic_api/session/status.rs","sha256":"aff771d571fa9e781521e5d87c56cdcec73440962ee7065b8e53717dacf74b6a","lineCount":127,"readRanges":[[1,127]],"contract":"error_status为当前线程TLS写有界字节；下次同线程错误覆盖借用，静态状态不依赖TLS。","readReceipt":"9/73d500","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C10","path":"zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs","sha256":"c111421756bc15681b53a74fbaf327c6be2116f0e0cdc18d6983b547f2577fe1","lineCount":168,"readRanges":[[1,168]],"contract":"disable_new_entries与wait_for_callbacks排空共享in_flight_callbacks；channel_wake持相同登记Arc。","readReceipt":"9/73d500","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C11","path":"zircon_runtime/src/dynamic_api/session/construction/cleanup.rs","sha256":"b957900824fcb648cbbe07d47a2b7e54d81be4284732e34e143ca2db93b39a36","lineCount":194,"readRanges":[[1,194]],"contract":"RuntimeConstructionFailure持同一Core/scope/catalog/plan和typed primary；shutdown_until成功才移除pending_core，次要错误另存。","readReceipt":"9/73d500","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C12","path":"zircon_runtime/src/dynamic_api/session/state.rs","sha256":"0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811","lineCount":796,"readRanges":[[190,260]],"contract":"正常state关闭先事件、viewport/UI、Core、日志；new与linked工厂进入construction::build。","readReceipt":"10/98ce37","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C13","path":"zircon_runtime/src/dynamic_api/session/ffi.rs","sha256":"3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea","lineCount":924,"readRanges":[[192,249],[118,146],[246,281],[336,400]],"contract":"handle_event先checked_slice复制Vec再owned dispatch；内部动作生成本线程Runtime/static status，诊断立刻由owner复制。","readReceipt":"9/73d500;15/c78b13","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C14","path":"zircon_runtime/src/dynamic_api/session/tests/runtime_startup_observation.rs","sha256":"8c4d654e67decff907e21389fcb8056e97968da785b692421a16ff04ee122051","lineCount":161,"readRanges":[[1,161]],"contract":"factory record_failure与cleanup record_failure保留原primary；record_owner_receipt调用owner_returned持久记录实际返回，with_schedule路径为Windows test。","readReceipt":"10/98ce37","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C15","path":"zircon_runtime/src/dynamic_api/session/construction.rs","sha256":"6154f98c8d57dbafc737cde6f9cd7d0ea99709ef05c5f5f33a67be07fede8602","lineCount":458,"readRanges":[[22,24],[452,458]],"contract":"cfg(test)接入error_cleanup_tests；未修改生产构造或conditional wiring。","readReceipt":"8/a85a80","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C16","path":"zircon_runtime/src/dynamic_api/session/construction/tests/error_cleanup_tests.rs","sha256":"c48ebf8f2d68a0986893bab17f1d7a95726ab0222ec0ca68b4f93845efe22da9","lineCount":426,"readRanges":[[219,305],[424,426]],"contract":"public_runtime_api借用真实V8 getter；public_startup_config给同项目headless/Play；父进程独占fixture；cfg(windows)接入实际公开回归。","readReceipt":"8/a85a80;28/b39481","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C17","path":"zircon_runtime/src/dynamic_api/session/construction/tests/receipt_publication.rs","sha256":"4bbb1f3271df71fa4c82c49f9671032125deb98c2ee88b571ebde29c24b8589b","lineCount":382,"readRanges":[[1,382]],"contract":"真实API健康create/destroy后同Play写[0xff]再create；只认可Pending+现有fatal为此red；期望原ReadPlayScene错误与同owner真实join/TLS退出，未执行。","readReceipt":"8/a85a80","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C18","path":"zircon_runtime/src/asset/watch/asset_watcher.rs","sha256":"5cda1bbf531b545e8bfb34243156e06a66968ed83a8cf5315853fea57abab55a","lineCount":70,"readRanges":[[1,70]],"contract":"真实watcher shutdown_until用thread_is_join_ready等待并join；from_test_worker移交真实stop channel/JoinHandle。","readReceipt":"12/ff5d00","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C19","path":"zircon_runtime/src/asset/watch/shutdown_on_drop.rs","sha256":"7f40d2d4b4ef102aeaca748cc961ba552bd774ee2bbb84deef3dffaedeac641c","lineCount":10,"readRanges":[[1,10]],"contract":"AssetWatcher Drop仍阻塞join，所以短关闭不完整时不能提前丢弃watcher。","readReceipt":"12/ff5d00","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C20","path":"zircon_runtime_interface/src/buffer.rs","sha256":"4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7","lineCount":357,"readRanges":[[162,244]],"contract":"checked_slice先检查零长/null/addressspace/budget；非空指针可读、单allocation、初始化与借用寿命仍由unsafe调用方建立。","readReceipt":"15/c78b13","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C21","path":"zircon_runtime_interface/src/status.rs","sha256":"c91b0bb349423b1fdb001e0c9a41dcf8493ee17afca50c26c54a3ada8997b679","lineCount":89,"readRanges":[[1,89]],"contract":"ZrStatus借用diagnostics；status_code保守解释未知码为Error；成功码零不带输出释放权。","readReceipt":"14/899994","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C22","path":"zircon_runtime/src/core/runtime/tasks/thread_completion.rs","sha256":"51f1fb5475e8305dfba9e61c31095a7e7c3a505d823fcad7cd6243350ed224de","lineCount":26,"readRanges":[[5,26]],"contract":"Windows零超时native handle探测包括TLS析构；其他平台std main-function完成检查不足以保证阻塞TLS的硬deadline。","readReceipt":"14/899994","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C23","path":"zircon_runtime/src/core/runtime/tasks/pool/owned_workers.rs","sha256":"98f002ea30e95af31c546708d75270fb3035760eac55f1141e1a835ad5f2913f","lineCount":186,"readRanges":[[88,123]],"contract":"wait_and_join仅对thread_is_join_ready的真实handle join后累计joined census；任务体退出先于TLS。","readReceipt":"14/899994","sourceWriteGranted":false,"credit":"static caller/context read; not executed"},
+    {"id":"C24","path":"zircon_runtime/src/dynamic_api/exports.rs","sha256":"fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8","lineCount":291,"readRanges":[[24,46],[88,110]],"contract":"真实V8表create_session=Some(create_session_ffi)，extern C wrapper经catch_ffi_panic进入session create；owner不注册其他FFI入口。","readReceipt":"28/b39481","sourceWriteGranted":false,"credit":"static caller/context read; not executed"}
+  ],
+  "objectSchema": {
+    "beforeSpan": "inclusive original physical lines",
+    "afterSpan": "same preserved lines mapped to final source; inserted document lines additionally recorded in files.insertedLineRanges",
+    "flows": "entry, state and observable effect with explicit before/after spans",
+    "coverage": "101 object groups cover every original line of all nine files without gaps; function/type/associated items/macros/statement blocks reviewed inside groups; line arithmetic is not itself review acceptance"
+  },
+  "contractDecisions": [
+    "S is created/accessed/destroyed in one persistent single-worker task; only Send callbacks/results cross its queue.",
+    "ScopedAction pointer/invoke pairing comes from the same A; caller keeps Option<A> alive until completed or command destruction. Send failure synchronously drops unadmitted command; admitted callback panic resumes only after completed.",
+    "Owned dispatch deadline bounds admission, not execution or result reception. SessionSlot/Store retain action guards separately.",
+    "Cleanup bool false is Retryable; caught cleanup panic is Poisoned and normal retry never reinvokes it. Explicit recovery is covered by existing generic-owner test.",
+    "Successful cleanup receipt, owner task terminal, worker TLS exit and pool join are separate observations. Terminal branch first joins; Panicked may therefore safely permit controller Drop.",
+    "OwnedSessionStatus copies source-thread diagnostics before another Runtime error call; into_abi reconstructs receiver-thread TLS. checked_slice shape checks do not establish arbitrary pointer readability.",
+    "Startup failure retains typed primary and original Core/scope/plugin generations; log closes only after canonical Core cleanup. Ordinary create obtains a log lease, linked create does not.",
+    "Windows publication test schedules the actual CleanupReceipt wait Mutex and reads its real AtomicU8/worker ThreadId; hooks never write success or fake cleanup return.",
+    "The real public regression uses V8 create/destroy on a healthy fixture, then corrupts the same Play bytes with [0xff], calls create again and distinguishes only Pending plus the specific existing fatal policy as this regression's red.",
+    "No production-wide failure rate, executed regression result, memory unsafety or full-workspace acceptance is inferred from static control-flow evidence."
+  ],
+  "issueObservations": [
+    {
+      "id": "CR-OWNER-0001",
+      "kind": "BUG",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+      "symbol": "RuntimeSessionOwner::join_failed_startup",
+      "markerLine": 343,
+      "markerSpan": [
+        343,
+        348
+      ],
+      "status": "statically proven; root confirmed original complete path; runtime execution pending",
+      "action": "record-only; do not alter behavior under this comment audit",
+      "trigger": "Original publisher holds CleanupReceipt.wait Mutex before Release success store while wait_until reaches actual try_lock WouldBlock; engine deadline need not have elapsed.",
+      "impact": "WouldBlock returns Pending immediately, shutdown_until_inner propagates it, startup teardown accepts only Joined|Panicked and enters existing abort, preventing the original ordinary late ReadPlayScene error from returning.",
+      "trace": [
+        {
+          "sourceId": "S1",
+          "symbol": "CleanupReceipt::publish",
+          "beforeSpan": [
+            106,
+            117
+          ],
+          "afterSpan": [
+            140,
+            151
+          ],
+          "fact": "owns real wait Mutex before store"
+        },
+        {
+          "sourceId": "S1",
+          "symbol": "CleanupReceipt::wait_until",
+          "beforeSpan": [
+            119,
+            143
+          ],
+          "afterSpan": [
+            154,
+            178
+          ],
+          "fact": "actual WouldBlock returns Pending without waiting deadline"
+        },
+        {
+          "sourceId": "S1",
+          "symbol": "SessionOwner::shutdown_until_inner",
+          "beforeSpan": [
+            385,
+            398
+          ],
+          "afterSpan": [
+            473,
+            487
+          ],
+          "fact": "Pending propagates and does not join"
+        },
+        {
+          "sourceId": "S2",
+          "symbol": "join_failed_startup",
+          "beforeSpan": [
+            265,
+            294
+          ],
+          "afterSpan": [
+            323,
+            358
+          ],
+          "fact": "Joined|Panicked only; other receipts abort"
+        }
+      ],
+      "regression": {
+        "callerRef": "C17",
+        "symbol": "app_core_shutdown_owner_public_late_play_error_waits_for_receipt_publication_without_reinvocation",
+        "publicApiCallerRef": "C24",
+        "wiringCallerRefs": [
+          "C15",
+          "C16"
+        ],
+        "scheduleSourceId": "S7",
+        "observationCallerRef": "C14",
+        "ran": false,
+        "requiredResult": "original typed/diagnostic ReadPlayScene error and invalid output after same original owner's real join/TLS completion; no cleanup reinvocation",
+        "limitation": "test content and exact scheduling path read statically; no child/fixture/test output created by this subtask"
+      }
+    }
+  ],
+  "existingIssueTags": {
+    "status": "all nine before sources scanned; no BUG/TODO/SAFETY tags",
+    "historicalComments": "all baseline comments including English module/lifetime/scheduler notes retained"
+  },
+  "frozen008Continuity": {
+    "path": "docs/tests/source-comment-review-evidence-runtime-session-registry-008.json",
+    "sha256": "9fc6cca8783a31834f7daddc56d1a14b4e6aeaddd221de563c08a49467d0010b",
+    "modified": false,
+    "policy": "do not rewrite frozen007/008; this record reconciles five caller pins whose documentation changes in009",
+    "callers": [
+      {
+        "priorCallerId": "C06",
+        "sourceId": "S1",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+        "priorPinnedSha256": "88364113b01be72b323ed5252487ec62fb3db702f6f874253b78c43f55e73dc1",
+        "currentSha256": "649c96e952c9b57e69483af9576c2b5b0e802d926d735e6b3745844a17132352",
+        "originalPhysicalLinesPreserved": true,
+        "rawCodeTokensIdentical": true,
+        "contractContinuity": "same calls/types/cfg/unsafe preconditions and test assertions; Chinese documentation and BUG marker only",
+        "lineMapRef": "S1.baselineLineShiftSegments"
+      },
+      {
+        "priorCallerId": "C07",
+        "sourceId": "S2",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+        "priorPinnedSha256": "7024bdc2aeb047bbd6849f0f40f41c901266847120a4c3e32746ab0a88365f4a",
+        "currentSha256": "fce656417cd516756b48cd51e2472a886c877ab43c3178df908ee8a4d95e9a48",
+        "originalPhysicalLinesPreserved": true,
+        "rawCodeTokensIdentical": true,
+        "contractContinuity": "same calls/types/cfg/unsafe preconditions and test assertions; Chinese documentation and BUG marker only",
+        "lineMapRef": "S2.baselineLineShiftSegments"
+      },
+      {
+        "priorCallerId": "C08",
+        "sourceId": "S3",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs",
+        "priorPinnedSha256": "c6faf2919ac2af6c370b259c3e9e73df7b5d56fc4265dc2f601bfbe243ba6823",
+        "currentSha256": "3562a1cc60a4701f416c719e1bdb427c86f16aae6a495a25f89e21a329c994aa",
+        "originalPhysicalLinesPreserved": true,
+        "rawCodeTokensIdentical": true,
+        "contractContinuity": "same calls/types/cfg/unsafe preconditions and test assertions; Chinese documentation and BUG marker only",
+        "lineMapRef": "S3.baselineLineShiftSegments"
+      },
+      {
+        "priorCallerId": "C17",
+        "sourceId": "S8",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs",
+        "priorPinnedSha256": "37fc1012912a5ab8ce6172e78dd3a24719842363394c0e9945e96bde510ee24a",
+        "currentSha256": "cc0450e6beb624d0416e94b667a79a8175c193c492144761e252e11df51e8b42",
+        "originalPhysicalLinesPreserved": true,
+        "rawCodeTokensIdentical": true,
+        "contractContinuity": "same calls/types/cfg/unsafe preconditions and test assertions; Chinese documentation and BUG marker only",
+        "lineMapRef": "S8.baselineLineShiftSegments"
+      },
+      {
+        "priorCallerId": "C18",
+        "sourceId": "S9",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs",
+        "priorPinnedSha256": "cf05c0891541eaffbca659dfac79f52d336acd29140f8eec10547e31735f03b1",
+        "currentSha256": "82cfd4a537313212575f55e702e4e58b68fa8d10c3c6d0288f2737544eb022d1",
+        "originalPhysicalLinesPreserved": true,
+        "rawCodeTokensIdentical": true,
+        "contractContinuity": "same calls/types/cfg/unsafe preconditions and test assertions; Chinese documentation and BUG marker only",
+        "lineMapRef": "S9.baselineLineShiftSegments"
+      }
+    ]
+  },
+  "validation": {
+    "sourcePinSet": {
+      "id": "D009-final-comments",
+      "files": [
+        {
+          "sourceId": "S1",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+          "sha256": "649c96e952c9b57e69483af9576c2b5b0e802d926d735e6b3745844a17132352"
+        },
+        {
+          "sourceId": "S2",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+          "sha256": "fce656417cd516756b48cd51e2472a886c877ab43c3178df908ee8a4d95e9a48"
+        },
+        {
+          "sourceId": "S3",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs",
+          "sha256": "3562a1cc60a4701f416c719e1bdb427c86f16aae6a495a25f89e21a329c994aa"
+        },
+        {
+          "sourceId": "S4",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/cases.rs",
+          "sha256": "b08e460378f26e256dcf4e6343dcd82157e5859d5bbe02720eb504b9bb2699d4"
+        },
+        {
+          "sourceId": "S5",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/runtime.rs",
+          "sha256": "36b20fee6429ede918f79740fd213899c37e064c66080b49e31287b5bc4d8edc"
+        },
+        {
+          "sourceId": "S6",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/tests/abi_status.rs",
+          "sha256": "c71172c95ae33415dc09861601974a434c0f71a388b39a1ac9a1864740e8a98b"
+        },
+        {
+          "sourceId": "S7",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/tests/receipt_publication.rs",
+          "sha256": "bbec9888ad1a2bade340911a8c3715cc68603637832a15c3b9186e1586d049b7"
+        },
+        {
+          "sourceId": "S8",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs",
+          "sha256": "cc0450e6beb624d0416e94b667a79a8175c193c492144761e252e11df51e8b42"
+        },
+        {
+          "sourceId": "S9",
+          "path": "zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs",
+          "sha256": "82cfd4a537313212575f55e702e4e58b68fa8d10c3c6d0288f2737544eb022d1"
+        }
+      ],
+      "callerCount": 24,
+      "allFinalPhysicalPinsMatched": true,
+      "receipt": "35/324c67 exit0; all source9/caller24/frozen008 pins, marker and links read with ASCII JSON"
+    },
+    "languageFormatParser": {
+      "state": "passed",
+      "argv": [
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/cases.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/runtime.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/abi_status.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/receipt_publication.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs"
+      ],
+      "receipt": "26/dbdd0a exit0; actual RUSTFMT_CHILD_EXIT=0",
+      "scope": "nine exact files only; readonly syntax/format check, not typechecking or rustdoc"
+    },
+    "affectedFileDiffCheck": {
+      "state": "passed",
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "-c",
+        "core.autocrlf=false",
+        "diff",
+        "--check",
+        "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+        "--",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/cases.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/runtime.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/abi_status.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/receipt_publication.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs",
+        "zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs"
+      ],
+      "receipt": "26/055748 exit0; actual author diff body partly truncated, missing runtime/cases/runtime-test diff fully read at27/a924dc exit0"
+    },
+    "scopedChangeGuard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "5709fedb1a391c112b02c5c32a93d4962b5ee8cc413bf7642881475ee9cd2ddf",
+        "base": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+        "files": [
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/cases.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/runtime.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/abi_status.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/receipt_publication.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/cases.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/session_owner/tests/runtime.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/abi_status.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/receipt_publication.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs",
+          "zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [
+          "CR-OWNER-0001"
+        ],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": [],
+      "parentReceipt": "26/1246c9 printed actual child exit0;27/ee2b91 unified exec process reaped exit0",
+      "scope": "nine exact source paths, not shared dirty checkout"
+    },
+    "nonDocumentCodeTokens": {
+      "state": "passed",
+      "comparison": "token kind and exact raw source spelling after omitting all line/block comments",
+      "lexerScriptSha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+      "perFileRef": "files tokenCount/beforeTokenSha256/afterTokenSha256",
+      "receipt": "24/d51ddf original child ongoing;25/e19cb1 final child exit0",
+      "limitation": "lexer omits all comments including compiler-facing documentation attributes; not compilation/ABI/doctest/include_str evidence"
+    },
+    "physicalMutationSummary": {
+      "originalLinesCommentsAndLFAllPreserved": true,
+      "totalInsertedLines": 301,
+      "originalBaselineLines": 1939,
+      "currentLines": 2240,
+      "allInsertionsStandaloneCommentOrBlank": true,
+      "allBOMFalse": true,
+      "proofReceipt": "25/e19cb1 exit0; raw physical diff matcher permits insert only"
+    },
+    "newRustdocLinks": {
+      "state": "author target definitions verified",
+      "links": [
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+          "line": 6,
+          "text": "//! 控制器须保留到 join 完成，Runtime 的具体资源顺序由 [`runtime::RuntimeSessionOwner`] 负责。"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+          "line": 204,
+          "text": "/// [`Self::dispatch_scoped`] 保持借用回调有效期；[`Self::shutdown_until`] 区分清理与 join。"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+          "line": 113,
+          "text": "/// `registry/session_slot.rs::SessionSlot`；[`SessionOwner`]；[`OwnedSessionStatus`]。"
+        }
+      ],
+      "targets": "runtime::RuntimeSessionOwner exists in child module; Self methods in SessionOwner impl; SessionOwner/OwnedSessionStatus imports in runtime.rs",
+      "limitation": "actual rustdoc resolution/doc attributes untested; formal documentation validation belongs to Jenkins"
+    },
+    "markerConsistency": {
+      "state": "passed",
+      "markers": [
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+          "line": 343,
+          "text": "// BUG: [CR-OWNER-0001] 发布者持有真实回执 wait 锁但尚未 store 成功时，"
+        }
+      ],
+      "newBUGCount": 1,
+      "newTODOCount": 0,
+      "closedMarkers": [],
+      "rootIssueIdException": true
+    },
+    "testsExecution": {
+      "state": "not run",
+      "reason": "comment-only source audit; no behavior repair authorized; regression evidence is static source/context",
+      "formalValidationOwner": "Jenkins/root"
+    },
+    "compilerFacingBoundary": "Documentation attributes, derive input, diagnostic locations and include_str text can observe comments; raw lexer parity does not prove compiler-facing output unchanged.",
+    "independentRootReview": {
+      "state": "pending",
+      "scope": "all nine final physical source hashes plus author evidence and issue severity"
+    },
+    "formalCoordinator": {
+      "state": "pending",
+      "owner": "/root/Jenkins",
+      "requestIdentity": "root existing lifecycle; subagent created no new request, build, Git write or external notification"
+    }
+  },
+  "sourceMutation": {
+    "authorizedSources": 9,
+    "mutatedSources": 9,
+    "insertedLines": 301,
+    "sourceCopiesCreated": 0,
+    "helpersCreated": 0,
+    "behaviorTokenChanges": 0,
+    "existingCommentsDeletedOrRewritten": 0,
+    "sharedMetadataWrites": 0
+  },
+  "nativeProcessReceipts": [
+    {
+      "cell": 19,
+      "chunk": "b49289",
+      "exitCode": 0,
+      "purpose": "formal grant author preflight before mutations"
+    },
+    {
+      "cells": [
+        20,
+        21,
+        22,
+        23
+      ],
+      "result": "apply_patch returned {}; canonical changes established by physical proof/readback, not return payload alone",
+      "purpose": "authorized comment insertions"
+    },
+    {
+      "cell": 24,
+      "chunk": "d51ddf",
+      "session": 9260,
+      "state": "was running; final below",
+      "purpose": "original-line/raw-token proof"
+    },
+    {
+      "cell": 25,
+      "chunk": "e19cb1",
+      "exitCode": 0,
+      "eofObserved": true,
+      "purpose": "physical proof all nine files"
+    },
+    {
+      "cell": 26,
+      "chunk": "dbdd0a",
+      "exitCode": 0,
+      "purpose": "exact rustfmt readonly"
+    },
+    {
+      "cell": 26,
+      "chunk": "055748",
+      "exitCode": 0,
+      "outputLimitation": "actualdiff truncated; not full review alone",
+      "purpose": "diff check and actual patch"
+    },
+    {
+      "cell": 26,
+      "chunk": "1246c9",
+      "session": 46804,
+      "childExitCode": 0,
+      "purpose": "change_guard pass emitted; wrapper final below"
+    },
+    {
+      "cell": 27,
+      "chunk": "ee2b91",
+      "exitCode": 0,
+      "eofObserved": true,
+      "purpose": "reap guard wrapper"
+    },
+    {
+      "cell": 27,
+      "chunks": [
+        "a924dc",
+        "daf866"
+      ],
+      "exitCodes": [
+        0,
+        0
+      ],
+      "purpose": "missing affected diffs and definition/marker/continuity recheck"
+    },
+    {
+      "cell": 28,
+      "chunk": "b39481",
+      "exitCode": 0,
+      "purpose": "real exported V8 create/destroy and fixture contract"
+    },
+    {
+      "cell": 33,
+      "chunk": "0be971",
+      "session": 76331,
+      "purpose": "final physical pin/ledger/head check; raw source Chinese stdout encoding ambiguous, no writes"
+    },
+    {
+      "cell": 34,
+      "chunk": "73c130",
+      "exitCode": 0,
+      "eofObserved": true,
+      "purpose": "reap final pin check"
+    },
+    {
+      "cell": 35,
+      "chunk": "324c67",
+      "exitCode": 0,
+      "purpose": "ASCII JSON resolves source Chinese display; final source/caller/frozen pins unchanged"
+    }
+  ],
+  "authorReadback": {
+    "allSourcePinsMatched": true,
+    "allCallerPinsMatched": true,
+    "frozen008Matched": true,
+    "scopeDiffReviewed": "26 plus gap-filled27",
+    "nativeValidationProcessesReaped": true,
+    "observedUTC": "2026-10-14T11:23:50.490170+00:00",
+    "commentMeaningReview": "all101 source-object groups and branch flows connected to current pinned call/test contracts",
+    "formalAcceptance": false,
+    "metadataSerialization": "JSON serialization roundtrip validated in memory; actual physical JSON readback and self-hash recorded externally in final handoff"
+  },
+  "artifactLifecycle": {
+    "ownedCreatedMetadata": [
+      "E:/Git/ZirconEngine/docs/tests/source-comment-review-evidence-owner-thread-receipt-009.json"
+    ],
+    "sourceCopiesCreated": 0,
+    "helpersCreated": 0,
+    "compilerProductsCreated": 0,
+    "compilerCachesCreated": 0,
+    "temporaryOutputsCreated": 0,
+    "releasedBytes": 0,
+    "retainedReason": "sole compact source-object/flow/caller/static-validation evidence for root independent review and Jenkins handoff",
+    "taskManifestOwner": "/root owns source-comment-audit-20261012 manifest; this exact subtask may not edit shared artifact ledger",
+    "unknownForeignArtifacts": "not inspected or closed by this subtask",
+    "nativeOwnedProcesses": "all owned source-review and validation children reached actual terminal exit; sole metadata write/readback receipt is recorded in final handoff without editing this self-contained evidence again"
+  },
+  "limitations": [
+    "initial mistaken test paths resolved through real #[path] declarations; nonexistent guesses not counted",
+    "Git global ignore permission warning retained from status inventory; exact physical source hashes and scoped diff do not claim full untracked enumeration",
+    "no regression execution, build, generated docs, Git commit/push or external notification by this subtask",
+    "root formal independent review and Jenkins acceptance remain open"
+  ],
+  "authorFreeze": {
+    "sourceEditsComplete": true,
+    "metadataWriteAuthorized": "docs/tests/source-comment-review-evidence-owner-thread-receipt-009.json",
+    "requestedNextOwner": "/root",
+    "noFurtherWritesAfterEvidenceReadback": true
+  },
+  "lastObservedUTC": "2026-10-14T11:23:50.490170+00:00"
+}

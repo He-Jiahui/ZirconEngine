@@ -1,3 +1,8 @@
+//! 私有句柄计数器的耗尽与局部性能测试，不构造会话 owner 或发布全局注册表记录。
+//!
+//! 性能对照按样本对交替测量顺序，比较 checked 计数与旧 SeqCst 原子计数；
+//! 这一比较不包含生产路径的互斥锁、会话构造或跨 ABI 调用成本，debug 配置仍沿原属性忽略它。
+
 use std::hint::black_box;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
@@ -9,6 +14,7 @@ const PERFORMANCE_ITERATIONS: usize = 250_000;
 const BASIS_POINTS_SCALE: u128 = 10_000;
 const PERFORMANCE_MAX_RATIO_BPS: u128 = 7_500;
 
+/// 对非空样本使用 nearest-rank；本文件调用者固定提供 21 个样本和第 95 百分位。
 fn nearest_rank_percentile(samples: &[Duration], percentile: usize) -> Duration {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();

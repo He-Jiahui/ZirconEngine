@@ -4,8 +4,8 @@ use std::io::{Read, Take};
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use zircon_runtime_interface::runtime_build_set::{
     ZrRuntimeArtifactIdentityV1, ZrRuntimeArtifactManifestV1, ZrRuntimeBuildModeV1,
     ZrRuntimeBuildSetExpectationV1, ZrRuntimeDigestV1, ZrRuntimeTargetModelV1,
@@ -60,7 +60,7 @@ pub(super) fn allocate_build_output_dir(output_dir: &Path) -> Result<PathBuf, Hu
                 return Err(qualification_error(format!(
                     "cannot create build staging directory {}: {error}",
                     candidate.display()
-                )))
+                )));
             }
         }
     }
@@ -104,7 +104,7 @@ pub(super) fn activate_staged_engine(
             return Err(qualification_error(format!(
                 "cannot inspect active BuildSet directory {}: {error}",
                 active_engine_dir.display()
-            )))
+            )));
         }
     };
     if let Some(metadata) = active_metadata.as_ref() {

@@ -19,6 +19,7 @@ from .source import (PathClaim, SealedManifest, _before_hash, _thaw,
 
 
 PRODUCT_TEMPLATES = frozenset({"editor_product_development", "editor_product_shipping"})
+SOURCE_ROOT_CAPABILITY = 'same-repository-worktree-v1'
 
 
 def validate_coverage(value: Mapping) -> dict:

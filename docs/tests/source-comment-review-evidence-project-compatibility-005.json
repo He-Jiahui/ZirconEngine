@@ -955,10 +955,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd"
+        }
       },
       "commit": {
         "status": "pending",
@@ -991,10 +997,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1027,10 +1039,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1042,11 +1060,11 @@
       "language": "Rust",
       "classification": "first-party source",
       "beforeSha256": "951f32f2961e78ccae557d0d7d96f50b5b651214fe8919dfc182652956dd5519",
-      "afterSha256": "7a9d5a2b7b09d94b2bd3c9b49d1804a8e775f55428afc054db97f17c30497abc",
+      "afterSha256": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21",
       "beforeLines": 19,
       "afterLines": 34,
       "insertedCommentOrBlankLines": 15,
-      "reviewedSha256": "7a9d5a2b7b09d94b2bd3c9b49d1804a8e775f55428afc054db97f17c30497abc",
+      "reviewedSha256": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21",
       "state": "awaiting-independent-review",
       "objectEvidence": [
         "PROJ05-004"
@@ -1062,10 +1080,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:65aeaa",
+          "exitCode": 0,
+          "sourceSha256": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:bf5ef5",
+          "exitCode": 0,
+          "sourceSha256": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1098,10 +1122,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1132,10 +1162,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1167,10 +1203,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1202,10 +1244,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1238,10 +1286,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1270,10 +1324,16 @@
         "status": "pending"
       },
       "validation": {
-        "format": "passed",
-        "commentOnly": "passed",
-        "diffWhitespace": "passed",
-        "formalCoordinator": "pending"
+        "format": {
+          "ticketId": "exec_command:6ceb92",
+          "exitCode": 0,
+          "sourceSha256": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09"
+        },
+        "diffWhitespace": {
+          "ticketId": "exec_command:87b76e",
+          "exitCode": 0,
+          "sourceSha256": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09"
+        }
       },
       "commit": {
         "status": "pending",
@@ -1288,10 +1348,71 @@
     "status": "pending"
   },
   "validation": {
-    "format": "passed: rustfmt --edition 2021 --config skip_children=true --check on all 10 authorized source paths (workspace edition).",
-    "commentOnly": "passed: scoped diff contains documentation comments and blank lines, including comment relocations and one wording refinement; zero executable-code changes.",
-    "diffWhitespace": "passed: git --no-optional-locks diff --check on all 10 authorized source paths; no whitespace errors (only LF-to-CRLF advisory warnings).",
-    "formalCoordinator": "pending; no build or tests run for this comment-only batch"
+    "format": "passed: nine byte-identical paths reuse the original edition-2021 check; disposition.rs was rechecked after its wording revision.",
+    "diffWhitespace": "passed: nine byte-identical paths reuse the original diff-check; disposition.rs was rechecked after its wording revision (LF-to-CRLF advisory only).",
+    "formalCoordinator": "pending; no formal coordinator receipt, build, or tests run for this documentation-only source delta.",
+    "formatNativeExit0": [
+      {
+        "nativeTool": "exec_command",
+        "chunkId": "6ceb92",
+        "exitCode": 0,
+        "command": "rustfmt --edition 2021 --config skip_children=true --check zircon_runtime_interface/src/project/engine_compatibility/assessment.rs zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs zircon_runtime_interface/src/project/engine_compatibility/disposition.rs zircon_runtime_interface/src/project/engine_compatibility/error.rs zircon_runtime_interface/src/project/engine_compatibility/mod.rs zircon_runtime_interface/src/project/engine_compatibility/version.rs zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs zircon_runtime_interface/src/project/tests/engine_compatibility.rs zircon_runtime_interface/src/project/tests/directional_range.rs",
+        "coverage": "原批次十路径检查；仅复用当前字节仍匹配的九个未变路径。",
+        "sourcePins": {
+          "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+          "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+          "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+          "zircon_runtime_interface/src/project/engine_compatibility/error.rs": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+          "zircon_runtime_interface/src/project/engine_compatibility/mod.rs": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+          "zircon_runtime_interface/src/project/engine_compatibility/version.rs": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+          "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+          "zircon_runtime_interface/src/project/tests/engine_compatibility.rs": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+          "zircon_runtime_interface/src/project/tests/directional_range.rs": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09"
+        }
+      },
+      {
+        "nativeTool": "exec_command",
+        "chunkId": "65aeaa",
+        "exitCode": 0,
+        "command": "rustfmt --edition 2021 --config skip_children=true --check zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
+        "coverage": "针对本次修订后的单一路径检查。",
+        "sourcePins": {
+          "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21"
+        }
+      }
+    ],
+    "diffNativeExit0": [
+      {
+        "nativeTool": "exec_command",
+        "chunkId": "87b76e",
+        "exitCode": 0,
+        "command": "git --no-optional-locks diff --check -- zircon_runtime_interface/src/project/engine_compatibility/assessment.rs zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs zircon_runtime_interface/src/project/engine_compatibility/disposition.rs zircon_runtime_interface/src/project/engine_compatibility/error.rs zircon_runtime_interface/src/project/engine_compatibility/mod.rs zircon_runtime_interface/src/project/engine_compatibility/version.rs zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs zircon_runtime_interface/src/project/tests/engine_compatibility.rs zircon_runtime_interface/src/project/tests/directional_range.rs",
+        "coverage": "原批次十路径检查；仅复用当前字节仍匹配的九个未变路径。",
+        "sourcePins": {
+          "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+          "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+          "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+          "zircon_runtime_interface/src/project/engine_compatibility/error.rs": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+          "zircon_runtime_interface/src/project/engine_compatibility/mod.rs": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+          "zircon_runtime_interface/src/project/engine_compatibility/version.rs": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+          "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+          "zircon_runtime_interface/src/project/tests/engine_compatibility.rs": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+          "zircon_runtime_interface/src/project/tests/directional_range.rs": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09"
+        }
+      },
+      {
+        "nativeTool": "exec_command",
+        "chunkId": "bf5ef5",
+        "exitCode": 0,
+        "command": "git --no-optional-locks diff --check -- zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
+        "coverage": "针对本次修订后的单一路径检查。",
+        "sourcePins": {
+          "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21"
+        }
+      }
+    ],
+    "sourceDeltaClass": "Rustdoc comments lower to compiler-facing #[doc = ...] attributes, so documentation tokens changed. No executable body, public signature, type layout, or macro invocation changed; this is not classified as an ordinary comments_only lane.",
+    "formalDocMacroValidation": "pending; rustdoc/doc and macro validation have not run."
   },
   "commit": {
     "status": "pending",
@@ -1304,5 +1425,7 @@
     "zircon_runtime_interface/src/project/tests/template_pack.rs is a dirty read-only caller path; its current hash/status is recorded above and it was not edited."
   ],
   "objectGroupCount": 10,
-  "objectGroupNote": "按逻辑审查组计数；每组的 members 列举组内实际类型、函数、字段或测试符号，组数不等同于文件数。"
+  "objectGroupNote": "按逻辑审查组计数；每组的 members 列举组内实际类型、函数、字段或测试符号，组数不等同于文件数。",
+  "observedHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+  "externalHeadObservation": "HEAD 观察到外部提交 1de7f1af1f86b124645acdb2743bfe9064f6da8b；baselineHead 和 beforeSha256 仍锚定初始字节，外部提交不视为本批正式验收。"
 }

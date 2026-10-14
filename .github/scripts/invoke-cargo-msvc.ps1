@@ -1,5 +1,6 @@
 param(
     [switch]$RequireMatchingTests,
+    [string]$VsDevCmdPath = '',
     [Parameter(Mandatory = $true, Position = 0)]
     [string]$Executable,
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -11,15 +12,22 @@ if ($ExecutableArguments.Count -eq 0) {
     throw 'Pass command arguments after the executable.'
 }
 
-$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
-    throw 'Visual Studio Installer vswhere.exe was not found on this CI runner.'
+if ([string]::IsNullOrWhiteSpace($VsDevCmdPath)) {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
+        throw 'Visual Studio Installer vswhere.exe was not found on this CI runner.'
+    }
+    $installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installation)) {
+        throw 'No Visual Studio installation with x64 C++ build tools is available.'
+    }
+    $devCommand = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
+} else {
+    if (-not [IO.Path]::IsPathFullyQualified($VsDevCmdPath) -or $VsDevCmdPath -match '[%"\r\n]') {
+        throw 'Pass an absolute VsDevCmd.bat path without command expansion characters.'
+    }
+    $devCommand = [IO.Path]::GetFullPath($VsDevCmdPath)
 }
-$installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installation)) {
-    throw 'No Visual Studio installation with x64 C++ build tools is available.'
-}
-$devCommand = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
 if (-not (Test-Path -LiteralPath $devCommand -PathType Leaf)) {
     throw "Visual Studio developer command environment is missing: $devCommand"
 }
@@ -38,8 +46,17 @@ foreach ($line in $environmentLines) {
     Set-Item -Path "Env:$name" -Value $value
 }
 
+if (-not $env:VSCMD_VER -or -not (Get-Command cl.exe -ErrorAction SilentlyContinue) -or -not (Get-Command link.exe -ErrorAction SilentlyContinue)) {
+    throw 'VsDevCmd did not provide the MSVC compiler and linker.'
+}
+
 if ($RequireMatchingTests) {
-    $listArguments = @($ExecutableArguments) + @('--', '--list')
+    $listArguments = @($ExecutableArguments)
+    if ($ExecutableArguments -contains '--') {
+        $listArguments += '--list'
+    } else {
+        $listArguments += @('--', '--list')
+    }
     $listing = & $Executable @listArguments 2>&1
     $listExitCode = $LASTEXITCODE
     $listing | ForEach-Object { Write-Output ([string]$_) }

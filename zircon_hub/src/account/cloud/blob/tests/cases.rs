@@ -1,16 +1,16 @@
 use super::*;
 use crate::account::tests::{broker, set_account};
 use axum::{
+    Router,
     body::Bytes,
     extract::Path,
     http::{HeaderMap, StatusCode},
     routing::{get, put},
-    Router,
 };
 use sha2::{Digest, Sha256};
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
 const ORGANIZATION: &str = "00000000-0000-4000-8000-000000000001";

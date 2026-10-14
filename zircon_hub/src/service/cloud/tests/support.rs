@@ -1,17 +1,17 @@
 use crate::service::{
-    cloud::{manifest::FileEntry, BlobStore, CloudConfig, CommitRequest, Manifest},
+    cloud::{BlobStore, CloudConfig, CommitRequest, Manifest, manifest::FileEntry},
     identity::Principal,
     organization,
     storage::Database,
     test_support::make_private_directory,
 };
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf, sync::Arc};
 use zircon_runtime_interface::project::{
-    ProjectGuid, ProjectManifestDigest, ProjectPackageLock, ProjectPackageLockAuthority,
-    ProjectPackageLockPlatform, ProjectPackageLockProject, ProjectPackageLockRuntimeMode,
-    ProjectPackageLockState, ProjectPackageLockTarget, PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1,
+    PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1, ProjectGuid, ProjectManifestDigest, ProjectPackageLock,
+    ProjectPackageLockAuthority, ProjectPackageLockPlatform, ProjectPackageLockProject,
+    ProjectPackageLockRuntimeMode, ProjectPackageLockState, ProjectPackageLockTarget,
 };
 
 pub struct Files {

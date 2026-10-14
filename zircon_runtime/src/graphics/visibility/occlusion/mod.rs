@@ -41,6 +41,12 @@ pub struct HzbOcclusionIndirectArgsReadbackSummary {
     pub compacted_draw_count: u32,
     pub zero_instance_arg_count: u32,
     pub remaining_instance_count: u32,
+    #[cfg(feature = "test-support")]
+    pub first_instances: [u32; 8],
+    #[cfg(feature = "test-support")]
+    pub first_instance_count: u8,
+    #[cfg(feature = "test-support")]
+    pub first_instances_truncated: bool,
 }
 
 impl HzbOcclusionIndirectArgsReadbackSummary {
@@ -55,6 +61,12 @@ impl HzbOcclusionIndirectArgsReadbackSummary {
             compacted_draw_count,
             zero_instance_arg_count,
             remaining_instance_count,
+            #[cfg(feature = "test-support")]
+            first_instances: [0; 8],
+            #[cfg(feature = "test-support")]
+            first_instance_count: 0,
+            #[cfg(feature = "test-support")]
+            first_instances_truncated: false,
         }
     }
 
@@ -71,6 +83,27 @@ impl HzbOcclusionIndirectArgsReadbackSummary {
         self.remaining_instance_count = self
             .remaining_instance_count
             .saturating_add(other.remaining_instance_count);
+        #[cfg(feature = "test-support")]
+        {
+            let remaining = self.first_instances.len() - usize::from(self.first_instance_count);
+            let copied = remaining.min(usize::from(other.first_instance_count));
+            let start = usize::from(self.first_instance_count);
+            self.first_instances[start..start + copied]
+                .copy_from_slice(&other.first_instances[..copied]);
+            self.first_instance_count += copied as u8;
+            self.first_instances_truncated |= other.first_instances_truncated
+                || usize::from(other.first_instance_count) > copied;
+        }
+    }
+
+    #[cfg(feature = "test-support")]
+    pub fn record_first_instances(&mut self, values: &[u32]) {
+        let remaining = self.first_instances.len() - usize::from(self.first_instance_count);
+        let copied = remaining.min(values.len());
+        let start = usize::from(self.first_instance_count);
+        self.first_instances[start..start + copied].copy_from_slice(&values[..copied]);
+        self.first_instance_count += copied as u8;
+        self.first_instances_truncated |= values.len() > copied;
     }
 }
 

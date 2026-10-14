@@ -172,7 +172,14 @@ impl PlayHierarchyProjection {
         let changed_count = if force_reflow {
             None
         } else {
-            previous.and_then(|previous| same_topology_changed_count(&previous.rows, &rows))
+            previous.and_then(|previous| {
+                if generation == previous.generation {
+                    // The same-generation guard above already established row equality.
+                    Some(0)
+                } else {
+                    same_topology_changed_count(&previous.rows, &rows)
+                }
+            })
         };
         let Some(changed_count) = changed_count else {
             let fragment = Self::reflow_fragment(
@@ -198,15 +205,17 @@ impl PlayHierarchyProjection {
         let initial_capacity = changed_rows.capacity();
         #[cfg(test)]
         let mut growth_events = 0;
-        for (previous_row, current_row) in previous.rows.iter().zip(rows.iter()) {
-            if previous_row != current_row {
-                #[cfg(test)]
-                let previous_capacity = changed_rows.capacity();
-                changed_rows.push(current_row.clone());
-                #[cfg(test)]
-                {
-                    if changed_rows.capacity() != previous_capacity {
-                        growth_events += 1;
+        if changed_count != 0 {
+            for (previous_row, current_row) in previous.rows.iter().zip(rows.iter()) {
+                if previous_row != current_row {
+                    #[cfg(test)]
+                    let previous_capacity = changed_rows.capacity();
+                    changed_rows.push(current_row.clone());
+                    #[cfg(test)]
+                    {
+                        if changed_rows.capacity() != previous_capacity {
+                            growth_events += 1;
+                        }
                     }
                 }
             }

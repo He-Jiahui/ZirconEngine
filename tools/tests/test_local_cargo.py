@@ -107,7 +107,10 @@ class LocalCargoEvidenceTests(unittest.TestCase):
     def fixture(self):
         import shutil
         import uuid
-        parent = local_cargo._evidence_output(Path(r"D:\cargo-targets\zircon-local\fixtures\local-cargo-evidence"))
+        parent = local_cargo._evidence_output(Path(os.environ.get("ZIRCON_LOCAL_CARGO_TEST_ROOT",
+            r"E:\cargo-targets\zircon-local\fixtures\local-cargo-evidence")))
+        if parent.drive.casefold() != "e:":
+            raise AssertionError("Local Cargo evidence fixtures require the registered physical E: root")
         parent.mkdir(parents=True, exist_ok=True)
         local_cargo._evidence_output(parent)
         leaf = parent / uuid.uuid4().hex
@@ -357,6 +360,12 @@ class LocalCargoEvidenceTests(unittest.TestCase):
             self.assertFalse(target.exists())
 
     def test_timeout_cli_exits_and_preserves_failure_with_real_process_terminal_oracle(self):
+        self._assert_timeout_cli(descendant=False)
+
+    def test_root_exit_does_not_hide_timeout_of_real_descendant_holding_pipes(self):
+        self._assert_timeout_cli(descendant=True)
+
+    def _assert_timeout_cli(self, *, descendant: bool):
         import sys
         import time
         with self.fixture() as (leaf, ownership):
@@ -373,17 +382,26 @@ class LocalCargoEvidenceTests(unittest.TestCase):
                 " if time.monotonic()>=deadline: raise SystemExit(9)\n"
                 " time.sleep(.02)\n"
             )
+            root = (
+                "import subprocess,sys; "
+                "subprocess.Popen([sys.executable,'-B','-X','utf8','-c',sys.argv[1],*sys.argv[2:]],close_fds=False); "
+                "print('root-exit-with-live-descendant',flush=True)"
+            )
             cli = (
                 "from pathlib import Path; import os,sys; "
                 "from tools.dev.local_cargo import _run_owned_command,_write_fact; "
                 "leaf,repo=map(Path,sys.argv[1:3]); "
-                "result=_run_owned_command([sys.executable,'-B','-X','utf8','-c',sys.argv[3],"
-                "str(leaf/'ready.json'),str(leaf/'release')],repo,dict(os.environ),leaf,5); "
+                "command=[sys.executable,'-B','-X','utf8','-c',sys.argv[3],"
+                "str(leaf/'ready.json'),str(leaf/'release')]; "
+                "command=([sys.executable,'-B','-X','utf8','-c',sys.argv[4],*command[5:]] "
+                "if sys.argv[4] else command); "
+                "result=_run_owned_command(command,repo,dict(os.environ),leaf,5); "
                 "_write_fact(leaf/'failure-result.json',result); "
                 "raise SystemExit(0 if result['processTree']['terminal'] else 2)"
             )
             process = subprocess.Popen(
-                [sys.executable, "-B", "-X", "utf8", "-c", cli, str(leaf), str(repo), blocker],
+                [sys.executable, "-B", "-X", "utf8", "-c", cli, str(leaf), str(repo),
+                 blocker, root if descendant else ""],
                 cwd=repo, env=dict(os.environ, TEMP=str(leaf), TMP=str(leaf), PYTHONDONTWRITEBYTECODE="1"),
                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
@@ -400,13 +418,37 @@ class LocalCargoEvidenceTests(unittest.TestCase):
                 api, handle = original_context.__enter__()
                 context_entered = True
                 self.assertEqual(258, api.WaitForSingleObject(handle, 0), "Original blocker must really be live")
-                self.assertEqual(2, process.wait(timeout=20), "Failed helper must allow its interpreter to exit")
+                started = json.loads((leaf / "started.json").read_text(encoding="utf-8"))
+                if descendant:
+                    self.assertNotEqual(started["pid"], original["pid"])
+                    self.assertEqual(0, self.wait_original_root(started),
+                                     "The original root must exit while its descendant remains live")
+                    self.assertEqual(258, api.WaitForSingleObject(handle, 0))
+                self.assertEqual(2, process.wait(timeout=45), "Timeout must remain a validation failure")
                 self.assertEqual(0, api.WaitForSingleObject(handle, 5000), "Original blocker process object must signal")
                 result = json.loads((leaf / "failure-result.json").read_text(encoding="utf-8"))
                 self.assertFalse(result["processTree"]["terminal"])
                 self.assertTrue(any(item["type"] == "TimeoutError" for item in result["terminalErrors"]),
                                 result["terminalErrors"])
-                self.assertTrue(all(item["closed"] for item in result["processTree"]["pipes"].values()))
+                proof = result["cleanup"]
+                self.assertTrue(proof["complete"], result)
+                self.assertEqual("timeout", proof["reason"])
+                self.assertEqual({"pid": started["pid"], "creationTime": started["creationTime"]}, proof["identity"])
+                for name in ("jobTerminationProven", "rootSignaled", "pipeEOF",
+                             "nativeWaiterJoined", "originalWaiterProven"):
+                    self.assertTrue(proof[name], (name, result))
+                self.assertFalse(proof["errors"], proof["errors"])
+                self.assertTrue(all(item["eof"] and item["closed"]
+                                    for item in result["processTree"]["pipes"].values()), result)
+                records = result["nativeJobEvidence"]["records"]
+                self.assertEqual(0, records["afterCleanup"]["activeProcesses"])
+                self.assertEqual(0, records["afterClose"]["activeProcesses"])
+                self.assertTrue(any(member["pid"] == original["pid"]
+                                    and member["creationTime"] == original["creationTime"]
+                                    and member["member"] is True for member in records["beforeCleanup"]["members"]), result)
+                if descendant:
+                    self.assertEqual(0, result["rootExitCode"])
+                    self.assertIn(b"root-exit-with-live-descendant", (leaf / "stdout.bin").read_bytes())
                 self.assertFalse(result["formalAcceptance"])
             finally:
                 # Release before any own-process kill; never target a PID lookup.
@@ -419,7 +461,6 @@ class LocalCargoEvidenceTests(unittest.TestCase):
                         if api.WaitForSingleObject(handle, 5000) != 0:
                             raise AssertionError("Original blocker is still live; fixture preserved")
                     else:
-                        # Without its original object, terminal ownership is unproven.
                         ownership["cleanup"] = False
                 except BaseException:
                     ownership["cleanup"] = False
@@ -427,6 +468,68 @@ class LocalCargoEvidenceTests(unittest.TestCase):
                 finally:
                     if context_entered:
                         original_context.__exit__(None, None, None)
+
+    def test_real_job_with_failed_pipe_eof_observation_retains_incomplete_proof(self):
+        import sys
+        from tools.jenkins.pilot.native import windows_job_process as native
+        from tools.jenkins.pilot.native.process_identity import popen_process_creation_time
+        with self.fixture() as (leaf, ownership), contextlib.ExitStack() as originals:
+            captured = []
+            factory = native.create_atomic_kill_on_close_process
+
+            class FailedRead:
+                def __init__(self, stream):
+                    self.stream = stream
+                    self.buffer = self.raw = self
+
+                def fileno(self):
+                    buffer = self.stream.buffer
+                    return getattr(buffer, "raw", buffer).fileno()
+
+                def read(self, _size):
+                    raise OSError("Injected raw pipe EOF observation failure")
+
+                def close(self):
+                    return self.stream.close()
+
+            def create(*args, **kwargs):
+                process, job = factory(*args, **kwargs)
+                try:
+                    birth = popen_process_creation_time(process)
+                    captured.append(originals.enter_context(self.original_process_handle(
+                        {"pid": process.pid, "creationTime": birth})))
+                    process.stdout = FailedRead(process.stdout)
+                    return process, job
+                except BaseException:
+                    try:
+                        native.terminate_and_close_process_job(job, timeout_seconds=10)
+                    finally:
+                        process.close()
+                    raise
+
+            try:
+                with patch.object(native, "create_atomic_kill_on_close_process", side_effect=create):
+                    result = local_cargo._run_owned_command(
+                        [sys.executable, "-B", "-X", "utf8", "-c", "pass"],
+                        leaf, dict(os.environ, TEMP=str(leaf), TMP=str(leaf)), leaf, 10)
+                self.assertEqual(1, len(captured))
+                api, handle = captured[0]
+                self.assertEqual(0, api.WaitForSingleObject(handle, 5000), result)
+                self.assertTrue(result["cleanup"]["jobTerminationProven"], result)
+                self.assertTrue(result["cleanup"]["rootSignaled"], result)
+                self.assertTrue(result["processTree"]["nativeWaiterJoined"], result)
+                self.assertEqual(0, result["nativeJobEvidence"]["records"]["afterClose"]["activeProcesses"], result)
+                self.assertFalse(result["processTree"]["pipes"]["stdout"]["eof"], result)
+                self.assertFalse(result["processTree"]["pipeEOF"], result)
+                self.assertFalse(result["cleanup"]["complete"], result)
+                self.assertFalse(result["processTree"]["terminal"], result)
+                self.assertTrue(any("Injected raw pipe EOF observation failure" in item["message"]
+                                    for item in result["terminalErrors"]), result)
+                self.assertFalse(result["formalAcceptance"])
+            finally:
+                if not captured or any(api.WaitForSingleObject(handle, 5000) != 0 for api, handle in captured):
+                    ownership["cleanup"] = False
+                    self.fail("Original native root terminal proof is incomplete; fixture preserved")
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,7 +24,7 @@ validation_status: native_and_performance_pending
 - Match the three route regressions and the quantile regression listed in `editor-core-r3-evidence.json` within the shared Editor regression arm; retain their named results.
 - Match both V1 and V2 exact ignored producers within the shared Release arm with `--ignored --nocapture --test-threads=1`.
 - Record actual P95 values. V2 must satisfy `optimized_p95_ns * 100 <= legacy_p95_ns * 60`; no such measurement or pass is claimed here.
-- Complete managed Jenkins validation and reconcile its receipt. The batch08 JSON and Markdown file handoff has been written; queue, native, and performance acceptance remain pending actual receipts.
+- Complete managed Jenkins validation and reconcile its receipt. The batch08 JSON and Markdown were written, then observed absent at their original paths during a single reconciliation. The cause is unknown; the [continuation log](../../../../../.codex/outbox/reports/optimize-20261013-01a13451/continuation-log.md) retains the write identities. Queue, native, and performance acceptance remain pending actual receipts.
 
 ## Evidence
 

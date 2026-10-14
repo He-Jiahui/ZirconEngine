@@ -64,7 +64,10 @@ function Get-TaskCommittedDesktopRuntime {
     $taskHost = Read-TaskDesktopRecord (Join-Path $taskRepository '.jenkins\state\deployment\host.json')
     if (-not $taskSelected -or -not $taskOperation -or -not $taskHost -or
         $taskOperation.state -cne 'running' -or $taskHost.status -cne 'running' -or
-        -not (Test-TaskReleaseReference $taskSelected.recoveryRelease)) { return $null }
+        -not $taskSelected.recoveryRelease.path -or -not $taskSelected.recoveryRelease.sha256 -or
+        $taskSelected.recoveryRelease.path -cne $taskDescriptor.runtime.selected.recoveryRelease.path -or
+        $taskSelected.recoveryRelease.sha256 -cne $taskDescriptor.runtime.selected.recoveryRelease.sha256 -or
+        (-not (Test-TaskReleaseReference $taskSelected.recoveryRelease) -and -not $taskReleaseDocument.lostRecoveryRuntime)) { return $null }
     $taskRuntimeId = $taskSelected.runtimeOperationId
     if (-not $taskRuntimeId -or $taskOperation.operationId -cne $taskRuntimeId -or $taskOperation.generation -cne $taskRuntimeId -or
         $taskHost.operationId -cne $taskRuntimeId -or $taskHost.generation -cne $taskRuntimeId -or

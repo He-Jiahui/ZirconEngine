@@ -295,6 +295,31 @@ Graph owner-lifetime静态候选覆盖prelaunch与dispatcher runner submission�
 
 ### 2026-10-13 R4回复与当前公开执行能力待验收
 
-见[执行流7.46](2026-10-04-architecture-audit-flow.md)及[R4监视器回复](../../../.jenkins/records/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.monitor-response-20261013T102109Z.json)。消息指纹匹配，状态`prepared-not-submitted-public-entry-pin-changed`，不等于指定recipient ACK或native接纳；原App compile/cleanup a1及receiver历史保持。84d所选single/batch正文均使用准备池cwd，sourceView=checkout仅输入选择；无实际checkout执行或源码副本。公开local-cargo也直接拒绝独立/evidence参数，不能用私有helper替代原请求。入口、driver/runtime、scope迁移及真正checkout模式仍待合法owner完成，当前未提交、编译或测试。
+见[执行流7.46](2026-10-04-architecture-audit-flow.md)及[R4监视器回复](../../../.jenkins/state/records-queue/archive/3c138524391989e2a185645aa4d28a0ba18011be88cf7b1e8bb7c64e59387863/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.monitor-response-20261013T102109Z.json)。消息指纹匹配，状态`prepared-not-submitted-public-entry-pin-changed`，不等于指定recipient ACK或native接纳；原App compile/cleanup a1及receiver历史保持。84d所选single/batch正文均使用准备池cwd，sourceView=checkout仅输入选择；无实际checkout执行或源码副本。公开local-cargo也直接拒绝独立/evidence参数，不能用私有helper替代原请求。入口、driver/runtime、scope迁移及真正checkout模式仍待合法owner完成，当前未提交、编译或测试。
 
 [当前关闭阅读](2026-10-13-shutdown-ownership-current-audit.md)的a66／282行切片及随后9e文字增量均经三Luna按范围独立复核，无阻断；79唯一source pin、68生产全文/14238行、7部分/969行、4测试全文/1037行已核。本轮将真实PAM/watcher安装、partial-startup与ready错误用例前提写清，App Library edge不推广未读gateway；图仍保留App退出/failed-startup外层待证。后续补读另记范围，未增加生产修复、native/产品/性能/模块验收或已验收账本。25个历史产物缺失保留开放；供给/失败/共享/未知产物保留，Root释放0 B，goal与清理active。
+
+### R5当前状态与关闭调用链待动态验收
+
+当前main HEAD1de7f1af1f86b124645acdb2743bfe9064f6da8b；原六叶App/Input pin匹配，完整compiler输入封存仍未通过。SourceDoc §10的93a59041／58272 B/363行切片增量三路复核通过，当前e06e0ba1／58343 B/363行仅两句状态归档。84生产全文、5部分、4测试全文和93引擎pin；外部3pin/774部分正文单列。Win32普通返回handler撤销链静态闭合，panic下游、真实线程/Library关闭与行为回归仍开放。
+
+R5已在指定records目录创建并读回，SHA b4cb3ec933af53ce77bded0386b1d003bcad248be371633656dc3e84583f1072／6723 B/42行；当前不具聊天ACK、matching reply或native提交。新0f4040 capsule的普通single/batch同旧runner/source字节，仍prepared pool cwd，actual-checkout缺口未修；由正常provider owner在原A1/receiver31记录内核入口/grant/输入/真实产物和六叶消费者，执行原App编译与聚焦回归。
+
+R4及monitor两个原路径当前FileNotFound，归档位置/原因未证；扩大文件名定位遇拒绝访问且无可判定候选，不据此称全树无记录。历史投递/匹配回复与此前25缺失href保留旧时点，本次两项证据缺口保持开放。当前native/产品/性能验收仍0，Root释放0 B并保留供给/失败/共享/未知产物；goal及清理active。
+
+
+### 2026-10-14 原请求输入与actual-checkout执行契约仍待闭合
+
+见[执行流7.48](2026-10-04-architecture-audit-flow.md)和[源码记录11–12](2026-10-13-shutdown-ownership-current-audit.md)。§11的f0898b4e切片三路复核无阻断：95引擎pin，85生产全文、5部分、5测试全文；本轮records/工具阅读不增加引擎覆盖。R4与R5消息已精确定位归档；R5状态回应的intakeAccepted=false和后续受理receipt的true分别保留，formal/native均未接受，指定聊天ACK未证。
+
+原task State version35仍waiting。两个原formal DTO仍App测试旧hash f263bc47（实际0fd942d2）及三个旧runtime_absorption消费者路径；实际六叶pin已重核，当前src/tests/contracts迁移scope与完整compiler/external zr_vm HEAD/index seal仍须正规provider协调。selected formal实现明确复制源码、固定prepared cwd且以recipe_cwd_unsealed拒绝live checkout；须由合法owner完成贯通source/metadata/planner/pool/host的实际checkout契约，保持批准产物根与原身份，不以私有helper或新请求替代。
+
+R6登记为原App A1/cleanup A1、receiver31的具体补充交接；原session、repoID76b56a19e17c4b8203865215a6d1c078、attempts2/8/14/23/26和失败证据保留。当前main d588b90c仅追加frontend测试提交，R6当前六个checkout pin再次匹配，原formal DTO差异待协调；指针变动不等于runtime能力。Luna45DTO已限定复核本节d9caede7切片，无阻断；本次仅更新措辞和复核状态；MVP00/F0及之后门槛继续pending，Root本批次native/产品/性能样本和释放空间0，供给/失败/共享/未知产物保留。仅更新已核消息归档链接，未关闭全部历史缺失href；goal和清理active。
+
+#### R6受理与当前路线补充
+
+[源码记录12.4](2026-10-13-shutdown-ownership-current-audit.md)与[执行流7.49](2026-10-04-architecture-audit-flow.md)记录实际归档和followup36回执：R6字节3c071557／7936 B/51行匹配，intake=true、formal/native=false、newNativeRequest=false；原task version36仍waiting，原A1因external HEAD/index输入登记pending，App旧hash与三个迁移scope需owner协调。新的ordinary capsule报告actual-checkout continuous-read路线，canonical formal仍prepared-source；metadata、受理、静态读取均不构成native/product/performance验收。新World/render/Gateway限定M0文档已在registry15预登记，源码正文结果待整合/独立复核；本批Rust实施、native、产品、性能样本与释放空间均0，MVP00/F0及之后门槛保持开放。
+
+### 2026-10-14 World、渲染与Gateway局部M0记录
+
+[当前限定架构阅读](2026-10-14-world-render-gateway-current-audit.md)与[执行流7.50](2026-10-04-architecture-audit-flow.md)：31生产pin/6273去重正文行、6测试pin/353行；整个模块、全引擎M0和动态验收未完成。EA46-WORLD-001重复entities反序列化panic只经两方静态根因复核，待有效fixture与产品load可达性证明；兼容World clone、恢复扫描频率、多view LOD合同、Gateway重入/线程/输出诊断仍开放。已存在fixed-origin operation route，初步产品P1定级撤回，consumer用法待核。新文档6ab8fc1e切片三路复核通过；本条d86f2c6d切片经Luna45Archive限定复核通过，本次仅更新行政状态；F0原A1输入/迁移scope/执行协调仍优先，后续实现遵守MVP门槛。Root本批Rust/native/产品/性能样本和释放空间均0；已验收账本不增。

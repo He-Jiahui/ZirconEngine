@@ -2,6 +2,14 @@ use std::path::{Path, PathBuf};
 
 use super::{viewer_test_artifact_root, ViewerWorkPaths};
 
+struct TestArtifactDirectory(PathBuf);
+
+impl Drop for TestArtifactDirectory {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
 #[test]
 fn viewer_work_paths_keep_project_and_default_ibl_cache_under_the_work_root() {
     let paths = ViewerWorkPaths::new(Path::new("E:/viewer-work"), None);
@@ -35,6 +43,34 @@ fn explicit_ibl_cache_directory_overrides_the_work_root_default() {
         paths.ibl_cache_root(),
         PathBuf::from("E:/dedicated-ibl-cache")
     );
+}
+
+#[test]
+fn renderdoc_capture_parent_is_prepared_for_first_run() {
+    let fixture_root = std::env::var_os("ZIRCON_VIEWER_TEST_ARTIFACT_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let sequence =
+        super::VIEWER_TEST_ARTIFACT_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let root = fixture_root.join(format!(
+        "viewer-renderdoc-first-run-{}-{sequence}",
+        std::process::id()
+    ));
+    let _cleanup = TestArtifactDirectory(root.clone());
+    let work_dir = root.join("work");
+    std::fs::create_dir_all(&work_dir).expect("registered first-run work directory is created");
+    let paths = ViewerWorkPaths::new(&work_dir, None);
+    let capture_parent = paths
+        .renderdoc_capture_template()
+        .parent()
+        .expect("capture template has a parent");
+    assert!(!capture_parent.exists());
+
+    paths
+        .prepare_renderdoc_capture_template()
+        .expect("first-run capture parent should be created and validated");
+
+    assert!(capture_parent.is_dir());
 }
 
 #[test]

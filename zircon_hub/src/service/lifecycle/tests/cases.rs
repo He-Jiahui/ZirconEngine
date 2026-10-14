@@ -1,7 +1,7 @@
 use super::*;
 use crate::service::storage::Database;
 use std::sync::{Arc, Condvar, Mutex};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 struct ReleaseOnDrop(Arc<(Mutex<bool>, Condvar)>);
 

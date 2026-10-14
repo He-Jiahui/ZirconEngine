@@ -1,0 +1,535 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "text-envelope-read-009",
+  "owner": "/root/public_serialization",
+  "checkout": {
+    "path": "E:/Git/ZirconEngine",
+    "branch": "main",
+    "head": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef"
+  },
+  "assignment": {
+    "head": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "coverageLedger": "docs/tests/source-comment-review-coverage-03.json",
+    "coverageLedgerSha256": "7b5bfa8e09e827294fa40724610b97e6a32c0b015a6ba4bfc2b8952458a29342",
+    "coverageRevision": 14,
+    "grant": "Root formally authorized exactly the seven listed sources and this unique evidence path; all other source, ledger, and evidence paths remain read-only.",
+    "initialStatus": "Root verified all seven source paths clean and their physical SHA256 pins matched the registered initial pins.",
+    "evidencePath": "docs/tests/source-comment-review-evidence-text-envelope-read-009.json"
+  },
+  "state": "ready_for_independent_review",
+  "scope": [
+    "zircon_runtime_interface/src/serialization/text/mod.rs",
+    "zircon_runtime_interface/src/serialization/text/wire.rs",
+    "zircon_runtime_interface/src/serialization/text/envelope.rs",
+    "zircon_runtime_interface/src/serialization/text/document.rs",
+    "zircon_runtime_interface/src/serialization/text/read.rs",
+    "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs",
+    "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs"
+  ],
+  "changeClassification": {
+    "summary": "Seven-source Chinese documentation insertion for the versioned text envelope and its reader contracts; no behavior or API change.",
+    "sourceDelta": "Scoped raw diff contains 54 added documentation lines and zero removed lines. Definitions, expressions, branches, Serde configuration, strings, and assertions are unchanged.",
+    "declarationsAndBehavior": "Only Rust //! and /// documentation attributes were added. The new doc attributes are visible to derive macros; this record does not claim macro inputs are unchanged. Existing derive invocations and explicit Serde attributes are unchanged.",
+    "existingComments": "All baseline English documentation and the existing Chinese inline comment in read.rs are retained.",
+    "lineEndings": "All seven before and after files are LF-only with zero CRLF and no BOM; physical line-ending counts were read from file bytes.",
+    "unresolved": []
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/mod.rs",
+      "beforeSha256": "db48fd8d1b9a77f039119052a2bd93c430bea2fffd6b50521206d43cb88dc2f5",
+      "afterSha256": "2d5e7a01ee621f86ca6b372d11e96f43b7275dd68bfbc41baa620975572320bc",
+      "beforeBytes": 426,
+      "afterBytes": 620,
+      "beforeLineCount": 16,
+      "afterLineCount": 19,
+      "beforeLineEndingCounts": { "LF": 16, "CRLF": 0, "BOM": false },
+      "finalLineEndingCounts": { "LF": 19, "CRLF": 0, "BOM": false },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Insertion-only diff; all original path declarations and bytes remain in place.",
+      "objectEvidence": [
+        {
+          "object": "text module documentation",
+          "entered": "serialization/mod.rs privately registers the text module; its callers are the serialization load and write paths.",
+          "status": "Added a Chinese overview of envelope recognition, borrowed reads, canonical output, and the parent loader's explicit unversioned policy.",
+          "impact": "Clarifies module responsibility and boundary; no edge or visibility changed."
+        },
+        {
+          "object": "private path-bound child modules",
+          "entered": "The module binds canonical, canonical_map_key, canonical_spool, canonical_writer, document, envelope, read, and wire through static path attributes.",
+          "status": "Reviewed all eight registrations; no runtime registry, dynamic registration, or FFI entry is present here.",
+          "impact": "All paths, attributes, and visibilities are unchanged."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/wire.rs",
+      "beforeSha256": "69ffd564688a36f130e9c8c23c52a925d7f1981e9c052a35660351bc487ac63e",
+      "afterSha256": "216534ee17a313a768ca18def0ba5f54589f7186d67e5d501f3704f9b33c3b6d",
+      "beforeBytes": 159,
+      "afterBytes": 334,
+      "beforeLineCount": 2,
+      "afterLineCount": 4,
+      "beforeLineEndingCounts": { "LF": 2, "CRLF": 0, "BOM": false },
+      "finalLineEndingCounts": { "LF": 4, "CRLF": 0, "BOM": false },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Insertion-only diff; the 64 MiB constant and its original English documentation are unchanged.",
+      "objectEvidence": [
+        {
+          "object": "MAX_TEXT_DOCUMENT_BYTES",
+          "entered": "load_text_versioned checks the complete text input before inspect_text; canonical_writer::write_canonical_text uses this fixed limit for versioned text output.",
+          "status": "Added a Chinese boundary note: the fixed cap belongs to versioned text documents; write_canonical_text_to uses the caller's SerializationBudget. The raw-writer distinction is also asserted by the read-only write_contract test.",
+          "impact": "No constant value or call changed; the note does not generalize the cap to raw archive output."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/envelope.rs",
+      "beforeSha256": "6b6355e35e2bac23fa28a3eee5f63ff90a0a56ca9889f9143342256896a3a657",
+      "afterSha256": "29fb15a1cc0d3d0a8329d5ef8922edece74295908358683c370725f4edd03a5b",
+      "beforeBytes": 340,
+      "afterBytes": 728,
+      "beforeLineCount": 10,
+      "afterLineCount": 14,
+      "beforeLineEndingCounts": { "LF": 10, "CRLF": 0, "BOM": false },
+      "finalLineEndingCounts": { "LF": 14, "CRLF": 0, "BOM": false },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Insertion-only diff; both fields, the lifetime, and Serialize derive are unchanged.",
+      "objectEvidence": [
+        {
+          "object": "TextEnvelope<'a, T>",
+          "entered": "write_versioned_text_to constructs this current-version envelope with current_header::<T>() and the borrowed payload, then passes TextDocument to write_canonical_text.",
+          "status": "Added Chinese context for the $zircon outer placement, write-path ownership, and the fact that this structure describes serialization shape rather than validating schema or payload.",
+          "impact": "No field, generic, lifetime, derive, or caller changed."
+        },
+        {
+          "object": "TextEnvelope.header",
+          "entered": "The field is PayloadHeader; the versioned writer constructs it from the target VersionedSchema.",
+          "status": "Added a field note identifying schema and version metadata.",
+          "impact": "The field type and ownership remain unchanged."
+        },
+        {
+          "object": "TextEnvelope.payload",
+          "entered": "write_versioned_text_to stores the original &T and the canonical serializer writes it synchronously; the write contract checks the current text path does not first build a serde_json::Value.",
+          "status": "Added a field note about the borrow lasting through synchronous output and no intermediate owned Value materialization.",
+          "impact": "The existing &'a T borrow and serialization behavior are unchanged."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/document.rs",
+      "beforeSha256": "23aeaeb53068fc49a06a69f2522859717035bf6f6ea9bd4c9c4db7b5164445fc",
+      "afterSha256": "bf75dade35a3a83aeeb19b78dd2d73b9ff64a245dbf858d5965c76e61065c4e7",
+      "beforeBytes": 332,
+      "afterBytes": 576,
+      "beforeLineCount": 10,
+      "afterLineCount": 13,
+      "beforeLineEndingCounts": { "LF": 10, "CRLF": 0, "BOM": false },
+      "finalLineEndingCounts": { "LF": 13, "CRLF": 0, "BOM": false },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Insertion-only diff; the field rename and derived serialization remain unchanged.",
+      "objectEvidence": [
+        {
+          "object": "TextDocument<'a, T>",
+          "entered": "write_versioned_text_to wraps TextEnvelope in this value immediately before canonical serialization.",
+          "status": "Added Chinese explanation of the top-level $zircon wire shape and that this wrapper does not perform envelope or payload validation.",
+          "impact": "No type, lifetime, derive, or serialization path changed."
+        },
+        {
+          "object": "TextDocument.envelope and serde rename",
+          "entered": "The field is serialized under the reserved $zircon key and contains TextEnvelope.",
+          "status": "Added a field note for the reserved outer key; the existing serde(rename) remains the source of that wire name.",
+          "impact": "No Serde attribute or field value changed."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/read.rs",
+      "beforeSha256": "c815d9f930573fdd0273add45a66adfb675a10d2604f563395564ee26e7b4c39",
+      "afterSha256": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+      "beforeBytes": 3283,
+      "afterBytes": 5823,
+      "beforeLineCount": 102,
+      "afterLineCount": 131,
+      "beforeLineEndingCounts": { "LF": 102, "CRLF": 0, "BOM": false },
+      "finalLineEndingCounts": { "LF": 131, "CRLF": 0, "BOM": false },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Insertion-only diff; all parsing branches, Serde attributes, error mappings, and the existing Chinese comment remain unchanged.",
+      "objectEvidence": [
+        {
+          "object": "read module documentation",
+          "entered": "load_text_versioned is the sole production caller of inspect_text; the reader is a private text-module child.",
+          "status": "Added the RawValue-based recognition role and clarified that object probing still scans JSON syntax while deferring payload type decoding.",
+          "impact": "No module reachability changed."
+        },
+        {
+          "object": "BorrowedTextEnvelope<'a> and header field",
+          "entered": "RawTextEnvelope deserializes the header to PayloadHeader, then inspect_text returns this value to load_text_versioned for schema/version checks.",
+          "status": "Documented the metadata handoff and that schema identity/version policy is completed by the loader.",
+          "impact": "No type or field changed."
+        },
+        {
+          "object": "BorrowedTextEnvelope.payload field and lifetime",
+          "entered": "RawTextEnvelope borrows &'a RawValue from input bytes; current-version loading calls serde_json::from_str::<T>(payload.get()), while migration first creates an owned Value.",
+          "status": "Documented the input-bound borrow and the two downstream uses. load_text_versioned requires DeserializeOwned and returns Loaded<T> without the input lifetime.",
+          "impact": "The raw payload is not materialized as T or Value during recognition; borrow and decode order are unchanged."
+        },
+        {
+          "object": "TextInput<'a> and variants",
+          "entered": "inspect_text returns Envelope only after full version-header signature recognition and strict parsing; otherwise it may return Unversioned.",
+          "status": "Documented the borrowed envelope variant and that Unversioned is subsequently accepted as schema zero or rejected according to the load entry policy.",
+          "impact": "No variant or policy branch changed."
+        },
+        {
+          "object": "TextReadError and variants",
+          "entered": "The outer EnvelopeProbe deserialization maps to Malformed; parsing the extracted $zircon candidate in claims_version_header or the strict document/envelope maps to InvalidEnvelope. load.rs::text_read_error preserves these as distinct LoadError variants.",
+          "status": "Documented the actual phase boundary. Malformed can include top-level syntax or deserializer errors such as a duplicate top-level reserved key; InvalidEnvelope covers errors while probing/parsing an extracted candidate.",
+          "impact": "Error construction and public mapping are unchanged."
+        },
+        {
+          "object": "EnvelopeProbe<'a>",
+          "entered": "inspect_text deserializes the whole object into an optional borrowed RawValue under the $zircon key before deciding whether it is versioned.",
+          "status": "Documented the reserved-key probe and raw-value handoff; default Serde behavior leaves unrelated fields outside this probe structure.",
+          "impact": "No rename, default, borrow attribute, or derive changed."
+        },
+        {
+          "object": "EnvelopeHeaderProbe<'a>",
+          "entered": "claims_version_header parses the extracted envelope object into an optional borrowed header value.",
+          "status": "Documented that missing header returns None and is not a full version signature.",
+          "impact": "No Serde configuration or branch changed."
+        },
+        {
+          "object": "HeaderSignatureProbe<'a>",
+          "entered": "claims_version_header parses the header object into optional raw schema_id and schema_version values and returns true only when both keys are present.",
+          "status": "Documented presence-only signature detection; value types/contents are checked by the strict PayloadHeader parse, not this probe.",
+          "impact": "No fields, defaults, borrow attributes, or signature predicate changed."
+        },
+        {
+          "object": "RawTextDocument<'a>",
+          "entered": "After claims_version_header returns true, inspect_text strictly deserializes the outer object with deny_unknown_fields.",
+          "status": "Documented strict outer-field rejection after signature detection.",
+          "impact": "No derive or deny_unknown_fields attribute changed."
+        },
+        {
+          "object": "RawTextEnvelope<'a>",
+          "entered": "inspect_text deserializes the extracted envelope value with deny_unknown_fields; its header is PayloadHeader and payload is borrowed RawValue.",
+          "status": "Documented strict envelope structure and raw payload borrowing.",
+          "impact": "No field type, borrow attribute, or strictness changed."
+        },
+        {
+          "object": "inspect_text(bytes) control-flow block",
+          "entered": "Called by load_text_versioned after the total input-size check and before schema/version validation.",
+          "status": "Reviewed each branch: non-object input returns Unversioned; outer probe errors map to Malformed; absent or incomplete signature returns Unversioned; candidate-probe and strict parse errors map to InvalidEnvelope; only a successful strict parse returns the borrowed header/payload pair. Added usage, lifetime, return, and error-boundary docs.",
+          "impact": "No branch, parse order, fallback policy, or error mapping changed. A recognized strict-envelope error is never downgraded to legacy input."
+        },
+        {
+          "object": "claims_version_header(envelope) control-flow block",
+          "entered": "Called only after the top-level probe extracted $zircon; its errors are mapped by inspect_text to InvalidEnvelope.",
+          "status": "Reviewed object checks, optional header handling, header-object check, and both-key presence predicate; documented that it does not validate the signature values.",
+          "impact": "No predicate or error path changed."
+        },
+        {
+          "object": "first_non_whitespace(bytes) block",
+          "entered": "Called before outer probing and for extracted envelope/header values to choose the object-probe path.",
+          "status": "Documented ASCII-whitespace scanning and that it is only a leading-byte check, not JSON validation.",
+          "impact": "No byte predicate or iteration changed."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs",
+      "beforeSha256": "eca827a70007c9773a3ea5e3424754eb749cdf515c2485cee0cb9858a5ae8090",
+      "afterSha256": "1b1110e1f6ca1693ca832e902c0b15a9d8fc980df970a969387639cbc65777b8",
+      "beforeBytes": 1429,
+      "afterBytes": 1906,
+      "beforeLineCount": 41,
+      "afterLineCount": 47,
+      "beforeLineEndingCounts": { "LF": 41, "CRLF": 0, "BOM": false },
+      "finalLineEndingCounts": { "LF": 47, "CRLF": 0, "BOM": false },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Insertion-only diff; fixtures, calls, and assertions are unchanged.",
+      "objectEvidence": [
+        {
+          "object": "legacy_detection test module",
+          "entered": "Registered by serialization/tests/mod.rs; all cases use load_versioned_legacy_schema_zero::<FixtureDocument>(..., Format::Text).",
+          "status": "Documented the narrow legacy compatibility boundary and explicitly noted that partial version headers and duplicate-key behavior are not covered by these cases.",
+          "impact": "No fixture, loader call, or assertion changed."
+        },
+        {
+          "object": "unwrapped_v0_payload_may_own_a_domain_field_named_payload",
+          "entered": "Loads an unwrapped object with a domain field named payload through the explicit schema-zero text loader.",
+          "status": "Documented that the field name alone does not claim the reserved envelope.",
+          "impact": "The test still checks migrated value and migrated_from=Some(0)."
+        },
+        {
+          "object": "unwrapped_v0_payload_may_own_header_and_payload_domain_fields",
+          "entered": "Loads unwrapped header and payload domain fields with no reserved $zircon envelope.",
+          "status": "Documented that header/payload names alone are ordinary legacy data.",
+          "impact": "No test data or assertion changed."
+        },
+        {
+          "object": "unwrapped_v0_payload_may_own_a_domain_field_named_zircon",
+          "entered": "Loads a non-object string in the $zircon business field via the schema-zero loader.",
+          "status": "Documented that this non-envelope value remains legacy data.",
+          "impact": "No test data or assertion changed."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs",
+      "beforeSha256": "a5943e129ef0a6b9760d33f3538055122fd3010a875c5e4d9fc871681c72472e",
+      "afterSha256": "e7e82f2cf328a35d9ce9295c33658539f934c719a75c8f3977c75121f8a68137",
+      "beforeBytes": 2731,
+      "afterBytes": 3319,
+      "beforeLineCount": 98,
+      "afterLineCount": 105,
+      "beforeLineEndingCounts": { "LF": 98, "CRLF": 0, "BOM": false },
+      "finalLineEndingCounts": { "LF": 105, "CRLF": 0, "BOM": false },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Insertion-only diff; test inputs, calls, and assertions are unchanged.",
+      "objectEvidence": [
+        {
+          "object": "malformed_contract test module",
+          "entered": "Registered by serialization/tests/mod.rs and invoked through public load_versioned in Format::Text.",
+          "status": "Documented the tested distinction among syntax failure, claimed-envelope structure failure, and payload type failure; noted the tests do not exhaust malformed or duplicate-key shapes.",
+          "impact": "No test harness or behavior changed."
+        },
+        {
+          "object": "malformed_json_and_malformed_envelope_have_distinct_errors",
+          "entered": "Feeds invalid JSON and a complete schema/version signature with a missing payload through load_versioned.",
+          "status": "Documented the malformed-text versus invalid-envelope contract.",
+          "impact": "The existing two error assertions remain unchanged."
+        },
+        {
+          "object": "current_payload_decode_failure_reports_schema_and_version",
+          "entered": "Supplies a current-version envelope whose payload field has the wrong type.",
+          "status": "Documented that the result is PayloadDecode carrying schema identity and version.",
+          "impact": "No encoded input or assertion changed."
+        },
+        {
+          "object": "envelope_header_rejects_unknown_fields",
+          "entered": "Adds an unsupported header field to a complete versioned text envelope.",
+          "status": "Documented strict header-field rejection.",
+          "impact": "No fixture or assertion changed."
+        },
+        {
+          "object": "envelope_rejects_outer_fields_without_reclassifying_it_as_legacy",
+          "entered": "Adds an outer field beside a complete $zircon envelope and loads through the versioned API.",
+          "status": "Documented strict outer-field rejection and preservation of the no-fallback rule.",
+          "impact": "No fixture or assertion changed."
+        }
+      ]
+    }
+  ],
+  "callerPinsCount": 10,
+  "callerPins": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "bytes": 1689,
+      "lineCount": 53,
+      "symbols": "private text module registration and public serialization re-exports",
+      "contract": "Defines the parent routing and exposed load/write APIs; read-only and held by serialization-005.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "bytes": 11575,
+      "lineCount": 278,
+      "symbols": "load_versioned, load_versioned_legacy_schema_zero, load_text_versioned, text_read_error",
+      "contract": "Sole production caller of inspect_text; checks MAX_TEXT_DOCUMENT_BYTES before parsing, selects Reject versus AcceptSchemaZero, validates schema/source version before payload, decodes current payload directly from RawValue and makes migration payload owned; maps read errors to distinct LoadError variants. Read-only and held by serialization-005.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/write.rs",
+      "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+      "bytes": 13316,
+      "lineCount": 466,
+      "symbols": "write_versioned_text_to, current_header, write_canonical_text_to",
+      "contract": "Builds TextDocument/TextEnvelope from current_header::<T>() and &T; raw canonical output routes caller-provided SerializationBudget separately. Read-only under the current grant.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/payload_header.rs",
+      "sha256": "24de8fdb868a92f7176e78d154636d52361d2e6621626f31f5bc5e7a004882da",
+      "bytes": 977,
+      "lineCount": 22,
+      "symbols": "PayloadHeader, SchemaId, serde Deserialize and deny_unknown_fields",
+      "contract": "Provides the typed schema_id/schema_version header; strict field and value parsing precedes load-level target identity/version checks. Read-only and held by serialization-005.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/loaded.rs",
+      "sha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
+      "bytes": 1014,
+      "lineCount": 19,
+      "symbols": "Loaded<T>",
+      "contract": "Returned load result owns T and migration metadata; it does not retain the input RawValue lifetime. Read-only and held by serialization-005.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/error.rs",
+      "sha256": "77f6bd3e24d67c8c6bdabedb08c996a8fcd20b4979b08101f9d9993455a24543",
+      "bytes": 2114,
+      "lineCount": 56,
+      "symbols": "LoadError::MalformedText, LoadError::InvalidEnvelope, LoadError::PayloadDecode",
+      "contract": "Stable outer error categories receiving the text_read_error mapping and typed payload decode failure; read-only under the current grant.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "497341e9ea1ad82fed314704cff7ae97b982f80fefa8c1a38cc73f87adbc12a3",
+      "bytes": 2161,
+      "lineCount": 67,
+      "symbols": "legacy_detection and malformed_contract path registrations; FixtureDocument VersionedSchema fixture",
+      "contract": "Registers the two candidate test modules and supplies their versioned migration fixture; read-only under the current grant.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "sha256": "8c15c7910534bbaef2357b0beef35e837e552ed680aab3ff25fc3f15134683fa",
+      "bytes": 8782,
+      "lineCount": 291,
+      "symbols": "text_reader_rejects_an_input_larger_than_the_wire_budget_before_parsing, unwrapped legacy policy tests",
+      "contract": "Held tests confirm input-size rejection before parser entry and distinguish legacy-accepting from envelope-only/versioned entry policy. Read-only and held by serialization-005.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "sha256": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+      "bytes": 27787,
+      "lineCount": 899,
+      "symbols": "text_writer_rejects_a_document_larger_than_the_reader_limit, raw_streaming_writer_uses_its_explicit_archive_budget",
+      "contract": "Confirms the fixed text cap for versioned documents and the distinct explicit budget for raw canonical output. This file is read-only and currently modified under binary-envelope-007 ownership.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical_writer.rs",
+      "sha256": "b512879570b2da9f67d7546ee745f3c5dc8b1de24a4384fa7fae4e5ae7e40c28",
+      "bytes": 26221,
+      "lineCount": 799,
+      "symbols": "write_canonical_text, write_canonical_text_with_budget",
+      "contract": "Direct consumer of MAX_TEXT_DOCUMENT_BYTES for versioned output; write_canonical_text_with_budget uses an explicit budget. Proposed canonical batch only; read-only and not part of this grant.",
+      "editGrant": false
+    }
+  ],
+  "callGraphAndContract": {
+    "registration": "serialization/mod.rs privately exposes text; text/mod.rs uses static path-bound child modules. serialization/tests/mod.rs statically registers the two tests. Derive(Serialize/Deserialize) and serde field attributes define the wire shape; no runtime registry, dynamic dispatch registration, or FFI route was found for these paths.",
+    "writer": "write_versioned_text_to constructs TextEnvelope { header: current_header::<T>(), payload: value }, wraps it in TextDocument under serde(rename = \"$zircon\"), and calls write_canonical_text. Raw write_canonical_text_to instead forwards SerializationBudget to write_canonical_text_with_budget.",
+    "reader": "load_versioned and load_versioned_legacy_schema_zero pass Reject or AcceptSchemaZero to load_text_versioned. It rejects oversized input before inspect_text; for Envelope it validates target schema and source version before reading payload. Current version parses payload.get() directly as T; older version materializes owned serde_json::Value and migrates.",
+    "rawValueLifetime": "EnvelopeProbe, EnvelopeHeaderProbe, HeaderSignatureProbe, RawTextDocument, and RawTextEnvelope borrow RawValue from the input bytes. inspect_text returns that borrow with its input lifetime. load_text_versioned consumes it synchronously and returns Loaded<T> with no input lifetime; no raw slice escapes.",
+    "signatureAndDamageBoundary": "A non-object, absent $zircon, non-object envelope/header, or missing either schema_id/schema_version key yields Unversioned. The signature probe checks key presence only; typed header validation follows. Top-level EnvelopeProbe deserialization errors map to Malformed (including syntax or duplicate top-level reserved-key errors); failures while probing/parsing an extracted $zircon candidate map to InvalidEnvelope. A complete signature enters strict deny_unknown_fields structures; later structure errors do not fall back to legacy.",
+    "testCoverage": "legacy_detection covers unwrapped payload, header+payload domain names, and non-object $zircon string with schema-zero migration. malformed_contract covers invalid JSON versus complete-signature missing payload, typed current-payload failure carrying schema/version, unknown header fields, and extra outer field rejection. load_contract separately covers the size-before-parse check and legacy policy. Tests do not cover partial version headers, duplicate-key matrices, or RawValue lifetime directly; these are recorded coverage limits, not findings.",
+    "scopeExclusions": "load.rs, write.rs, serialization/error.rs, serialization/mod.rs, payload_header.rs, loaded.rs, load_contract.rs, write_contract.rs, and canonical_writer.rs are read-only caller/test evidence and are not edited by this batch."
+  },
+  "patchObservations": [
+    {
+      "wrapperCell": "151",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/text/mod.rs",
+        "zircon_runtime_interface/src/serialization/text/wire.rs",
+        "zircon_runtime_interface/src/serialization/text/envelope.rs",
+        "zircon_runtime_interface/src/serialization/text/document.rs",
+        "zircon_runtime_interface/src/serialization/text/read.rs",
+        "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs",
+        "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs"
+      ],
+      "result": "functions.apply_patch completed and returned an empty object; subsequent source diff and physical readback confirmed all seven additions. The tool exposes no native child/session identifier."
+    },
+    {
+      "wrapperCell": "155",
+      "paths": ["zircon_runtime_interface/src/serialization/text/read.rs"],
+      "result": "Refined inspect_text usage/lifetime/return documentation; functions.apply_patch completed with an empty object."
+    },
+    {
+      "wrapperCell": "167",
+      "paths": ["zircon_runtime_interface/src/serialization/text/read.rs"],
+      "result": "Corrected error-category wording to include top-level duplicate reserved-key deserialization and distinguish extracted-envelope probe errors; functions.apply_patch completed with an empty object."
+    }
+  ],
+  "pendingCorrections": [],
+  "issueIds": { "new": [], "preserved": [] },
+  "validation": {
+    "rustfmt": {
+      "command": "C:\\Users\\HeJiahui\\.cargo\\bin\\rustfmt.exe --check --edition 2021 --config skip_children=true <exact seven scope paths>",
+      "tool": "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+      "toolSha256": "6f4bef66261261fcb43131be8720bab817d403a09edec7455c371974b90bdb7e",
+      "version": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "wrapperCell": "168",
+      "nestedChunk": "04012a",
+      "sessionId": null,
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "failedAttempts": [
+        {
+          "command": ".jenkins/runtime/rust/rustfmt.exe --check --edition 2021 --config skip_children=true <exact seven scope paths>",
+          "wrapperCell": "159",
+          "nestedSessionId": 4946,
+          "terminalChunk": "a2f238",
+          "exitCode": 1,
+          "reason": "That repository path did not exist; PowerShell could not resolve the executable. No rustfmt process ran. Replaced by the successful exact check above."
+        }
+      ]
+    },
+    "diffCheck": {
+      "command": "git --no-optional-locks diff --check -- <exact seven source paths>",
+      "wrapperCell": "169",
+      "nestedChunk": "efecb7",
+      "sessionId": 81446,
+      "terminalChunk": "e68456",
+      "exitCode": 0,
+      "stdout": "No whitespace errors; exact scoped diff is insertion-only (54 added lines, 0 removed).",
+      "stderr": "Git emitted LF-to-CRLF index-normalization warnings and the existing user-level ignore-file access warning. Physical source files were independently confirmed LF-only."
+    },
+    "rawDiff": {
+      "command": "git --no-optional-locks diff --unified=0 -- <exact seven source paths>",
+      "wrapperCell": "169",
+      "nestedChunk": "7be81a",
+      "sessionId": null,
+      "exitCode": 0,
+      "summary": "Every hunk adds //! or /// documentation; no removals, executable expression changes, tests, or attributes outside doc comments."
+    },
+    "sourcePinReadback": {
+      "wrapperCell": "169",
+      "nestedChunk": "f7268b",
+      "sessionId": null,
+      "exitCode": 0,
+      "result": "All seven final SHA256, byte lengths, line counts, LF/CRLF/BOM counts and exact scoped tracked status were read back. coverage03 SHA256 matched the registered revision 14 pin; the unique evidence path did not exist before its authorized creation."
+    },
+    "callerPinReadback": {
+      "wrapperCell": "173",
+      "nestedChunk": "01309d",
+      "sessionId": null,
+      "exitCode": 0,
+      "result": "All ten caller/test SHA256, byte lengths, and line counts below were read from the current checkout; external owner paths were not edited."
+    },
+    "changeGuard": {
+      "status": "pending",
+      "note": "Run the exact source-scope static guard after this evidence file is created; Jenkins source-bound acceptance remains a separate pending stage."
+    },
+    "checksNotRun": [
+      "Cargo build or tests",
+      "rustdoc/doctest or procedural-macro execution",
+      "generation or helper creation"
+    ],
+    "formalAcceptance": "Jenkins source-bound documentation/macro validation is pending; no Jenkins request or acceptance receipt was produced by this bounded edit."
+  },
+  "artifactLifecycle": {
+    "created": ["docs/tests/source-comment-review-evidence-text-envelope-read-009.json"],
+    "sourceCopies": 0,
+    "temporaryHelpers": 0,
+    "buildProducts": 0,
+    "compilerCaches": 0,
+    "gitWrites": 0
+  }
+}

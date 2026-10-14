@@ -8,6 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUST_TOOLCHAIN = "1.94.1"
+CARGO_DENY_VERSION = "0.20.2"
 WORKSPACE_MANIFESTS = ("Cargo.toml", "zircon_plugins/Cargo.toml")
 GLOBAL_LICENSE_ALLOW = {
     "0BSD",
@@ -109,10 +110,35 @@ class Frameworks06DependencyGovernanceContractTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual(job.count("uses: EmbarkStudios/cargo-deny-action@v2"), 1)
+        self.assertIn("runs-on: [self-hosted, Windows, X64]", job)
+        self.assertIn(f"uses: dtolnay/rust-toolchain@{RUST_TOOLCHAIN}", job)
+        self.assertIn("run: ./.github/scripts/prepare-cargo-roots.ps1", job)
+        self.assertIn(
+            r"CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\deny-${{ matrix.output }}\target",
+            job,
+        )
+        for manifest, output in zip(WORKSPACE_MANIFESTS, ("root", "plugins")):
+            self.assertRegex(
+                job,
+                rf"(?m)^\s+- manifest: {re.escape(manifest)}\s*\n\s+output: {output}\s*$",
+            )
         self.assertNotRegex(
             job,
             r"(?m)^\s+(?:if|continue-on-error):",
+        )
+        install_step_match = re.search(
+            r"(?ms)^      - name: Install pinned cargo-deny\s*$\n"
+            r"(?P<step>.*?)(?=^      - |\Z)",
+            job,
+        )
+        self.assertIsNotNone(install_step_match, "CI must pin the native cargo-deny binary")
+        install_step = install_step_match.group("step")
+        self.assertIn("shell: pwsh", install_step)
+        self.assertIn(
+            f"./.github/scripts/invoke-cargo-msvc.ps1 cargo +{RUST_TOOLCHAIN} "
+            f"install --locked --version {CARGO_DENY_VERSION} "
+            '--root "$env:CARGO_TARGET_DIR\\cargo-deny" cargo-deny',
+            install_step,
         )
         action_step_match = re.search(
             r"(?ms)^      - name: Check advisories, duplicate versions, licenses, and sources\s*$\n"
@@ -124,19 +150,18 @@ class Frameworks06DependencyGovernanceContractTests(unittest.TestCase):
             "CI must keep dependency-governance inputs on the cargo-deny step",
         )
         action_step = action_step_match.group("step")
-        self.assertIn("uses: EmbarkStudios/cargo-deny-action@v2", action_step)
+        self.assertIn("shell: pwsh", action_step)
         self.assertNotRegex(
             action_step,
             r"(?m)^\s+(?:if|continue-on-error):",
         )
-        self.assertIn(f'rust-version: "{RUST_TOOLCHAIN}"', action_step)
-        self.assertIn("manifest-path: ${{ matrix.manifest }}", action_step)
-        self.assertRegex(action_step, r"(?m)^\s+command:\s+check\s*$")
         self.assertIn(
-            "command-arguments: advisories bans licenses sources",
+            './.github/scripts/invoke-cargo-msvc.ps1 '
+            '"$env:CARGO_TARGET_DIR\\cargo-deny\\bin\\cargo-deny.exe" '
+            '--manifest-path "${{ matrix.manifest }}" '
+            '--all-features check advisories bans licenses sources',
             action_step,
         )
-        self.assertIn("arguments: --all-features", action_step)
         for manifest in WORKSPACE_MANIFESTS:
             self.assertRegex(job, rf"(?m)^\s+- {re.escape(manifest)}\s*$")
 

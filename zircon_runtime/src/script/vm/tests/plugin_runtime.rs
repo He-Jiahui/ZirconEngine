@@ -68,6 +68,9 @@ fn hot_reload_coordinator_tracks_slot_lifecycle_records() {
 #[test]
 fn vm_plugin_manager_discovers_packages_selects_backends_and_loads_slots() {
     let fixture = PluginFixture::new("sample", "0.1.0", "mock", &[1, 2, 3]);
+    let physical_package_root = fixture.package_root.canonicalize().unwrap();
+    let expected_manifest_path = physical_package_root.join("plugin.toml");
+    let expected_bytecode_path = physical_package_root.join("plugin.bin");
     let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
     let packages = manager.discover_packages(&fixture.root).unwrap();
 
@@ -80,11 +83,11 @@ fn vm_plugin_manager_discovers_packages_selects_backends_and_loads_slots() {
     assert_eq!(discovered.package.manifest.name, "sample");
     assert_eq!(
         discovered.source.manifest_path.as_deref(),
-        Some(fixture.manifest_path.as_path())
+        Some(expected_manifest_path.as_path())
     );
     assert_eq!(
         discovered.source.bytecode_path.as_deref(),
-        Some(fixture.bytecode_path.as_path())
+        Some(expected_bytecode_path.as_path())
     );
     assert!(discovered.source.zr_vm_project_path.is_none());
     assert!(
@@ -164,6 +167,10 @@ fn unavailable_backend_reports_error() {
 #[test]
 fn vm_plugin_manager_propagates_host_context_roots_and_backend_selector() {
     let fixture = PluginFixture::new("sample", "0.1.0", "recording:capture", &[1, 2, 3]);
+    let physical_package_root = fixture.package_root.canonicalize().unwrap();
+    let expected_manifest_path = physical_package_root.join("plugin.toml");
+    let expected_bytecode_path = physical_package_root.join("plugin.bin");
+    let expected_data_root = physical_package_root.join("data");
     let observations = Arc::new(Mutex::new(Vec::<ObservedHostContext>::new()));
     let runtime = CoreRuntime::new();
     let base_plugin_context = PluginContext {
@@ -182,16 +189,14 @@ fn vm_plugin_manager_propagates_host_context_roots_and_backend_selector() {
     let packages = manager.discover_packages(&fixture.root).unwrap();
     let slot = manager.load_discovered_package(&packages[0]).unwrap();
     let record = manager.slot(slot).unwrap();
-    let expected_data_root = fixture.package_root.join("data");
-
     assert_eq!(record.backend_name, "recording:capture");
     assert_eq!(
         record.source.manifest_path.as_deref(),
-        Some(fixture.manifest_path.as_path())
+        Some(expected_manifest_path.as_path())
     );
     assert_eq!(
         record.source.bytecode_path.as_deref(),
-        Some(fixture.bytecode_path.as_path())
+        Some(expected_bytecode_path.as_path())
     );
     assert!(record.source.zr_vm_project_path.is_none());
 
@@ -202,11 +207,11 @@ fn vm_plugin_manager_propagates_host_context_roots_and_backend_selector() {
         assert_eq!(host.backend_selector, "recording:capture");
         assert_eq!(
             host.package_root.as_deref(),
-            Some(fixture.package_root.as_path())
+            Some(physical_package_root.as_path())
         );
         assert_eq!(
             host.source_root.as_deref(),
-            Some(fixture.package_root.as_path())
+            Some(physical_package_root.as_path())
         );
         assert_eq!(
             host.data_root.as_deref(),

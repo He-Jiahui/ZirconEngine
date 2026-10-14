@@ -3,9 +3,9 @@ use std::path::{Path, PathBuf};
 use crate::error::HubError;
 use crate::process::FolderPickerRequest;
 use crate::projects::{
-    merge_recent_project_entries, metadata_for_path_mut, normalize_project_root,
-    project_metadata_key, project_paths_match, prune_empty_metadata, validate_project_root,
-    ProjectTemplateId, ProjectValidation, RecentProject,
+    ProjectTemplateId, ProjectValidation, RecentProject, merge_recent_project_entries,
+    metadata_for_path_mut, normalize_project_root, project_metadata_key, project_paths_match,
+    prune_empty_metadata, validate_project_root,
 };
 use crate::state::{
     EngineMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
@@ -14,7 +14,7 @@ use crate::state::{
 use crate::tauri_app::action_request::{ImportProjectActionPayload, ProjectTargetActionPayload};
 use crate::tauri_app::view_model::HubTextBundle;
 
-use super::{recent_project_display_name, HubRuntimeSession};
+use super::{HubRuntimeSession, recent_project_display_name};
 
 impl HubRuntimeSession {
     pub(super) fn accept_editor_owned_project_creation(

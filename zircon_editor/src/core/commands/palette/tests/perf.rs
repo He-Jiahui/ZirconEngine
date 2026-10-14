@@ -27,10 +27,12 @@ fn optimized_projection(ids: &[String]) -> (usize, usize) {
 #[test]
 fn optimization_batch_ir_editor629_palette_catalog_reserves_descriptor_bounds() {
     let source = include_str!("../../palette.rs");
-    let production = source
-        .split("#[cfg(test)]")
-        .next()
-        .expect("command palette production source");
+    let (_, constructor) = source
+        .split_once("pub(super) fn from_descriptors<'a>(")
+        .expect("command palette catalog constructor");
+    let (production, _) = constructor
+        .split_once("\n    fn locale_projection(")
+        .expect("locale projection follows the catalog constructor");
 
     assert!(production.contains("let (descriptor_lower_bound, _) = descriptors.size_hint();"));
     assert!(production.contains("Vec::with_capacity(descriptor_lower_bound)"));

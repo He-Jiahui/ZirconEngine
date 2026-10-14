@@ -24,7 +24,7 @@ use zircon_runtime_interface::project::ProjectGuid;
 
 use super::{
     manifest::{
-        valid_path, FileEntry, Manifest, MAX_BLOB_BYTES, MAX_MANIFEST_BYTES, MAX_PROJECT_BYTES,
+        FileEntry, MAX_BLOB_BYTES, MAX_MANIFEST_BYTES, MAX_PROJECT_BYTES, Manifest, valid_path,
     },
     snapshot::verify_project_guid,
     sync::ProjectCloudSyncLease,

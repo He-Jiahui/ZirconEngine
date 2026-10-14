@@ -282,6 +282,11 @@ impl MeshIndirectArgsSnapshot {
             .iter()
             .fold(0, |count, args| count.saturating_add(args.instance_count))
     }
+
+    #[cfg(feature = "test-support")]
+    pub(crate) fn first_instances(&self) -> Vec<u32> {
+        self.args.iter().map(|args| args.first_instance).collect()
+    }
 }
 
 impl MeshIndirectArgsReadback {

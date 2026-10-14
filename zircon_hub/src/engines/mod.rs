@@ -15,4 +15,4 @@ pub use source_engine_install::{SourceBuildRecord, SourceEngineInstall};
 pub use source_engine_paths::{
     same_source_engine_path, source_engine_display_name, source_engine_id,
 };
-pub use validation::{validate_source_engine, SourceEngineValidation};
+pub use validation::{SourceEngineValidation, validate_source_engine};

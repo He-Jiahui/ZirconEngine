@@ -3,9 +3,9 @@ use crate::service::{
     cloud::*,
     error::ServiceError,
     identity::Principal,
-    storage::{receipt, Database},
+    storage::{Database, receipt},
 };
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use std::sync::Arc;
 
 fn maintain(
@@ -246,10 +246,12 @@ async fn rolling_policy_sustains_more_than_128_commits_with_bounded_cas() {
                 )?,
                 b"revision-139"
             );
-            assert!(connection
-                .query_row("PRAGMA foreign_key_check", [], |_| Ok(()))
-                .optional()?
-                .is_none());
+            assert!(
+                connection
+                    .query_row("PRAGMA foreign_key_check", [], |_| Ok(()))
+                    .optional()?
+                    .is_none()
+            );
             Ok(())
         })
         .await

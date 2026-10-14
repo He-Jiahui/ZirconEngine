@@ -26,7 +26,7 @@ use credential::{CredentialStore, SavedSession, WindowsCredentials};
 use openidconnect::OAuth2TokenResponse;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::{watch, Mutex};
+use tokio::sync::{Mutex, watch};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountError {

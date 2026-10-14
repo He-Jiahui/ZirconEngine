@@ -284,7 +284,7 @@ export function assertExportShapeGuard(asset: Board): void {
         )
       )
         throw new Error(
-          `Penpot shape ${String(current[id]['nodeId'] || id)} (${shapePath(asset, id)}) changed ${key} without a ZUI source mapping${key === 'content' ? contentDifference(expected[id][key], current[id][key]) : key === 'geometry' ? `; before ${JSON.stringify(expected[id][key])}; after ${JSON.stringify(current[id][key])}` : ''}.`,
+          `Penpot shape ${String(current[id]['nodeId'] || id)} (${shapePath(asset, id)}) changed ${key} without a ZUI source mapping${key === 'content' ? contentDifference(expected[id][key], current[id][key]) : ['geometry', 'strokes', 'fieldHostStrokes'].includes(key) ? `; before ${JSON.stringify(expected[id][key])}; after ${JSON.stringify(current[id][key])}` : ''}.`,
         );
   }
 }

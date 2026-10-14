@@ -6,8 +6,8 @@ use zircon_runtime_interface::hub_protocol::{
 };
 
 use crate::projects::{
-    load_shared_recent_projects, normalize_project_root, project_metadata_key,
-    reconcile_shared_recent_projects, RecentProject,
+    RecentProject, load_shared_recent_projects, normalize_project_root, project_metadata_key,
+    reconcile_shared_recent_projects,
 };
 use crate::settings::{BuildProfile, HubConfig, HubLanguage};
 
@@ -124,9 +124,11 @@ fn focus_refresh_merges_editor_recents_without_rewriting_shared_registry() {
     .unwrap();
     let shared_registry_before_refresh = fs::read(&shared_recent_projects_path).unwrap();
 
-    assert!(session
-        .refresh_shared_recent_projects_on_focus()
-        .expect("focus refresh should merge the Editor update"));
+    assert!(
+        session
+            .refresh_shared_recent_projects_on_focus()
+            .expect("focus refresh should merge the Editor update")
+    );
     assert_eq!(session.config.recent_projects, vec![editor_project.clone()]);
     assert_eq!(
         HubConfig::load(&config_path).unwrap().recent_projects,
@@ -138,9 +140,11 @@ fn focus_refresh_merges_editor_recents_without_rewriting_shared_registry() {
     );
 
     let config_after_refresh = fs::read(&config_path).unwrap();
-    assert!(!session
-        .refresh_shared_recent_projects_on_focus()
-        .expect("unchanged shared registry should not refresh again"));
+    assert!(
+        !session
+            .refresh_shared_recent_projects_on_focus()
+            .expect("unchanged shared registry should not refresh again")
+    );
     assert_eq!(fs::read(&config_path).unwrap(), config_after_refresh);
 
     fs::remove_dir_all(temp).unwrap();
@@ -173,9 +177,11 @@ fn focus_refresh_retries_hub_config_persistence_after_a_save_failure() {
     assert!(session.refresh_shared_recent_projects_on_focus().is_err());
 
     session.config_path = config_path.clone();
-    assert!(!session
-        .refresh_shared_recent_projects_on_focus()
-        .expect("focus refresh should retry the failed Hub config write"));
+    assert!(
+        !session
+            .refresh_shared_recent_projects_on_focus()
+            .expect("focus refresh should retry the failed Hub config write")
+    );
     assert_eq!(
         HubConfig::load(&config_path).unwrap().recent_projects,
         vec![editor_project]
@@ -210,15 +216,19 @@ fn focus_refresh_does_not_reopen_an_editor_tombstone_after_config_save_fails() {
         .expect("Editor should commit a deletion after Hub's failed config save");
     let deleted = store.load_projection().unwrap().registry().clone();
     session.config_path = config_path.clone();
-    assert!(session
-        .refresh_shared_recent_projects_on_focus()
-        .expect("retry should load the Editor tombstone"));
+    assert!(
+        session
+            .refresh_shared_recent_projects_on_focus()
+            .expect("retry should load the Editor tombstone")
+    );
 
     assert!(session.config.recent_projects.is_empty());
-    assert!(HubConfig::load(&config_path)
-        .unwrap()
-        .recent_projects
-        .is_empty());
+    assert!(
+        HubConfig::load(&config_path)
+            .unwrap()
+            .recent_projects
+            .is_empty()
+    );
     assert_eq!(store.load_projection().unwrap().registry(), &deleted);
     fs::remove_dir_all(temp).unwrap();
 }
@@ -244,9 +254,11 @@ fn focus_refresh_reconciles_pending_hub_recents_with_editor_registry() {
     )
     .expect("Editor fixture should write the shared recent-project registry");
 
-    assert!(session
-        .refresh_shared_recent_projects_on_focus()
-        .expect("focus refresh should reconcile the pending Hub update"));
+    assert!(
+        session
+            .refresh_shared_recent_projects_on_focus()
+            .expect("focus refresh should reconcile the pending Hub update")
+    );
     for project in [&hub_project, &editor_project] {
         let expected_key = project_metadata_key(normalize_project_root(&project.path));
         let actual_keys = session
@@ -267,9 +279,11 @@ fn focus_refresh_reconciles_pending_hub_recents_with_editor_registry() {
     let shared_projects = load_shared_recent_projects(&shared_recent_projects_path).unwrap();
     for project in [&hub_project, &editor_project] {
         let expected_key = project_metadata_key(normalize_project_root(&project.path));
-        assert!(shared_projects
-            .iter()
-            .any(|candidate| project_metadata_key(&candidate.path) == expected_key));
+        assert!(
+            shared_projects
+                .iter()
+                .any(|candidate| project_metadata_key(&candidate.path) == expected_key)
+        );
     }
 
     fs::remove_dir_all(temp).unwrap();
@@ -361,10 +375,12 @@ fn restart_preserves_editor_tombstone_for_previously_synced_recent() {
         .expect("Hub restart should accept the newer shared projection");
     let after_restart = store.load_projection().unwrap().registry().clone();
     assert!(restarted.config.recent_projects.is_empty());
-    assert!(HubConfig::load(&config_path)
-        .unwrap()
-        .recent_projects
-        .is_empty());
+    assert!(
+        HubConfig::load(&config_path)
+            .unwrap()
+            .recent_projects
+            .is_empty()
+    );
     assert_eq!(after_restart.revision(), deleted.revision());
     assert_eq!(after_restart.tombstones, deleted.tombstones);
     fs::remove_dir_all(temp).unwrap();
@@ -401,10 +417,12 @@ fn persist_retry_does_not_reopen_an_editor_tombstone_after_config_save_fails() {
         .expect("retry should preserve the Editor tombstone");
 
     assert!(session.config.recent_projects.is_empty());
-    assert!(HubConfig::load(&config_path)
-        .unwrap()
-        .recent_projects
-        .is_empty());
+    assert!(
+        HubConfig::load(&config_path)
+            .unwrap()
+            .recent_projects
+            .is_empty()
+    );
     assert_eq!(store.load_projection().unwrap().registry(), &deleted);
     fs::remove_dir_all(temp).unwrap();
 }
@@ -470,10 +488,12 @@ fn legacy_config_is_not_reimported_after_a_synced_registry_resets_to_zero() {
     let restarted = HubRuntimeSession::load_from_paths(config_path.clone(), registry_path.clone())
         .expect("a previously synchronized Hub should accept an empty rebuilt registry");
     assert!(restarted.config.recent_projects.is_empty());
-    assert!(HubConfig::load(&config_path)
-        .unwrap()
-        .recent_projects
-        .is_empty());
+    assert!(
+        HubConfig::load(&config_path)
+            .unwrap()
+            .recent_projects
+            .is_empty()
+    );
     assert_eq!(
         HubRecentProjectsStore::new(&registry_path)
             .load_projection()
@@ -539,11 +559,13 @@ fn legacy_import_skips_corruption_after_a_clean_startup_read() {
     assert!(snapshot.projects().is_empty());
     assert_eq!(snapshot.revision(), 0);
     assert_eq!(fs::read(&registry_path).unwrap(), b"{ malformed");
-    assert!(!fs::read_dir(&temp).unwrap().any(|entry| entry
-        .unwrap()
-        .file_name()
-        .to_string_lossy()
-        .contains(".corrupt-")));
+    assert!(!fs::read_dir(&temp).unwrap().any(|entry| {
+        entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .contains(".corrupt-")
+    }));
     fs::remove_dir_all(temp).unwrap();
 }
 
@@ -591,10 +613,12 @@ fn malformed_shared_registry_does_not_admit_legacy_config_rows() {
     let session = HubRuntimeSession::load_from_paths(config_path.clone(), registry_path.clone())
         .expect("corrupt rebuildable history should not block Hub startup");
     assert!(session.config.recent_projects.is_empty());
-    assert!(HubConfig::load(&config_path)
-        .unwrap()
-        .recent_projects
-        .is_empty());
+    assert!(
+        HubConfig::load(&config_path)
+            .unwrap()
+            .recent_projects
+            .is_empty()
+    );
     assert_eq!(
         HubConfig::load(&config_path)
             .unwrap()

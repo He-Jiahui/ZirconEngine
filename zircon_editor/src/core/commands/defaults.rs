@@ -28,6 +28,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands.push(
         EditorCommandDescriptor::operation(path("view.editor.ui_asset.open"))
             .with_category(EditorCommandCategory::View)
+            .with_palette_visible(false)
             .with_callable_from_remote(false),
     );
     append_animation_asset_toolkit_open_operations(&mut commands);
@@ -39,6 +40,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
                 "inspector",
                 &[],
             ))
+            .with_palette_visible(false)
             .with_callable_from_remote(false),
     );
     commands.push(command(
@@ -68,6 +70,7 @@ fn append_animation_asset_toolkit_open_operations(commands: &mut Vec<EditorComma
         commands.push(
             EditorCommandDescriptor::operation(path(operation))
                 .with_category(EditorCommandCategory::View)
+                .with_palette_visible(false)
                 .with_callable_from_remote(false),
         );
     }

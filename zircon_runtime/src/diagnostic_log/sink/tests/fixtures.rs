@@ -52,10 +52,10 @@ impl BlockingOutput {
             let remaining = deadline.saturating_duration_since(Instant::now());
             let (next_state, wait) = changed.wait_timeout(state, remaining).unwrap();
             state = next_state;
-            assert!(
-                !wait.timed_out(),
-                "sink worker did not enter the blocking output"
-            );
+            if wait.timed_out() {
+                drop(state);
+                panic!("sink worker did not enter the blocking output");
+            }
         }
     }
 

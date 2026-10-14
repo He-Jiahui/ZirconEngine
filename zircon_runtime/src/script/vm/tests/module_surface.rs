@@ -1,6 +1,9 @@
 use super::support::*;
 use super::*;
 
+use crate::core::{TasksModule, TimeModule, TASKS_MODULE_NAME, TIME_MODULE_NAME};
+use crate::engine_module::EngineModule;
+
 #[test]
 fn builtin_host_modules_register_gameplay_capabilities() {
     let exports = HostExportRegistry::default();
@@ -320,8 +323,28 @@ fn script_module_descriptor_registers_manager_owner_before_plugin_facade() {
 fn core_resolve_plugin_exposes_vm_plugin_runtime_and_manager_facade_shares_it() {
     let runtime = CoreRuntime::new();
     let core = runtime.handle();
+    core.register_module(TimeModule.descriptor())
+        .expect("register time module");
+    core.register_module(crate::foundation::module_descriptor())
+        .expect("register foundation module");
+    core.register_module(TasksModule.descriptor())
+        .expect("register tasks module");
+    core.register_module(crate::asset::module_descriptor())
+        .expect("register asset module");
+    core.register_module(crate::scene::module_descriptor())
+        .expect("register scene module");
     core.register_module(module_descriptor())
         .expect("register script module");
+    core.activate_module(TIME_MODULE_NAME)
+        .expect("activate time module");
+    core.activate_module(crate::core::framework::foundation::FOUNDATION_MODULE_NAME)
+        .expect("activate foundation module");
+    core.activate_module(TASKS_MODULE_NAME)
+        .expect("activate tasks module");
+    core.activate_module(crate::asset::ASSET_MODULE_NAME)
+        .expect("activate asset module");
+    core.activate_module(crate::core::framework::scene::SCENE_MODULE_NAME)
+        .expect("activate scene module");
     core.activate_module(SCRIPT_MODULE_NAME)
         .expect("activate script module");
 

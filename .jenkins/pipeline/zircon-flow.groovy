@@ -43,6 +43,11 @@ def sourcePreparationRef = params.SOURCE_PREPARATION_REF
 def registeredFlow = false
 def executionId = null
 def recipeRef = null
+def workflowStages = []
+def heavyStages = ['build', 'unit_test', 'integration_test', 'regression_test',
+                   'package_check', 'editor_exe', 'runtime_dll', 'package']
+def needsExecution = false
+def commitRequested = false
 try {
     if (currentSourceRef && patchRequestRef) error('current source and unapplied patch inputs are mutually exclusive')
     if (currentSourceRef) {
@@ -111,37 +116,56 @@ try {
         def composePayload = [identity: identity, patchOperationRef: patchOperationRef,
                               sourcePreparationRef: sourcePreparationRef]
         def composed = invokeControl('flow', 'compose-flow', composePayload)
-        env.WORKFLOW_TEMPLATE = composed.template ?: params.TEMPLATE ?: 'auto'
+        if (!(composed.template instanceof String) || !composed.template ||
+            !(composed.stages instanceof List) || composed.stages.isEmpty() ||
+            composed.stages.any { !(it instanceof String) || !it } ||
+            composed.stages.toSet().size() != composed.stages.size()) {
+            error('compose-flow returned an incomplete authoritative DAG')
+        }
+        def supportedStages = ['source', 'patch', 'syntax', 'format', 'review',
+                               'acceptance', 'commit', 'notify', 'gc'] + heavyStages
+        if (composed.stages.any { !(it in supportedStages) }) {
+            error('compose-flow returned an unsupported DAG stage')
+        }
+        workflowStages = composed.stages.collect { it }
+        if (!workflowStages.contains('acceptance')) {
+            error('Flow requires an acceptance stage; maintenance uses its independent job')
+        }
+        env.WORKFLOW_TEMPLATE = composed.template
+        needsExecution = workflowStages.any { it in heavyStages }
+        commitRequested = workflowStages.contains('commit') && params.ALLOW_COMMIT?.toBoolean()
     }
-    if (env.WORKFLOW_TEMPLATE in ['editor_product_development', 'editor_product_shipping']) {
+    if (workflowStages.contains('source')) {
         stage('Current source receipt') {
             invokeControl('flow', 'run-stage', [identity: identity, stage: 'source',
                 sourcePreparationRef: sourcePreparationRef])
         }
-    } else {
+    }
+    if (workflowStages.contains('patch')) {
         stage('Patch receipt') {
             invokeControl('flow', 'run-stage', [identity: identity, stage: 'patch',
                 patchOperationRef: patchOperationRef, sourcePreparationRef: sourcePreparationRef])
         }
     }
-    if (!(env.WORKFLOW_TEMPLATE in ['editor_product_development', 'editor_product_shipping'])) {
+    if (workflowStages.contains('syntax')) {
         stage('Syntax') {
             invokeControl('flow', 'run-stage', [identity: identity, stage: 'syntax',
                 sealedInputRef: sealedInputRef, edition: params.RUST_EDITION ?: '2021'])
         }
+    }
+    if (workflowStages.contains('format')) {
         stage('Format') {
             invokeControl('flow', 'run-stage', [identity: identity, stage: 'format',
                 sealedInputRef: sealedInputRef, edition: params.RUST_EDITION ?: '2021'])
         }
-        if (env.WORKFLOW_TEMPLATE in ['comments_only_review', 'module_unit_review',
-                                      'cross_module_review', 'failure_repair_review']) {
-            stage('Review') {
-                invokeControl('flow', 'run-stage', [identity: identity, stage: 'review',
-                    sealedInputRef: sealedInputRef, edition: params.RUST_EDITION ?: '2021'])
-            }
+    }
+    if (workflowStages.contains('review')) {
+        stage('Review') {
+            invokeControl('flow', 'run-stage', [identity: identity, stage: 'review',
+                sealedInputRef: sealedInputRef, edition: params.RUST_EDITION ?: '2021'])
         }
     }
-    if (env.WORKFLOW_TEMPLATE != 'comments_only') {
+    if (needsExecution) {
         stage('Submit execution') {
             def submitted = invokeControl('flow', 'submit-execution', [identity: identity, executionId: executionId,
                 patchOperationRef: patchOperationRef, sealedInputRef: sealedInputRef,
@@ -156,7 +180,7 @@ try {
                 buildRoot: params.BUILD_ROOT ?: env.ZIRCON_BUILD_ROOT])
         }
     }
-    if (env.WORKFLOW_TEMPLATE != 'comments_only') {
+    if (needsExecution) {
         stage('Await execution receipts') {
             def observed = waitControl('flow', 'observe-flow', [identity: identity, executionId: executionId])
             if (observed.status == 'cancelled') {
@@ -165,11 +189,13 @@ try {
             }
         }
     }
-    stage('Acceptance') {
-        invokeControl('flow', 'run-stage', [identity: identity, stage: 'acceptance', executionId: executionId,
-            flowId: "${identity.sessionId}:${identity.requestId}:${identity.attemptId}"])
+    if (workflowStages.contains('acceptance')) {
+        stage('Acceptance') {
+            invokeControl('flow', 'run-stage', [identity: identity, stage: 'acceptance', executionId: executionId,
+                flowId: "${identity.sessionId}:${identity.requestId}:${identity.attemptId}"])
+        }
     }
-    if (params.ALLOW_COMMIT?.toBoolean()) {
+    if (commitRequested) {
         stage('Authorized Git commit') {
             def workflowKey = "${identity.sessionId}:${identity.requestId}:${identity.attemptId}"
             invokeControl('integration', 'commit-flow', [identity: identity,
@@ -177,11 +203,11 @@ try {
                 authorization: params.COMMIT_AUTHORIZATION])
         }
     }
-    def notifyRequested = params.ALLOW_NOTIFY?.toBoolean() && env.WORKFLOW_TEMPLATE != 'comments_only'
+    def notifyRequested = workflowStages.contains('notify') && params.ALLOW_NOTIFY?.toBoolean()
     def finalized
     stage('Finalize authorized actions') {
         finalized = invokeControl('flow', 'finalize-flow', [identity: identity,
-            executionId: executionId, commitRequested: params.ALLOW_COMMIT?.toBoolean(),
+            executionId: executionId, commitRequested: commitRequested,
             notifyRequested: notifyRequested, notifyDestination: params.NOTIFY_DESTINATION])
     }
     if (notifyRequested && finalized.notifyEligible == true) {
@@ -193,7 +219,7 @@ try {
                     eventId: eventId, destinationId: params.NOTIFY_DESTINATION,
                     destinationProof: params.NOTIFY_DESTINATION])
                 invokeControl('flow', 'finalize-flow', [identity: identity,
-                    executionId: executionId, commitRequested: params.ALLOW_COMMIT?.toBoolean(),
+                    executionId: executionId, commitRequested: commitRequested,
                     notifyRequested: true, notifyDestination: params.NOTIFY_DESTINATION])
             } catch (notifyErr) {
                 echo "notification requires independent retry or reconciliation: ${notifyErr}"

@@ -59,9 +59,12 @@ def require_identifier(value, name):
 
 def plain_path(path):
     for part in (path, *path.parents):
-        if part.exists() or part.is_symlink():
-            if part.is_symlink() or getattr(part.lstat(), "st_file_attributes", 0) & 0x400:
-                raise EntryError("path_alias_rejected", "Protocol paths must have a physical identity")
+        try:
+            metadata = part.lstat()
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        if stat.S_ISLNK(metadata.st_mode) or getattr(metadata, "st_file_attributes", 0) & 0x400:
+            raise EntryError("path_alias_rejected", "Protocol paths must have a physical identity")
 
 
 def read_json(value, name):

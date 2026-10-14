@@ -5,8 +5,8 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use crate::error::HubError;
-use crate::process::editor_child_receipt::EditorChildTerminalReceipt;
 use crate::process::SupervisedChild;
+use crate::process::editor_child_receipt::EditorChildTerminalReceipt;
 
 const EDITOR_CHILD_REAP_INTERVAL: Duration = Duration::from_millis(250);
 const EDITOR_CHILD_CLEANUP_WAIT: Duration = Duration::from_secs(2);

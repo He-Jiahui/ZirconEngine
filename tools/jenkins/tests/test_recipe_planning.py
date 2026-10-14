@@ -78,6 +78,45 @@ class RecipePlanningTests(unittest.TestCase):
     def planner(self):
         return RecipePlanner(self.state, repo_root=self.root, cargo_path=self.cargo)
 
+    def _assert_review_cargo_plan(self, template, expected_stages):
+        plan = self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                   changed_paths=["crates/demo/src/lib.rs"], template=template)
+        self.assertEqual("cargo", plan.recipe["kind"])
+        self.assertEqual(template, plan.recipe["template"])
+        self.assertEqual(expected_stages, plan.recipe["requiredTestStages"])
+        self.assertEqual({"compile", "list", "test"}, set(plan.recipe["commands"]))
+        record = get_recipe_plan(self.state, plan.recipe_ref)
+        self.assertEqual(template, record["recipe"]["template"])
+        self.assertEqual(expected_stages, record["recipe"]["requiredTestStages"])
+
+    def test_module_unit_review_plans_exact_unit_stage_and_keeps_identity(self):
+        self._assert_review_cargo_plan("module_unit_review", ["unit_test"])
+
+    def test_cross_module_review_plans_unit_and_integration_stages(self):
+        self._assert_review_cargo_plan("cross_module_review", ["unit_test", "integration_test"])
+
+    def test_failure_repair_review_plans_unit_and_regression_stages(self):
+        self._assert_review_cargo_plan("failure_repair_review", ["unit_test", "regression_test"])
+
+    def test_comments_only_review_has_no_cargo_recipe_or_commands(self):
+        plan = self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                   changed_paths=["crates/demo/src/lib.rs"], template="comments_only_review")
+        self.assertEqual("comments_only_review", plan.recipe["template"])
+        self.assertEqual("light", plan.recipe["kind"])
+        self.assertEqual({}, plan.recipe["commands"])
+        self.assertNotIn("requiredTestStages", plan.recipe)
+        record = get_recipe_plan(self.state, plan.recipe_ref)
+        self.assertEqual("comments_only_review", record["recipe"]["template"])
+        self.assertEqual("light", record["recipe"]["kind"])
+        self.assertEqual({}, record["recipe"]["commands"])
+
+    def test_unknown_template_fails_closed_before_recipe_creation(self):
+        with self.assertRaises(JenkinsError) as error:
+            self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                changed_paths=["crates/demo/src/lib.rs"], template="unknown_review")
+        self.assertEqual("cargo_template_invalid", error.exception.code)
+
+
     def test_plan_derives_commands_and_persists_immutable_reference(self):
         plan = self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
                                    changed_paths=["crates/demo/src/lib.rs"])

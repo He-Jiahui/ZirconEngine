@@ -1,10 +1,10 @@
 use super::{
     super::{
-        oidc, operations::validate_id, service::read_service_body, AccountBroker, AccountError,
+        AccountBroker, AccountError, oidc, operations::validate_id, service::read_service_body,
     },
-    manifest::{digest, MAX_BLOB_BYTES},
+    manifest::{MAX_BLOB_BYTES, digest},
 };
-use openidconnect::{reqwest, OAuth2TokenResponse};
+use openidconnect::{OAuth2TokenResponse, reqwest};
 use sha2::{Digest, Sha256};
 
 impl AccountBroker {

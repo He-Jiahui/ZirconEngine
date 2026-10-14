@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use crate::gpu_timing_evidence::validate_gpu_timing_report_output;
 use crate::material_fixture::ViewerMaterialFixture;
+use crate::work_paths::ViewerWorkPaths;
 
 pub(crate) const MIN_FACE_SIZE: u32 = 64;
 pub(crate) const MAX_FACE_SIZE: u32 = 1024;
@@ -284,8 +285,14 @@ impl ViewerConfig {
                 screenshot_path.as_deref(),
                 gpu_timing_report_path.as_deref(),
             ) {
-                // BUG: [CR-APP-VIEWER-0004] 报表目的地可与工作目录中的固定终态文件同名，收尾发布会覆盖已写报表却保留工件已提交状态；证据：这里只排除截图及其旁文件，主入口最后另写终态。
-                validate_gpu_timing_report_output(screenshot_path, gpu_timing_report_path)?;
+                let terminal_outcome_path = ViewerWorkPaths::new(&work_dir, None)
+                    .terminal_outcome_path()
+                    .to_path_buf();
+                validate_gpu_timing_report_output(
+                    screenshot_path,
+                    gpu_timing_report_path,
+                    &terminal_outcome_path,
+                )?;
             }
         }
 

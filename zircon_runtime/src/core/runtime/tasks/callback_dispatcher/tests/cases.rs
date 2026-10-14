@@ -77,6 +77,48 @@ fn dispatcher_contains_callback_panics_and_runs_later_callbacks() {
 }
 
 #[test]
+fn dispatcher_owner_drop_fallback_preserves_an_accepted_runner_reservation() {
+    let owner = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
+    let dispatcher = TaskCallbackDispatcher::new(owner.clone());
+    let (started_tx, started_rx) = mpsc::sync_channel(1);
+    let (finished_tx, finished_rx) = mpsc::sync_channel(2);
+    let release_accepted_runner = Arc::new(Barrier::new(2));
+    let release_for_callback = Arc::clone(&release_accepted_runner);
+
+    dispatcher.dispatch_one(Box::new(move || {
+        started_tx.send(()).expect("accepted runner should start");
+        release_for_callback.wait();
+        finished_tx
+            .send("accepted")
+            .expect("accepted callback completion");
+    }));
+    started_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("first callback should be running on the pool");
+
+    // ThreadPool drop signals termination, while Rayon finishes already accepted work.
+    drop(owner);
+
+    let (fallback_tx, fallback_rx) = mpsc::sync_channel(1);
+    dispatcher.dispatch_one(Box::new(move || {
+        fallback_tx
+            .send(())
+            .expect("inline fallback callback completion");
+    }));
+    fallback_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("rejected continuation should run inline while the accepted runner is held");
+
+    release_accepted_runner.wait();
+    assert_eq!(
+        finished_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("accepted callback should finish after release"),
+        "accepted"
+    );
+}
+
+#[test]
 fn dispatcher_enforces_the_delivery_run_budget() {
     let dispatcher = TaskCallbackDispatcher::new(TaskPool::new(
         TaskPoolDescriptor::compute().with_worker_threads(1),

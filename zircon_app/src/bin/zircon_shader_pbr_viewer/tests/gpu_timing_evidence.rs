@@ -275,14 +275,38 @@ fn timing_output_must_not_collide_with_the_ready_png_or_its_sidecar() {
             "./docs/tests/runtime/shader/pbr-ready.png",
         ),
     ] {
-        let error =
-            validate_gpu_timing_report_output(Path::new(screenshot_path), Path::new(report_path))
-                .expect_err("timing evidence must not overwrite Ready evidence");
+        let error = validate_gpu_timing_report_output(
+            Path::new(screenshot_path),
+            Path::new(report_path),
+            Path::new("E:/evidence/work/zircon_shader_pbr_viewer_terminal_outcome.json"),
+        )
+        .expect_err("timing evidence must not overwrite Ready evidence");
         assert!(error.contains("must not overwrite"));
     }
     validate_gpu_timing_report_output(
         Path::new("E:/evidence/pbr-ready.png"),
         Path::new("E:/evidence/pbr-gpu-timing.txt"),
+        Path::new("E:/evidence/work/zircon_shader_pbr_viewer_terminal_outcome.json"),
     )
     .expect("a separate GPU timing report should remain valid");
+}
+
+#[test]
+fn timing_output_must_not_collide_with_terminal_outcome() {
+    let terminal_path =
+        Path::new("E:/evidence/work/zircon_shader_pbr_viewer_terminal_outcome.json");
+    let error = validate_gpu_timing_report_output(
+        Path::new("E:/evidence/pbr-ready.png"),
+        Path::new("E:/evidence/work/./zircon_shader_pbr_viewer_terminal_outcome.json"),
+        terminal_path,
+    )
+    .expect_err("report must not be overwritten by final terminal publication");
+    assert!(error.contains("terminal outcome"));
+
+    validate_gpu_timing_report_output(
+        Path::new("E:/evidence/pbr-ready.png"),
+        Path::new("E:/evidence/work/pbr-gpu-timing.txt"),
+        terminal_path,
+    )
+    .expect("a distinct timing report path should remain valid");
 }

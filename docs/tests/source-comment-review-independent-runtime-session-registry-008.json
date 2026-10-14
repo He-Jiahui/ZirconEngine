@@ -1,0 +1,2646 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "reviewer": "/root",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewedAtUtc": "2026-10-14T08:51:22.468508+00:00",
+  "wholeRepositoryComplete": false,
+  "commit": {
+    "status": "pending actual scoped coordinator commit",
+    "sha": null
+  },
+  "notification": {
+    "authorized": "attached WeCom notification at actual commit",
+    "sent": false
+  },
+  "artifactLifecycle": {
+    "sourceCopies": 0,
+    "temporaryHelpers": 0,
+    "compilerProducts": 0,
+    "releasedBytes": 0,
+    "originalManifestAndCleanup": "pending original coordinator request"
+  },
+  "batchId": "runtime-session-registry-008",
+  "state": "local independent review passed; coordinator pending",
+  "inputEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-runtime-session-registry-008.json",
+    "sha256": "9fc6cca8783a31834f7daddc56d1a14b4e6aeaddd221de563c08a49467d0010b"
+  },
+  "baselineHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "reviewedFileCount": 7,
+  "pendingFileCount": 0,
+  "files": [
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
+      "initialSha256": "786df97278052acb5e67b63706ec4a488a73ed0b9721f6f3f486a8e76f3390fb",
+      "currentSha256": "d08afe86d4244e99d78ea4bfb8b5d7709911c847e465e3e5093d18e446731736",
+      "insertedCommentOrBlankLines": 10,
+      "originalCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "d08afe86d4244e99d78ea4bfb8b5d7709911c847e465e3e5093d18e446731736",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "initialSha256": "3156b029a64e5c1265318e3dd84524b1180b695ec8736d6ea8214f243a1f18c1",
+      "currentSha256": "f10094007922702e797072f93a1fbfabc7b3666bba1c7b850daf646a4ead0978",
+      "insertedCommentOrBlankLines": 74,
+      "originalCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "f10094007922702e797072f93a1fbfabc7b3666bba1c7b850daf646a4ead0978",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+      "initialSha256": "b98f76c4911d19dbc7fa1c2c1e29f0c674ad923d269490bfa3bd837b42b852be",
+      "currentSha256": "15e8f65c315228c614b85a688285ea9a12586ba069269db36a08582592141531",
+      "insertedCommentOrBlankLines": 20,
+      "originalCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "15e8f65c315228c614b85a688285ea9a12586ba069269db36a08582592141531",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "initialSha256": "0953acd0c8c9539b72c3c16a310b589e3ee55e9610151161e11206048ebaa241",
+      "currentSha256": "1f0f59d6cb20cd745e8c2265f29bd8272d680e08970cf4d759fbe87b0df6c790",
+      "insertedCommentOrBlankLines": 56,
+      "originalCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "1f0f59d6cb20cd745e8c2265f29bd8272d680e08970cf4d759fbe87b0df6c790",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "initialSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+      "currentSha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+      "insertedCommentOrBlankLines": 144,
+      "originalCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": [
+        "CR-SESSION-0001"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "initialSha256": "94023c1ef7923e7c7e16ac4285b9dd22b5ce2422bfea70ccab2339256055947a",
+      "currentSha256": "1fa81cdc5aea6b5e28c3c3b407b60b5ab3ca8c773a171ed40c55eb0650a0e48d",
+      "insertedCommentOrBlankLines": 10,
+      "originalCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "1fa81cdc5aea6b5e28c3c3b407b60b5ab3ca8c773a171ed40c55eb0650a0e48d",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "initialSha256": "7a465f25d8b4ae31dabea7f4162f44dae2f2043f269f847de4a28d723322a74e",
+      "currentSha256": "d27a2cd27815f500f722635ed34d71a10d31b4338b03165ec0f3c5cb9eac9915",
+      "insertedCommentOrBlankLines": 6,
+      "originalCodeCommentsAndEolPreserved": true,
+      "reviewedSha256": "d27a2cd27815f500f722635ed34d71a10d31b4338b03165ec0f3c5cb9eac9915",
+      "state": "reviewed-awaiting-coordinator",
+      "issueIds": []
+    }
+  ],
+  "objectEvidence": [
+    {
+      "id": "G001",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
+      "object": "registry module graph",
+      "afterSpan": [
+        11,
+        30
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C01",
+        "C06",
+        "C09",
+        "C10",
+        "C11"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[0]"
+    },
+    {
+      "id": "G002",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
+      "object": "production and test reexports",
+      "afterSpan": [
+        32,
+        48
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C03",
+        "C04",
+        "C05",
+        "C09",
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[1]"
+    },
+    {
+      "id": "G003",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
+      "object": "test startup and shutdown observation reexports",
+      "afterSpan": [
+        50,
+        57
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[2]"
+    },
+    {
+      "id": "G004",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "allocation imports and global registry",
+      "afterSpan": [
+        7,
+        18
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C15",
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[3]"
+    },
+    {
+      "id": "G005",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "RuntimeAllocationKind",
+      "afterSpan": [
+        24,
+        40
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03",
+        "C04"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[4]"
+    },
+    {
+      "id": "G006",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "RuntimeAllocationCensus",
+      "afterSpan": [
+        43,
+        53
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[5]"
+    },
+    {
+      "id": "G007",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "RuntimeAllocationRecord",
+      "afterSpan": [
+        56,
+        62
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C15"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[6]"
+    },
+    {
+      "id": "G008",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "RuntimeAllocationRegistry",
+      "afterSpan": [
+        65,
+        70
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[7]"
+    },
+    {
+      "id": "G009",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "Default for RuntimeAllocationRegistry",
+      "afterSpan": [
+        72,
+        80
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[8]"
+    },
+    {
+      "id": "G010",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "registry",
+      "afterSpan": [
+        82,
+        84
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[9]"
+    },
+    {
+      "id": "G011",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "lock_registry",
+      "afterSpan": [
+        86,
+        90
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[10]"
+    },
+    {
+      "id": "G012",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "lock_registry_until",
+      "afterSpan": [
+        93,
+        110
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[11]"
+    },
+    {
+      "id": "G013",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "RuntimeAllocationDestroyGuard and methods",
+      "afterSpan": [
+        113,
+        132
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[12]"
+    },
+    {
+      "id": "G014",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "try_lock_registry_for_destroy",
+      "afterSpan": [
+        135,
+        143
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[13]"
+    },
+    {
+      "id": "G015",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "with_registry_lock_for_test",
+      "afterSpan": [
+        145,
+        149
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[14]"
+    },
+    {
+      "id": "G016",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "register_runtime_allocation",
+      "afterSpan": [
+        161,
+        168
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03",
+        "C04"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[15]"
+    },
+    {
+      "id": "G017",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "register_runtime_allocation_in_action",
+      "afterSpan": [
+        170,
+        243
+      ],
+      "flowCount": 6,
+      "callerRefs": [
+        "C03",
+        "C04",
+        "C15"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[16]"
+    },
+    {
+      "id": "G018",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "release_runtime_allocation",
+      "afterSpan": [
+        259,
+        291
+      ],
+      "flowCount": 4,
+      "callerRefs": [
+        "C03",
+        "C15",
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[17]"
+    },
+    {
+      "id": "G019",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "allocation_census",
+      "afterSpan": [
+        294,
+        300
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[18]"
+    },
+    {
+      "id": "G020",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "object": "session_has_outstanding_allocations_until",
+      "afterSpan": [
+        303,
+        314
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[19]"
+    },
+    {
+      "id": "G021",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+      "object": "action guard imports",
+      "afterSpan": [
+        3,
+        6
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[20]"
+    },
+    {
+      "id": "G022",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+      "object": "SessionActionGuard",
+      "afterSpan": [
+        17,
+        20
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03",
+        "C04"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[21]"
+    },
+    {
+      "id": "G023",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+      "object": "SessionActionGuard::new",
+      "afterSpan": [
+        22,
+        33
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[22]"
+    },
+    {
+      "id": "G024",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+      "object": "Drop for SessionActionGuard",
+      "afterSpan": [
+        36,
+        40
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[23]"
+    },
+    {
+      "id": "G025",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "slot imports and ownership dependencies",
+      "afterSpan": [
+        6,
+        22
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07",
+        "C08",
+        "C09",
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[24]"
+    },
+    {
+      "id": "G026",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot",
+      "afterSpan": [
+        33,
+        42
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C07",
+        "C09"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[25]"
+    },
+    {
+      "id": "G027",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlotPhase",
+      "afterSpan": [
+        44,
+        52
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[26]"
+    },
+    {
+      "id": "G028",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlotLifecycle",
+      "afterSpan": [
+        54,
+        59
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[27]"
+    },
+    {
+      "id": "G029",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "impl SessionSlot boundary",
+      "afterSpan": [
+        61,
+        265
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07",
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[28]"
+    },
+    {
+      "id": "G030",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::new test constructor",
+      "afterSpan": [
+        62,
+        81
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C07",
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[29]"
+    },
+    {
+      "id": "G031",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::create",
+      "afterSpan": [
+        93,
+        116
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C03",
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[30]"
+    },
+    {
+      "id": "G032",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::begin_action",
+      "afterSpan": [
+        122,
+        130
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[31]"
+    },
+    {
+      "id": "G033",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::create_with_linked_plugins",
+      "afterSpan": [
+        134,
+        158
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C05",
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[32]"
+    },
+    {
+      "id": "G034",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::begin_release_action",
+      "afterSpan": [
+        162,
+        170
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[33]"
+    },
+    {
+      "id": "G035",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::finish_action",
+      "afterSpan": [
+        173,
+        179
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[34]"
+    },
+    {
+      "id": "G036",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::begin_close",
+      "afterSpan": [
+        183,
+        193
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[35]"
+    },
+    {
+      "id": "G037",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::preserve_failed_teardown_for_retry",
+      "afterSpan": [
+        196,
+        201
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[36]"
+    },
+    {
+      "id": "G038",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::wait_for_actions",
+      "afterSpan": [
+        205,
+        212
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[37]"
+    },
+    {
+      "id": "G039",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::dispatch_scoped",
+      "afterSpan": [
+        217,
+        222
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07",
+        "C08"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[38]"
+    },
+    {
+      "id": "G040",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::dispatch_owned",
+      "afterSpan": [
+        227,
+        233
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07",
+        "C17"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[39]"
+    },
+    {
+      "id": "G041",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::shutdown_until",
+      "afterSpan": [
+        236,
+        238
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[40]"
+    },
+    {
+      "id": "G042",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::shutdown_receipt",
+      "afterSpan": [
+        241,
+        243
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[41]"
+    },
+    {
+      "id": "G043",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::frame_activity",
+      "afterSpan": [
+        245,
+        247
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C09"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[42]"
+    },
+    {
+      "id": "G044",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "slot test snapshots",
+      "afterSpan": [
+        249,
+        258
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C12",
+        "C17"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[43]"
+    },
+    {
+      "id": "G045",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "object": "SessionSlot::lock_lifecycle",
+      "afterSpan": [
+        260,
+        265
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[44]"
+    },
+    {
+      "id": "G046",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "store imports/static/timeouts",
+      "afterSpan": [
+        7,
+        32
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07",
+        "C09",
+        "C10",
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[45]"
+    },
+    {
+      "id": "G047",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "SessionRegistry",
+      "afterSpan": [
+        35,
+        39
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[46]"
+    },
+    {
+      "id": "G048",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "SessionRegistryInsertError",
+      "afterSpan": [
+        41,
+        50
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C05",
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[47]"
+    },
+    {
+      "id": "G049",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "Default for SessionRegistry",
+      "afterSpan": [
+        52,
+        59
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[48]"
+    },
+    {
+      "id": "G050",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "SessionRegistry::try_allocate_handle",
+      "afterSpan": [
+        61,
+        79
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[49]"
+    },
+    {
+      "id": "G051",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "registry",
+      "afterSpan": [
+        81,
+        83
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[50]"
+    },
+    {
+      "id": "G052",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "lock_registry",
+      "afterSpan": [
+        85,
+        89
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[51]"
+    },
+    {
+      "id": "G053",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "lock_registry_until",
+      "afterSpan": [
+        92,
+        107
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[52]"
+    },
+    {
+      "id": "G054",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "store lock/publish/slot/poison test helpers",
+      "afterSpan": [
+        109,
+        134
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C07",
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[53]"
+    },
+    {
+      "id": "G055",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "try_insert_session test wrapper",
+      "afterSpan": [
+        135,
+        141
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[54]"
+    },
+    {
+      "id": "G056",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "try_insert_session_with_wake test insertion",
+      "afterSpan": [
+        142,
+        168
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[55]"
+    },
+    {
+      "id": "G057",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "try_create_linked_session",
+      "afterSpan": [
+        180,
+        200
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C05",
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[56]"
+    },
+    {
+      "id": "G058",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "try_create_session_with_wake",
+      "afterSpan": [
+        213,
+        228
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C03",
+        "C07"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[57]"
+    },
+    {
+      "id": "G059",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "infallible test insertion wrappers",
+      "afterSpan": [
+        230,
+        243
+      ],
+      "flowCount": 2,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[58]"
+    },
+    {
+      "id": "G060",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "with_session",
+      "afterSpan": [
+        255,
+        260
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03",
+        "C17"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[59]"
+    },
+    {
+      "id": "G061",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "with_session_owned",
+      "afterSpan": [
+        276,
+        315
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C03",
+        "C06",
+        "C07",
+        "C08",
+        "C17"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[60]"
+    },
+    {
+      "id": "G062",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "with_session_activity",
+      "afterSpan": [
+        318,
+        333
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03",
+        "C09"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[61]"
+    },
+    {
+      "id": "G063",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "with_session_result_finalized<T: Send,U>",
+      "afterSpan": [
+        349,
+        355
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[62]"
+    },
+    {
+      "id": "G064",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "with_session_result_committed<T: Send,U>",
+      "afterSpan": [
+        376,
+        404
+      ],
+      "flowCount": 4,
+      "callerRefs": [
+        "C03",
+        "C04"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[63]"
+    },
+    {
+      "id": "G065",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "with_session_activity_result<T: Send>",
+      "afterSpan": [
+        406,
+        411
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C09"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[64]"
+    },
+    {
+      "id": "G066",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "with_session_activity_result_finalized<T: Send,U>",
+      "afterSpan": [
+        415,
+        432
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C03",
+        "C09"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[65]"
+    },
+    {
+      "id": "G067",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "begin_session_action",
+      "afterSpan": [
+        435,
+        441
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[66]"
+    },
+    {
+      "id": "G068",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "begin_session_release_action",
+      "afterSpan": [
+        444,
+        450
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C03"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[67]"
+    },
+    {
+      "id": "G069",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "destroy_session_slot",
+      "afterSpan": [
+        463,
+        467
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C02",
+        "C03"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[68]"
+    },
+    {
+      "id": "G070",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "destroy_session_slot_with_timeout",
+      "afterSpan": [
+        477,
+        551
+      ],
+      "flowCount": 6,
+      "callerRefs": [
+        "C06",
+        "C07",
+        "C09",
+        "C10",
+        "C12",
+        "C17",
+        "C18"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[69]"
+    },
+    {
+      "id": "G071",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "remove_session_and_census_until",
+      "afterSpan": [
+        561,
+        599
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C12"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[70]"
+    },
+    {
+      "id": "G072",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "dispatch_session_action<R: Send>",
+      "afterSpan": [
+        603,
+        615
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C06",
+        "C07",
+        "C08"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[71]"
+    },
+    {
+      "id": "G073",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "find_session_slot",
+      "afterSpan": [
+        618,
+        628
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[72]"
+    },
+    {
+      "id": "G074",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "find_session_slot_until",
+      "afterSpan": [
+        631,
+        644
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12",
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[73]"
+    },
+    {
+      "id": "G075",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "store test phase/count observers",
+      "afterSpan": [
+        646,
+        656
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12",
+        "C17"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[74]"
+    },
+    {
+      "id": "G076",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "object": "handle_allocation_tests module",
+      "afterSpan": [
+        658,
+        660
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[75]"
+    },
+    {
+      "id": "G077",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "cases imports and fixture dependencies",
+      "afterSpan": [
+        7,
+        36
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C09",
+        "C10",
+        "C11",
+        "C12",
+        "C17",
+        "C18"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[76]"
+    },
+    {
+      "id": "G078",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "cases test module paths",
+      "afterSpan": [
+        37,
+        45
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C12",
+        "C17",
+        "C18"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[77]"
+    },
+    {
+      "id": "G079",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "atomic and serialization fixtures",
+      "afterSpan": [
+        47,
+        54
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[78]"
+    },
+    {
+      "id": "G080",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "committed_session_result_rolls_back_in_flight_state_when_finalization_fails",
+      "afterSpan": [
+        56,
+        88
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C03",
+        "C04"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[79]"
+    },
+    {
+      "id": "G081",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "blocking_wake",
+      "afterSpan": [
+        91,
+        96
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[80]"
+    },
+    {
+      "id": "G082",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "blocking_timeout_wake",
+      "afterSpan": [
+        99,
+        104
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[81]"
+    },
+    {
+      "id": "G083",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "counting_wake",
+      "afterSpan": [
+        106,
+        108
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[82]"
+    },
+    {
+      "id": "G084",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "reentrant_destroy_wake",
+      "afterSpan": [
+        111,
+        119
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[83]"
+    },
+    {
+      "id": "G085",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "frame_demand_merge_immediate_dominates_earliest_delay_and_consume_resets_idle",
+      "afterSpan": [
+        121,
+        138
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C09",
+        "C11"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[84]"
+    },
+    {
+      "id": "G086",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "frame_demand_checked_conversion_rejects_unknown_kind_and_clamps_after_delay",
+      "afterSpan": [
+        140,
+        171
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C11"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[85]"
+    },
+    {
+      "id": "G087",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "wake_registration_rejects_bad_pairs_and_unsupported_version",
+      "afterSpan": [
+        173,
+        194
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[86]"
+    },
+    {
+      "id": "G088",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "wake_registration_channel_callback_invokes_the_runtime_sink",
+      "afterSpan": [
+        196,
+        209
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[87]"
+    },
+    {
+      "id": "G089",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "wake_callback_reentrant_destroy_is_rejected_without_closing_the_session",
+      "afterSpan": [
+        211,
+        230
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[88]"
+    },
+    {
+      "id": "G090",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "destroy_is_a_quiescence_barrier_for_actions_and_wake_callbacks",
+      "afterSpan": [
+        232,
+        294
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C06",
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[89]"
+    },
+    {
+      "id": "G091",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "astra_life_a3_action_drain_timeout_retains_session_for_retry",
+      "afterSpan": [
+        296,
+        334
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C06"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[90]"
+    },
+    {
+      "id": "G092",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "astra_life_a3_wake_drain_timeout_retains_session_for_retry",
+      "afterSpan": [
+        336,
+        376
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C10"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[91]"
+    },
+    {
+      "id": "G093",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "astra_life_a4_destroy_deadline_covers_scope_and_task_graph_teardown",
+      "afterSpan": [
+        378,
+        443
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C06"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[92]"
+    },
+    {
+      "id": "G094",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "astra_life_a4_destroy_shares_its_deadline_with_process_log_after_scope_drain",
+      "afterSpan": [
+        445,
+        535
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C06"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[93]"
+    },
+    {
+      "id": "G095",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "astra_life_a4_destroy_deadline_covers_project_watcher_join",
+      "afterSpan": [
+        537,
+        569
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C18"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[94]"
+    },
+    {
+      "id": "G096",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "astra_life_a4_destroy_deadline_covers_event_mirror_callback",
+      "afterSpan": [
+        571,
+        619
+      ],
+      "flowCount": 3,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[95]"
+    },
+    {
+      "id": "G097",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "destroy_session_slot_preserves_failed_event_mirror_teardown_for_explicit_retry",
+      "afterSpan": [
+        621,
+        674
+      ],
+      "flowCount": 3,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[96]"
+    },
+    {
+      "id": "G098",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "allocation_finalizer_keeps_destroy_in_action_barrier_until_registration_finishes",
+      "afterSpan": [
+        676,
+        735
+      ],
+      "flowCount": 3,
+      "callerRefs": [
+        "C03"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[97]"
+    },
+    {
+      "id": "G099",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "runtime_allocation_release_uses_the_session_bound_opaque_id_and_cannot_double_free",
+      "afterSpan": [
+        737,
+        764
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C15",
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[98]"
+    },
+    {
+      "id": "G100",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "forged_runtime_allocation_id_never_changes_the_session_census",
+      "afterSpan": [
+        766,
+        789
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[99]"
+    },
+    {
+      "id": "G101",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "runtime_allocation_release_rejects_a_foreign_session_without_changing_owner_census",
+      "afterSpan": [
+        791,
+        820
+      ],
+      "flowCount": 2,
+      "callerRefs": [
+        "C15",
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[100]"
+    },
+    {
+      "id": "G102",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "concurrent_runtime_allocation_release_reclaims_exactly_once",
+      "afterSpan": [
+        822,
+        843
+      ],
+      "flowCount": 2,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[101]"
+    },
+    {
+      "id": "G103",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "outstanding_runtime_allocation_blocks_destroy_until_release_and_retry",
+      "afterSpan": [
+        845,
+        868
+      ],
+      "flowCount": 2,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[102]"
+    },
+    {
+      "id": "G104",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "object": "runtime_allocation_registry_performance_acceptance",
+      "afterSpan": [
+        870,
+        949
+      ],
+      "flowCount": 3,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[103]"
+    },
+    {
+      "id": "G105",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "object": "handle allocation imports and benchmark constants",
+      "afterSpan": [
+        6,
+        15
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[104]"
+    },
+    {
+      "id": "G106",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "object": "nearest_rank_percentile",
+      "afterSpan": [
+        18,
+        23
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[105]"
+    },
+    {
+      "id": "G107",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "object": "measure_legacy_atomic_allocation",
+      "afterSpan": [
+        25,
+        32
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[106]"
+    },
+    {
+      "id": "G108",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "object": "measure_checked_allocation",
+      "afterSpan": [
+        34,
+        41
+      ],
+      "flowCount": 1,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[107]"
+    },
+    {
+      "id": "G109",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "object": "session_handle_allocation_exhausts_after_the_maximum_value_without_wrapping",
+      "afterSpan": [
+        43,
+        57
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[108]"
+    },
+    {
+      "id": "G110",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "object": "session_handle_allocation_rejects_zero_as_exhausted",
+      "afterSpan": [
+        59,
+        68
+      ],
+      "flowCount": 1,
+      "callerRefs": [
+        "C16"
+      ],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[109]"
+    },
+    {
+      "id": "G111",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "object": "checked_session_handle_allocation_release_performance_acceptance",
+      "afterSpan": [
+        70,
+        117
+      ],
+      "flowCount": 3,
+      "callerRefs": [],
+      "rootDisposition": "reviewed; apply boundary qualifications below",
+      "authorDetailSection": "objects[110]"
+    }
+  ],
+  "objectCount": 111,
+  "flowCount": 178,
+  "callerEvidence": [
+    {
+      "id": "C01",
+      "path": "zircon_runtime/src/dynamic_api/session.rs",
+      "sha256": "9a109aaec2b13464e81ca2779487aa71c232afb7050e45a12aa4744aab6de17f",
+      "authorReadRanges": [
+        [
+          1,
+          106
+        ]
+      ],
+      "contract": "registry/FFI/operation的真实模块路径与reexport",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C02",
+      "path": "zircon_runtime/src/dynamic_api/exports.rs",
+      "sha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+      "authorReadRanges": [
+        [
+          1,
+          145
+        ]
+      ],
+      "contract": "静态V8表安装真实create/destroy/release及输出槽；extern入口捕获panic不建立指针安全",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C03",
+      "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+      "sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+      "authorReadRanges": [
+        [
+          1,
+          924
+        ]
+      ],
+      "contract": "unsafe调用方保证宿主输入可读、输出可写对齐独占、provider存活；检查形状不检测悬垂。owned payload先复制，普通/定稿/提交按实际wrapper接线",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C04",
+      "path": "zircon_runtime/src/dynamic_api/session/operation.rs",
+      "sha256": "7431c40b330231c4b6bf15a63309ae03c8e0b1293baa5b964888e1bcb36383f4",
+      "authorReadRanges": [
+        [
+          1,
+          185
+        ]
+      ],
+      "contract": "请求先复制；submit/poll在caller finalize发布；harvest prepare/finalize(register+write)/commit/rollback",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C05",
+      "path": "zircon_runtime/src/dynamic_api/session/linked_session.rs",
+      "sha256": "a053ed2dfc6a96e2ca25aa6e2b9f05d09c6699cdd89a679f05212f29ae4253e4",
+      "authorReadRanges": [
+        [
+          1,
+          37
+        ]
+      ],
+      "contract": "公开linked创建先验证profile/project，再store锁外工厂构造；两个InsertError分类映射",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C06",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner.rs",
+      "sha256": "88364113b01be72b323ed5252487ec62fb3db702f6f874253b78c43f55e73dc1",
+      "authorReadRanges": [
+        [
+          1,
+          478
+        ]
+      ],
+      "contract": "GenericSessionOwner单worker拥有S，scoped借用通过完成信号保证寿命；owned队列准入有deadline；shutdown共享receipt且保留失败责任",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C07",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+      "sha256": "7024bdc2aeb047bbd6849f0f40f41c901266847120a4c3e32746ab0a88365f4a",
+      "authorReadRanges": [
+        [
+          1,
+          301
+        ]
+      ],
+      "contract": "owner内创建真实session并在发布前验证startup；跨线程status先拥有诊断；shutdown先disable/drain wake再清理",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C08",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/abi_status.rs",
+      "sha256": "c6faf2919ac2af6c370b259c3e9e73df7b5d56fc4265dc2f601bfbe243ba6823",
+      "authorReadRanges": [
+        [
+          1,
+          48
+        ]
+      ],
+      "contract": "失败diagnostics同步checked_slice(4096)复制，再在调用线程TLS重建ABI；调用方须保证来源可读",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C09",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/frame_activity.rs",
+      "sha256": "2a0c57613a38b5d0e61834fa855cb91eb172ac38d05f63739ddbc10a38f4cb3b",
+      "authorReadRanges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "contract": "共享需求/wake；disable、wait与callback当前线程检测由真实wake对象提供",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C10",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs",
+      "sha256": "c111421756bc15681b53a74fbaf327c6be2116f0e0cdc18d6983b547f2577fe1",
+      "authorReadRanges": [
+        [
+          1,
+          168
+        ]
+      ],
+      "contract": "ABI配对/版本校验；调用callback前计数并解锁，TLS检测自身回调，Drop递减并通知",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C11",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/frame_demand.rs",
+      "sha256": "38e40bc2c71f5ff5b2881dd4ac883deea3b60b95fa3df18afb5833a8a0ceb8f9",
+      "authorReadRanges": [
+        [
+          1,
+          89
+        ]
+      ],
+      "contract": "有界delay转换、Immediate支配、最早delay和consume回Idle",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C12",
+      "path": "zircon_runtime/src/dynamic_api/session/tests/destroy_registry_deadline.rs",
+      "sha256": "607015ea45c14030172319d00744a2d3b9c8255ab7c9f20ccf2dcf7018999374",
+      "authorReadRanges": [
+        [
+          1,
+          216
+        ]
+      ],
+      "contract": "controlled锁竞争验证lookup可保Open、allocation检查/终移除deadline、Joined后重试及并发幂等",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C13",
+      "path": "zircon_runtime/src/tests/structure/source_size/dynamic_api_session_registry.rs",
+      "sha256": "f79901d9d95fa719db6a611ce99f5ff372b354c797115269f76cc69197545947",
+      "authorReadRanges": [
+        [
+          1,
+          228
+        ]
+      ],
+      "contract": "已存在CR-RUNTIME-TESTS-STRUCT-0033；raw source旧锚点与当前owner分拆不符；line预算是物理源码观察",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C14",
+      "path": "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
+      "sha256": "0cd8f9d01b4e9c4e762fa128f950b520e0be62f917fc0b106a23898236b8766b",
+      "authorReadRanges": [
+        [
+          1,
+          430
+        ]
+      ],
+      "contract": "include_str把store/slot整段源码作为编译期字符串；新增doc会改变展开文本，旧shutdown/FFI锚点原已缺失",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C15",
+      "path": "zircon_runtime_interface/src/buffer.rs",
+      "sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+      "authorReadRanges": [
+        [
+          320,
+          357
+        ]
+      ],
+      "contract": "repr(C) ZrOwnedResultV2保存地址/固定u64长度/opaque ID；规范empty无需释放，非空由原session交还",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C16",
+      "path": "zircon_runtime_interface/src/handles.rs",
+      "sha256": "239ac5b9eb621f3de1ff3c8984ba6b2b09f064fd020d9af5a2dfcadcbc991fb2",
+      "authorReadRanges": [
+        [
+          1,
+          119
+        ]
+      ],
+      "contract": "透明u64包装只核对非零；存活/归属仍由registry证明，allocation绑定原session",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C17",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/owned_event.rs",
+      "sha256": "37fc1012912a5ab8ce6172e78dd3a24719842363394c0e9945e96bde510ee24a",
+      "authorReadRanges": [
+        [
+          1,
+          164
+        ]
+      ],
+      "contract": "直接ffi测试diagnostics在调用线程、先拒绝坏payload、阻塞owner下owned事件跨短destroy重试仍只交付一次",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C18",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/watcher_thread_exit.rs",
+      "sha256": "cf05c0891541eaffbca659dfac79f52d336acd29140f8eec10547e31735f03b1",
+      "authorReadRanges": [
+        [
+          1,
+          63
+        ]
+      ],
+      "contract": "Windows条件模块TLS Drop阻塞watcher退出，短预算保留责任；cleanup先释放/reap再断言",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C19",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+      "sha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+      "authorReadRanges": [
+        [
+          31,
+          320
+        ]
+      ],
+      "contract": "冻结V8 repr(C)函数槽及unsafe extern C别名；borrow/provider/unique writable output由调用方保证，getter不持有动态库",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C20",
+      "path": "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+      "sha256": "ff51a7201b8b1579a325cfd2262112ba35db08c82d13afee20bc9ce073045a88",
+      "authorReadRanges": [
+        [
+          18,
+          24
+        ],
+        [
+          48,
+          64
+        ],
+        [
+          77,
+          139
+        ]
+      ],
+      "contract": "releaser绑定同provider session与释放槽；empty不回调；ID非零才交还；释放失效所有输出借用",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C21",
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "sha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "authorReadRanges": [
+        [
+          123,
+          161
+        ],
+        [
+          208,
+          234
+        ],
+        [
+          325,
+          380
+        ]
+      ],
+      "contract": "消费输出成功或失败均保留释放责任；callback释放在acceptance gate前，外部provider调用不持本地接受锁",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C22",
+      "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "sha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "authorReadRanges": [
+        [
+          1,
+          55
+        ]
+      ],
+      "contract": "wake注册/注销契约要求回调上下文存活、避免从自身回调销毁；只引用已读章，不作全仓无其它并发前提的断言",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C23",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+      "sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+      "authorReadRanges": [
+        [
+          71,
+          116
+        ],
+        [
+          224,
+          257
+        ]
+      ],
+      "contract": "try_destroy要求&mut self；FFI返回成功后才注销wake、置无效handle并取走runtime所有者；安全Rust同对象双destroy被借用规则排除",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C24",
+      "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+      "sha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+      "authorReadRanges": [
+        [
+          1,
+          110
+        ]
+      ],
+      "contract": "gateway持Arc<dyn Send+Sync>作为runtime所有者；unsafe构造约定provider存活到gateway销毁；该字段布局没有共享调用互斥锁，不据此推导所有外部并发合法",
+      "rootWholeCallerFileClaim": false
+    },
+    {
+      "id": "C25",
+      "path": "zircon_runtime/src/dynamic_api/session/world_sync.rs",
+      "sha256": "3da1bee9dd27f50440cf5e301543e67f0ba159d0816235031b3ed5177bcd707b",
+      "authorReadRanges": [
+        [
+          1,
+          80
+        ]
+      ],
+      "contract": "query_world由owner读取实体并序列化有界结果，接FFI query_world finalize中的登记/输出；本次未构造或执行合法F候选输入",
+      "rootWholeCallerFileClaim": false
+    }
+  ],
+  "rootSourceReadEvidence": [
+    {
+      "chunks": [
+        "af33a5"
+      ],
+      "scope": "mod57/action_guard40/allocation_registry314 complete"
+    },
+    {
+      "chunks": [
+        "4b4186"
+      ],
+      "scope": "session_slot265 complete"
+    },
+    {
+      "chunks": [
+        "64901a",
+        "23d015"
+      ],
+      "scope": "session_store baseline-doc phase1-656 complete"
+    },
+    {
+      "chunks": [
+        "fe356f",
+        "c8aadf",
+        "b64bf5"
+      ],
+      "scope": "cases1-949 and handle117 complete"
+    },
+    {
+      "chunks": [
+        "61f27c"
+      ],
+      "scope": "final session_store578-598 including four new TODO lines"
+    },
+    {
+      "chunks": [
+        "2a5c92"
+      ],
+      "scope": "final seven raw baseline/current hashes, insertion-only lines and 25 caller pins match"
+    }
+  ],
+  "rootCallerContextReadEvidence": [
+    {
+      "chunks": [
+        "8d0157"
+      ],
+      "scope": "ABI api_table26-141 including output-return/provider/unique-output preconditions; no whole ABI-file claim"
+    },
+    {
+      "chunks": [
+        "9b35a9",
+        "136291"
+      ],
+      "scope": "FFI actual allocation/finalization/publication sites and query_world production edge"
+    },
+    {
+      "reusedProof": "docs/tests/source-comment-review-independent-legacy-runtime-abi-transfer-007.json",
+      "sha256": "449834f39aaa718cd7b5359b106f4e353fd3a47b13ba341303ad8137e0a9fdab",
+      "scope": "previous independently read Host release/session contracts at matching pins; historical marker/native states retained"
+    }
+  ],
+  "boundaryQualifications": [
+    {
+      "objects": [
+        "G018",
+        "G038",
+        "G070",
+        "G071"
+      ],
+      "decision": "guard owns action count until release exits; do not infer that final removal unconditionally rechecks active_actions. Single-destroy intended barrier and CR-SESSION-0001 concurrent retry candidate must be read together."
+    },
+    {
+      "objects": [
+        "G017",
+        "G064",
+        "G066"
+      ],
+      "decision": "guard ends at wrapper return. Three FFI drains publish ABI output afterward; nonempty output remains protected by census, empty output has no allocation. No new publication BUG proved."
+    },
+    {
+      "decision": "Closing rejects ordinary/release entry; Retry allows release and explicit destroy retry. Final session-then-allocation locks check same Arc and zero census; they do not recheck active_actions."
+    },
+    {
+      "decision": "App try_destroy(&mut self) excludes same-object safe Rust double destroy; ABI requires outputs returned and live provider/unique output storage. Static A/B/F/release candidate lacks a fully proved allowed external interleaving and input, so TODO only."
+    },
+    {
+      "decision": "T crosses owner boundary with Send; U finalization is caller-local. Owned queue admission deadline is not total execution timeout. Nonzero opaque IDs do not prove live ownership."
+    },
+    {
+      "decision": "Raw code/attributes invocation arguments and literals preserved; Rust doc attributes and include_str source payload change. Static source anchor drift is retained; no test execution or compiler/ABI acceptance inferred."
+    }
+  ],
+  "issueEvidence": {
+    "id": "CR-SESSION-0001",
+    "kind": "TODO",
+    "state": "open-static-contract-question-awaiting-input-and-interleaving-validation",
+    "markerSourceId": "S5",
+    "markerSpan": [
+      587,
+      590
+    ],
+    "sourcePinSetRef": "P2-CR-SESSION-0001",
+    "rootDecision": "root explicitly chose TODO rather than BUG; only four ordinary comments granted",
+    "callerRefs": [
+      "C03",
+      "C05",
+      "C12",
+      "C19",
+      "C22",
+      "C23",
+      "C24",
+      "C25"
+    ],
+    "objectRefs": [
+      "G024",
+      "G038",
+      "G070",
+      "G071"
+    ],
+    "codeAnchors": {
+      "S2": {
+        "drop(record)": [
+          289
+        ],
+        "remove_allocation": [],
+        "release_for_session": []
+      },
+      "S4": {
+        "fn begin_close": [
+          183
+        ],
+        "fn begin_release_action": [
+          162
+        ],
+        "fn preserve_failed_teardown_for_retry": [
+          196
+        ],
+        "fn wait_for_actions": [
+          205
+        ],
+        "fn finish_action": [
+          173
+        ]
+      },
+      "S5": {
+        "begin_close()": [
+          498
+        ],
+        "wait_for_actions": [
+          505
+        ],
+        "begin_release_action()": [
+          448
+        ],
+        "preserve_failed_teardown_for_retry": [
+          506,
+          515,
+          523,
+          527,
+          539,
+          546
+        ],
+        "has_outstanding_allocations": [
+          16,
+          520,
+          521,
+          526,
+          591
+        ],
+        "remove_session_and_census_until": [
+          544,
+          561
+        ]
+      }
+    },
+    "staticCandidate": [
+      "A经begin_close进入Closing，wait_actions观察0；暂停在最终census判断之前。",
+      "B针对同一slot并发destroy；Closing分支接受重复关闭；B见outstanding allocation失败，把phase置Retry并返回。",
+      "R由Retry准入release，active_actions增1；移出最后allocation并将census减0，释放allocation锁后在drop(record)/guard结束前暂停。",
+      "A见census0和owner Joined；最终双锁核对同Arc及零outstanding，没有再次等待/检查active_actions，移除slot+census并返回Ok。",
+      "R仍持guard；本静态候选最小观察是成功销毁早于release guard结束，不推导UB或provider卸载。"
+    ],
+    "entryExclusions": [
+      "C19 api_table52明确unsafe ABI调用方先归还输出；A/B开始即持有输出的版本可能不满足此入口前提，不能称合规ABI复现。",
+      "C23 try_destroy(&mut self)排除安全Rust经同一App对象进行双destroy；源码内destroy是session模块范围内安全入口，C05 linked公开入口只创建session。",
+      "C24 provider所有者保活至gateway销毁、C23成功后才本地teardown；Arc<()>占位本身也不证明实际卸载时机。",
+      "C22仅已读wake章未说明全体调用完成前提；该有限读取不能证明不存在其它外部并发约定。"
+    ],
+    "FVariant": "初始census0而先前准入的生产finalizer F仍持guard；A/B关闭并等待F，F登记且发布非空输出后结束；B见新输出失败转Retry，R释放，A走上述候选。C03 ffi795-812的finalize登记806/发布811及C25 query19-47提供实际生产接线，但外部允许的并发集合与合法F输入未完整证明，不提升为合规ABI路径。",
+    "existingTestBoundary": "C12 destroy_registry_deadline185-216的concurrent final removal从joined_slot_with_empty_census189开始，只调用最终移除；cases的活动屏障/输出未释放/并发释放是分开测试，未见同一A/B/F/release屏障交错。均未执行。",
+    "nextStep": "核实ABI/FFI/host销毁并发前提及合法F请求；按实际模块验收范围用可控屏障覆盖A/B/F/release并观察成功返回是否早于release guard退出，证据不足前保持TODO。",
+    "notClaimed": [
+      "compliant ABI reproduction",
+      "executed test failure",
+      "UB",
+      "premature provider unload",
+      "formal compiler/ABI acceptance"
+    ]
+  },
+  "issueIds": [
+    "CR-SESSION-0001"
+  ],
+  "crossBatchDependencies": {
+    "frozen007": {
+      "path": "docs/tests/source-comment-review-evidence-legacy-runtime-abi-transfer-007.json",
+      "sha256": "5576752bebf89c2c9c0f6cced867db11b3f344167899ffe0c6a4b2f74a03fbea",
+      "changedCallerIds": [
+        "C020",
+        "C029",
+        "C036",
+        "C037",
+        "C038"
+      ],
+      "nativeStatusInheritance": "none; historical unknown/abort receipts remain pending; present source reads do not establish legacy process EOF",
+      "markerPolicy": "existing007 ZCA-HST-001/ZCA-ABI-001 left untouched; root historical exact8 d2281e failed and current one-file107f5d1 passed retain distinct scopes",
+      "callerRebindings": [
+        {
+          "legacyCallerId": "C020",
+          "sourceId": "S2",
+          "legacySha256": "3156b029a64e5c1265318e3dd84524b1180b695ec8736d6ea8214f243a1f18c1",
+          "currentSha256": "f10094007922702e797072f93a1fbfabc7b3666bba1c7b850daf646a4ead0978",
+          "oldReadRanges": [
+            [
+              1,
+              240
+            ]
+          ],
+          "currentMappedRanges": [
+            [
+              7,
+              314
+            ]
+          ],
+          "change": "008新增中文文档/原行与非doc tokens保留；doc属性与源码字符串可观察",
+          "frozen007Updated": false
+        },
+        {
+          "legacyCallerId": "C029",
+          "sourceId": "S6",
+          "legacySha256": "94023c1ef7923e7c7e16ac4285b9dd22b5ce2422bfea70ccab2339256055947a",
+          "currentSha256": "1fa81cdc5aea6b5e28c3c3b407b60b5ab3ca8c773a171ed40c55eb0650a0e48d",
+          "oldReadRanges": [
+            [
+              726,
+              840
+            ]
+          ],
+          "currentMappedRanges": [
+            [
+              735,
+              849
+            ]
+          ],
+          "change": "008新增中文文档/原行与非doc tokens保留；doc属性与源码字符串可观察",
+          "frozen007Updated": false
+        },
+        {
+          "legacyCallerId": "C036",
+          "sourceId": "S5",
+          "legacySha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+          "currentSha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+          "oldReadRanges": [
+            [
+              295,
+              385
+            ]
+          ],
+          "currentMappedRanges": [
+            [
+              399,
+              512
+            ]
+          ],
+          "change": "008新增中文文档/原行与非doc tokens保留；doc属性与源码字符串可观察",
+          "frozen007Updated": false,
+          "docInsertPhaseSha256": "be17bace9ebdc0063eadcfbb8fe19fa332425e264fab87440ce806ec53e76d28",
+          "additionalChange": "four ordinary TODO lines; no non-doc code change"
+        },
+        {
+          "legacyCallerId": "C037",
+          "sourceId": "S4",
+          "legacySha256": "0953acd0c8c9539b72c3c16a310b589e3ee55e9610151161e11206048ebaa241",
+          "currentSha256": "1f0f59d6cb20cd745e8c2265f29bd8272d680e08970cf4d759fbe87b0df6c790",
+          "oldReadRanges": [
+            [
+              116,
+              196
+            ]
+          ],
+          "currentMappedRanges": [
+            [
+              155,
+              252
+            ]
+          ],
+          "change": "008新增中文文档/原行与非doc tokens保留；doc属性与源码字符串可观察",
+          "frozen007Updated": false
+        },
+        {
+          "legacyCallerId": "C038",
+          "sourceId": "S3",
+          "legacySha256": "b98f76c4911d19dbc7fa1c2c1e29f0c674ad923d269490bfa3bd837b42b852be",
+          "currentSha256": "15e8f65c315228c614b85a688285ea9a12586ba069269db36a08582592141531",
+          "oldReadRanges": [
+            [
+              1,
+              20
+            ]
+          ],
+          "currentMappedRanges": [
+            [
+              3,
+              40
+            ]
+          ],
+          "change": "008新增中文文档/原行与非doc tokens保留；doc属性与源码字符串可观察",
+          "frozen007Updated": false
+        }
+      ]
+    },
+    "rootActualRangeRebindings": [
+      {
+        "legacyCallerId": "C020",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+        "beforeSha256": "3156b029a64e5c1265318e3dd84524b1180b695ec8736d6ea8214f243a1f18c1",
+        "currentSha256": "f10094007922702e797072f93a1fbfabc7b3666bba1c7b850daf646a4ead0978",
+        "oldReadRanges": [
+          [
+            1,
+            240
+          ]
+        ],
+        "rootActualMappedRanges": [
+          [
+            7,
+            314
+          ]
+        ],
+        "agentMappedRanges": [
+          [
+            7,
+            314
+          ]
+        ],
+        "agentMappingExact": true
+      },
+      {
+        "legacyCallerId": "C029",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+        "beforeSha256": "94023c1ef7923e7c7e16ac4285b9dd22b5ce2422bfea70ccab2339256055947a",
+        "currentSha256": "1fa81cdc5aea6b5e28c3c3b407b60b5ab3ca8c773a171ed40c55eb0650a0e48d",
+        "oldReadRanges": [
+          [
+            726,
+            840
+          ]
+        ],
+        "rootActualMappedRanges": [
+          [
+            735,
+            849
+          ]
+        ],
+        "agentMappedRanges": [
+          [
+            735,
+            849
+          ]
+        ],
+        "agentMappingExact": true
+      },
+      {
+        "legacyCallerId": "C036",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+        "beforeSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+        "currentSha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+        "oldReadRanges": [
+          [
+            295,
+            385
+          ]
+        ],
+        "rootActualMappedRanges": [
+          [
+            399,
+            512
+          ]
+        ],
+        "agentMappedRanges": [
+          [
+            399,
+            512
+          ]
+        ],
+        "agentMappingExact": true
+      },
+      {
+        "legacyCallerId": "C037",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+        "beforeSha256": "0953acd0c8c9539b72c3c16a310b589e3ee55e9610151161e11206048ebaa241",
+        "currentSha256": "1f0f59d6cb20cd745e8c2265f29bd8272d680e08970cf4d759fbe87b0df6c790",
+        "oldReadRanges": [
+          [
+            116,
+            196
+          ]
+        ],
+        "rootActualMappedRanges": [
+          [
+            155,
+            252
+          ]
+        ],
+        "agentMappedRanges": [
+          [
+            155,
+            252
+          ]
+        ],
+        "agentMappingExact": true
+      },
+      {
+        "legacyCallerId": "C038",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+        "beforeSha256": "b98f76c4911d19dbc7fa1c2c1e29f0c674ad923d269490bfa3bd837b42b852be",
+        "currentSha256": "15e8f65c315228c614b85a688285ea9a12586ba069269db36a08582592141531",
+        "oldReadRanges": [
+          [
+            1,
+            20
+          ]
+        ],
+        "rootActualMappedRanges": [
+          [
+            3,
+            40
+          ]
+        ],
+        "agentMappedRanges": [
+          [
+            3,
+            40
+          ]
+        ],
+        "agentMappingExact": true
+      }
+    ],
+    "allFiveRangeMapsMatch": true,
+    "correctedReceiptSpelling": "The actual current single-file guard receipt is 07f5d1; author frozen text 107f5d1 is a spelling error and not separate execution evidence.",
+    "future009CallerDrift": "C06/C07/C08/C17/C18 are now owned by owner-thread-receipt-009. Their frozen pins matched root raw read; later documentation changes require009 supplementary evidence, not rewriting008/007."
+  },
+  "validation": {
+    "rawByteProof": {
+      "nativeChunk": "2a5c92",
+      "exitCode": 0,
+      "originalCodeCommentsEolPreserved": true,
+      "insertedCommentOrBlankLines": 320,
+      "callerPinsMatch": 25
+    },
+    "format": {
+      "exact7OriginalReceipt": "783926",
+      "affectedStoreReceipt": "70728e",
+      "otherSixReuse": "P1 == P2 for S1,S2,S3,S4,S6,S7",
+      "childExitCode": 0,
+      "childEOFObserved": true,
+      "binarySha256": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+      "frozenDetail": "inputEvidence.validation.languageFormatParser and languageFormatParserHistory[0]"
+    },
+    "changeGuard": {
+      "nativeChunk": "70728e",
+      "base": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+      "exactSourceFiles": 7,
+      "childExitCode": 0,
+      "childEOFObserved": true,
+      "patchDigest": "d5e03cfc9752c879267101f917f9ab682044c87de9c24091cc804ba7180de80b",
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0,
+      "writeGrantCheck": true,
+      "contributor": false,
+      "scriptSha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734"
+    },
+    "scopedDiff": {
+      "receipt": "70728e affected store; prior six unchanged",
+      "exitCode": 0,
+      "childEOFObserved": true,
+      "stderr": "Git LF-to-CRLF warning only; physical LF preserved"
+    },
+    "formalCoordinator": {
+      "status": "pending actual original request supported source-owner recipe and flow tickets",
+      "acceptance": false
+    },
+    "cargoBuildTestsDocMacroExecution": "not run; no invented gate"
+  },
+  "correctionHistory": [
+    {
+      "operation": "author metadata size assertion",
+      "nativeChunk": "4532e3",
+      "exitCode": 1,
+      "scope": "before write; frozen99958-byte evidence follows; not a source/check failure"
+    },
+    {
+      "operation": "root metadata stdout transport",
+      "nativeChunk": "906123",
+      "status": "JSON output internally truncated; no canonical write; only syntactically complete prefix retained, validation reduced to previously verified actual receipts",
+      "unreadTruncatedValidationCredit": false
+    }
+  ]
+}

@@ -160,31 +160,36 @@ async fn publish_reader_failure(
     reader_cancel: &WebSocketReaderCancellation,
 ) {
     loop {
-        let mut current = state.lock().expect("net WebSocket state mutex poisoned");
-        if reader_cancel.is_cancelled()
-            || matches!(
-                *current,
-                NetConnectionState::Closed | NetConnectionState::Failed
-            )
-        {
+        let published = {
+            let mut current = state.lock().expect("net WebSocket state mutex poisoned");
+            if reader_cancel.is_cancelled()
+                || matches!(
+                    *current,
+                    NetConnectionState::Closed | NetConnectionState::Failed
+                )
+            {
+                return;
+            }
+            let mut events = events.lock().expect("net events mutex poisoned");
+            if events.len().saturating_add(2) <= NET_RUNTIME_EVENT_QUEUE_CAPACITY {
+                *current = NetConnectionState::Failed;
+                events.push_back(NetEvent::ConnectionStateChanged {
+                    connection,
+                    transport: NetTransportKind::WebSocket,
+                    state: NetConnectionState::Failed,
+                });
+                events.push_back(NetEvent::WebSocketFrameQueued {
+                    connection,
+                    queued_frames: 0,
+                });
+                true
+            } else {
+                false
+            }
+        };
+        if published {
             return;
         }
-        let mut events = events.lock().expect("net events mutex poisoned");
-        if events.len().saturating_add(2) <= NET_RUNTIME_EVENT_QUEUE_CAPACITY {
-            *current = NetConnectionState::Failed;
-            events.push_back(NetEvent::ConnectionStateChanged {
-                connection,
-                transport: NetTransportKind::WebSocket,
-                state: NetConnectionState::Failed,
-            });
-            events.push_back(NetEvent::WebSocketFrameQueued {
-                connection,
-                queued_frames: 0,
-            });
-            return;
-        }
-        drop(events);
-        drop(current);
         tokio::select! {
             _ = reader_cancel.cancelled() => return,
             _ = tokio::time::sleep(std::time::Duration::from_millis(1)) => {},
@@ -199,26 +204,31 @@ async fn publish_reader_closed(
     reader_cancel: &WebSocketReaderCancellation,
 ) {
     loop {
-        let mut current = state.lock().expect("net WebSocket state mutex poisoned");
-        if reader_cancel.is_cancelled()
-            || matches!(
-                *current,
-                NetConnectionState::Closed | NetConnectionState::Failed
-            )
-        {
+        let published = {
+            let mut current = state.lock().expect("net WebSocket state mutex poisoned");
+            if reader_cancel.is_cancelled()
+                || matches!(
+                    *current,
+                    NetConnectionState::Closed | NetConnectionState::Failed
+                )
+            {
+                return;
+            }
+            let mut events = events.lock().expect("net events mutex poisoned");
+            if events.len() < NET_RUNTIME_EVENT_QUEUE_CAPACITY {
+                *current = NetConnectionState::Closed;
+                events.push_back(NetEvent::ConnectionClosed {
+                    connection,
+                    transport: NetTransportKind::WebSocket,
+                });
+                true
+            } else {
+                false
+            }
+        };
+        if published {
             return;
         }
-        let mut events = events.lock().expect("net events mutex poisoned");
-        if events.len() < NET_RUNTIME_EVENT_QUEUE_CAPACITY {
-            *current = NetConnectionState::Closed;
-            events.push_back(NetEvent::ConnectionClosed {
-                connection,
-                transport: NetTransportKind::WebSocket,
-            });
-            return;
-        }
-        drop(events);
-        drop(current);
         tokio::select! {
             _ = reader_cancel.cancelled() => return,
             _ = tokio::time::sleep(std::time::Duration::from_millis(1)) => {},
@@ -345,6 +355,9 @@ mod admission_tests {
             event_drain_task.await.unwrap();
             {
                 let mut events = events.lock().unwrap();
+                // Retire the final data-frame notification before setting the close boundary.
+                // Exactly one free event slot must hold the close frame without publication.
+                events.clear();
                 events.extend((0..NET_RUNTIME_EVENT_QUEUE_CAPACITY - 1).map(|_| {
                     NetEvent::WebSocketFrameQueued {
                         connection,

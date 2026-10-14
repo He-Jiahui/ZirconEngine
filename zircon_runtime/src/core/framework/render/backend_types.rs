@@ -216,6 +216,12 @@ pub struct RenderStats {
     pub last_hzb_occlusion_compacted_draw_count: usize,
     pub last_hzb_occlusion_zero_instance_arg_count: usize,
     pub last_hzb_occlusion_remaining_instance_count: usize,
+    #[cfg(feature = "test-support")]
+    pub last_hzb_occlusion_first_instances: [u32; 8],
+    #[cfg(feature = "test-support")]
+    pub last_hzb_occlusion_first_instance_count: u8,
+    #[cfg(feature = "test-support")]
+    pub last_hzb_occlusion_first_instances_truncated: bool,
     pub last_light_grid_reported: bool,
     pub last_light_grid_light_count: usize,
     pub last_light_grid_tile_count: usize,

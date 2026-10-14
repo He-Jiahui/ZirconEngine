@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::engines::SourceEngineInstall;
-use crate::projects::{metadata_for_path, project_paths_match, ProjectMetadataMap, RecentProject};
+use crate::projects::{ProjectMetadataMap, RecentProject, metadata_for_path, project_paths_match};
 
 /// Canonical action/view scope derived once from the Hub snapshot inputs.
 /// UI and runtime code should consult this model instead of independently

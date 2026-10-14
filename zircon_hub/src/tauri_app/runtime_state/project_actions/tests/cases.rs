@@ -1,9 +1,9 @@
 use std::{fs, path::PathBuf};
 
 use crate::{
-    engines::{source_engine_id, SourceEngineInstall},
+    engines::{SourceEngineInstall, source_engine_id},
     error::HubError,
-    projects::{metadata_for_path, project_metadata_key, RecentProject},
+    projects::{RecentProject, metadata_for_path, project_metadata_key},
     settings::{HubConfig, HubLanguage},
     state::{HubActionKind, HubActionStatus},
     tauri_app::view_model::HubTextBundle,
@@ -159,10 +159,12 @@ fn import_project_invalid_manifest_is_recoverable_failure() {
         .expect("invalid manifest should be a recoverable Hub error");
 
     assert_eq!(session.task_status.label, "Import Project failed");
-    assert!(session
-        .task_status
-        .detail
-        .contains("zircon-project.toml could not be parsed"));
+    assert!(
+        session
+            .task_status
+            .detail
+            .contains("zircon-project.toml could not be parsed")
+    );
     assert!(session.config.recent_projects.is_empty());
     assert_eq!(
         session.config.action_history[0].status,

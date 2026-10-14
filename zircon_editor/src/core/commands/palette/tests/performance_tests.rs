@@ -14,14 +14,14 @@ const SAMPLE_PAIRS: usize = 21;
 #[test]
 fn editor08_palette_mru_catalog_indices_ignore_missing_commands_and_preserve_membership() {
     let entry_indices = BTreeMap::from([
-        ("palette.alpha".to_string(), 7),
-        ("palette.beta".to_string(), 2),
-        ("palette.gamma".to_string(), 11),
+        ("fixture.palette.alpha".to_string(), 7),
+        ("fixture.palette.beta".to_string(), 2),
+        ("fixture.palette.gamma".to_string(), 11),
     ]);
     let mru = EditorCommandPaletteMru::new([
-        operation("palette.missing"),
-        operation("palette.gamma"),
-        operation("palette.alpha"),
+        operation("fixture.palette.missing"),
+        operation("fixture.palette.gamma"),
+        operation("fixture.palette.alpha"),
     ])
     .unwrap();
 
@@ -37,7 +37,7 @@ fn editor08_palette_mru_catalog_indices_ignore_missing_commands_and_preserve_mem
 #[ignore = "release-only palette MRU membership benchmark"]
 fn editor08_palette_mru_catalog_index_release_benchmark_evidence() {
     let entry_ids = (0..BENCH_CATALOG_SIZE)
-        .map(|index| format!("palette.command_{index:06}"))
+        .map(|index| format!("fixture.palette.command_{index:06}"))
         .collect::<Vec<_>>();
     let entry_indices = entry_ids
         .iter()

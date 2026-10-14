@@ -8,8 +8,8 @@ use zircon_runtime_interface::project::{
 };
 
 use super::{
-    process, validate_target_echo, AccountError, PackageClient, PackageInstallTarget,
-    PackageRuntimeMode, PackageTargetPlatform,
+    AccountError, PackageClient, PackageInstallTarget, PackageRuntimeMode, PackageTargetPlatform,
+    process, validate_target_echo,
 };
 
 /// Read-only request through the existing pinned executable and host policy transport.

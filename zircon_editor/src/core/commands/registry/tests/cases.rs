@@ -187,6 +187,292 @@ fn stable_command_catalog_is_shared_until_registry_generation_changes() {
 }
 
 #[test]
+fn default_palette_keeps_contextual_operations_registered_without_exposing_rows() {
+    let registry = EditorCommandRegistry::default_workbench();
+    let catalog = registry.command_palette_catalog();
+    let i18n = EditorI18nService::default();
+    let locale = i18n.active_locale();
+    let context = CommandEvalCtx::interactive();
+
+    assert_eq!(registry.commands().count(), 68);
+    assert_eq!(catalog.len(), 63);
+    for id in [
+        "view.editor.ui_asset.open",
+        "timeline_sequence.authoring.open",
+        "animation_graph.authoring.open_graph",
+        "animation_graph.authoring.open_state_machine",
+        "inspector.field.apply_batch",
+    ] {
+        let descriptor = registry
+            .command(id)
+            .expect("contextual metadata should remain registered");
+        assert!(!descriptor.palette_visible(), "{id}");
+        assert!(matches!(
+            descriptor.action(),
+            EditorCommandAction::Operation
+        ));
+        assert!(matches!(descriptor.when(), WhenClause::Always));
+        assert!(descriptor.payload_schema_id().is_none());
+        assert!(!descriptor.callable_from_remote());
+        assert!(catalog
+            .query_window(&i18n, &locale, &context, id, 0, 68)
+            .entries()
+            .all(|entry| entry.id != id));
+    }
+    assert!(catalog
+        .query_window(&i18n, &locale, &context, "file.project.open", 0, 68)
+        .entries()
+        .any(|entry| entry.id == "file.project.open"));
+    assert!(registry
+        .event_for_command("file.project.open", &context)
+        .is_ok());
+}
+
+#[test]
+fn palette_visibility_defaults_for_legacy_descriptors_and_round_trips_opt_out() {
+    let descriptor = test_command(0);
+    let legacy = serde_json::to_value(&descriptor).expect("descriptor should serialize");
+    assert!(legacy.get("palette_visible").is_none());
+
+    let decoded: EditorCommandDescriptor =
+        serde_json::from_value(legacy.clone()).expect("old descriptor JSON should remain valid");
+    assert!(decoded.palette_visible());
+    assert_eq!(
+        serde_json::to_value(&decoded).expect("legacy descriptor should serialize"),
+        legacy
+    );
+
+    let mut explicit_visible = legacy.clone();
+    explicit_visible["palette_visible"] = serde_json::Value::Bool(true);
+    let decoded_visible: EditorCommandDescriptor =
+        serde_json::from_value(explicit_visible).expect("explicit visibility should deserialize");
+    assert_eq!(
+        serde_json::to_value(decoded_visible).expect("default visibility should be omitted"),
+        legacy
+    );
+
+    let hidden = decoded.with_palette_visible(false);
+    let encoded = serde_json::to_value(&hidden).expect("opt-out descriptor should serialize");
+    assert_eq!(encoded["palette_visible"], serde_json::Value::Bool(false));
+    let decoded_hidden: EditorCommandDescriptor =
+        serde_json::from_value(encoded).expect("opt-out descriptor should deserialize");
+    assert_eq!(decoded_hidden, hidden);
+    assert!(!decoded_hidden.palette_visible());
+    assert!(decoded_hidden
+        .clone()
+        .with_palette_visible(true)
+        .palette_visible());
+
+    let visible_operation = EditorCommandDescriptor::operation(
+        EditorOperationPath::parse("test.palette.explicit_operation").unwrap(),
+    );
+    let operation_id = visible_operation.id().clone();
+    let registry = EditorCommandRegistry::new(vec![decoded_hidden, visible_operation])
+        .expect("visibility should not affect registry admission");
+    assert_eq!(registry.commands().count(), 2);
+    assert!(registry.operation_factory(&operation_id).is_none());
+    let i18n = EditorI18nService::default();
+    let locale = i18n.active_locale();
+    let window = registry.command_palette_catalog().query_window(
+        &i18n,
+        &locale,
+        &CommandEvalCtx::interactive(),
+        "",
+        0,
+        8,
+    );
+    assert_eq!(window.total_match_count(), 1);
+    assert_eq!(
+        window.entries().next().map(|entry| entry.id.as_str()),
+        Some(operation_id.as_str())
+    );
+}
+
+#[test]
+fn palette_visible_iterator_retains_exact_bounds_across_filtered_positions() {
+    let i18n = EditorI18nService::default();
+    let locale = i18n.active_locale();
+    let context = CommandEvalCtx::interactive();
+    for (visibility, expected_indices) in [
+        ([false, true, true], &[1, 2][..]),
+        ([true, false, true], &[0, 2][..]),
+        ([true, true, false], &[0, 1][..]),
+        ([false, false, false], &[][..]),
+    ] {
+        let commands = visibility
+            .into_iter()
+            .enumerate()
+            .map(|(index, visible)| test_command(index).with_palette_visible(visible))
+            .collect();
+        let registry = EditorCommandRegistry::new(commands).expect("fixture ids should be unique");
+        let mut descriptors = super::PaletteCommandDescriptors::new(registry.commands.values());
+        assert_eq!(descriptors.len(), expected_indices.len());
+        assert_eq!(
+            descriptors.size_hint(),
+            (expected_indices.len(), Some(expected_indices.len()))
+        );
+        for (position, index) in expected_indices.iter().enumerate() {
+            let expected_id = format!("test.palette.command_{index:04}");
+            assert_eq!(
+                descriptors
+                    .next()
+                    .map(|descriptor| descriptor.id().as_str()),
+                Some(expected_id.as_str())
+            );
+            let remaining = expected_indices.len() - position - 1;
+            assert_eq!(descriptors.len(), remaining);
+            assert_eq!(descriptors.size_hint(), (remaining, Some(remaining)));
+        }
+        assert!(descriptors.next().is_none());
+        assert!(descriptors.next().is_none());
+        assert_eq!(descriptors.len(), 0);
+        assert_eq!(descriptors.size_hint(), (0, Some(0)));
+
+        let catalog = registry.command_palette_catalog();
+        assert_eq!(catalog.len(), expected_indices.len());
+        let window = catalog.query_window(&i18n, &locale, &context, "", 0, 8);
+        assert_eq!(
+            window
+                .entries()
+                .map(|entry| entry.id.clone())
+                .collect::<Vec<_>>(),
+            expected_indices
+                .iter()
+                .map(|index| format!("test.palette.command_{index:04}"))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    let registry = EditorCommandRegistry::default();
+    let descriptors = super::PaletteCommandDescriptors::new(registry.commands.values());
+    assert_eq!(descriptors.len(), 0);
+    assert_eq!(descriptors.size_hint(), (0, Some(0)));
+    assert!(registry.command_palette_catalog().is_empty());
+}
+
+#[test]
+fn palette_mru_and_paging_use_visible_catalog_indices() {
+    let registry = EditorCommandRegistry::new(vec![
+        test_command(0).with_palette_visible(false),
+        test_command(1),
+        test_command(2),
+        test_command(3).with_palette_visible(false),
+        test_command(4),
+        test_command(5).with_palette_visible(false),
+    ])
+    .expect("fixture ids should be unique");
+    let mru = EditorCommandPaletteMru::new([0, 4, 3, 2, 5].map(|index| {
+        EditorOperationPath::parse(format!("test.palette.command_{index:04}")).unwrap()
+    }))
+    .expect("the bounded MRU should be valid");
+    let catalog = registry.command_palette_catalog();
+    let i18n = EditorI18nService::default();
+    let locale = i18n.active_locale();
+    let context = CommandEvalCtx::interactive();
+
+    assert_eq!(registry.commands().count(), 6);
+    assert_eq!(catalog.len(), 3);
+    let first_page: &[&str] = &["test.palette.command_0004", "test.palette.command_0002"];
+    let final_page: &[&str] = &["test.palette.command_0001"];
+    for (query, offset, expected, candidate_handles, owned_buffers) in [
+        ("", 0, first_page, 0, 1),
+        ("", 2, final_page, 0, 1),
+        ("palette command", 0, first_page, 2, 4),
+        ("palette command", 2, final_page, 3, 4),
+    ] {
+        let window =
+            catalog.query_window_with_mru(&i18n, &locale, &context, query, offset, 2, &mru);
+        assert_eq!(window.total_match_count(), 3);
+        assert_eq!(window.offset(), offset);
+        assert_eq!(window.len(), expected.len());
+        assert_eq!(
+            window
+                .entries()
+                .map(|entry| entry.id.as_str())
+                .collect::<Vec<_>>(),
+            expected
+        );
+        assert_eq!(window.metrics().visited_entries, 3);
+        assert_eq!(window.metrics().enablement_evaluations, 3);
+        assert_eq!(window.metrics().candidate_handles, candidate_handles);
+        assert_eq!(window.metrics().retained_handles, expected.len());
+        assert_eq!(window.metrics().owned_buffers, owned_buffers);
+    }
+}
+
+#[test]
+fn palette_visibility_survives_registry_reload_clone_and_catalog_invalidation() {
+    let mut registry = EditorCommandRegistry::new(vec![
+        test_command(0),
+        test_command(1).with_palette_visible(false),
+    ])
+    .expect("fixture ids should be unique");
+    let first = registry.command_palette_catalog();
+    assert_eq!(first.len(), 1);
+    assert!(Arc::ptr_eq(&first, &registry.command_palette_catalog()));
+
+    let cloned = registry.clone();
+    let cloned_catalog = cloned.command_palette_catalog();
+    assert!(!Arc::ptr_eq(&first, &cloned_catalog));
+    assert_eq!(cloned_catalog.len(), 1);
+    assert!(!cloned
+        .command("test.palette.command_0001")
+        .unwrap()
+        .palette_visible());
+
+    let reloaded: EditorCommandRegistry =
+        serde_json::from_value(serde_json::to_value(&registry).expect("registry should serialize"))
+            .expect("registry visibility should survive reload");
+    assert_eq!(reloaded.command_palette_catalog().len(), 1);
+    assert!(!reloaded
+        .command("test.palette.command_0001")
+        .unwrap()
+        .palette_visible());
+
+    registry
+        .register(test_command(2).with_palette_visible(false))
+        .expect("a hidden descriptor should still advance the registry generation");
+    let hidden_generation = registry.command_palette_catalog();
+    assert!(!Arc::ptr_eq(&first, &hidden_generation));
+    assert_eq!(hidden_generation.generation(), first.generation() + 1);
+    assert_eq!(hidden_generation.len(), 1);
+
+    registry
+        .register(test_command(3))
+        .expect("a visible descriptor should advance the catalog generation");
+    let current = registry.command_palette_catalog();
+    assert!(!Arc::ptr_eq(&hidden_generation, &current));
+    assert_eq!(current.generation(), first.generation() + 2);
+    assert_eq!(current.len(), 2);
+    assert_eq!(first.len(), 1);
+    assert_eq!(cloned_catalog.generation(), first.generation());
+    assert!(Arc::ptr_eq(
+        &cloned_catalog,
+        &cloned.command_palette_catalog()
+    ));
+
+    let i18n = EditorI18nService::default();
+    let locale = i18n.active_locale();
+    let context = CommandEvalCtx::interactive();
+    assert_eq!(
+        first
+            .query_window(&i18n, &locale, &context, "", 0, 8)
+            .entries()
+            .map(|entry| entry.id.as_str())
+            .collect::<Vec<_>>(),
+        ["test.palette.command_0000"]
+    );
+    assert_eq!(
+        current
+            .query_window(&i18n, &locale, &context, "", 0, 8)
+            .entries()
+            .map(|entry| entry.id.as_str())
+            .collect::<Vec<_>>(),
+        ["test.palette.command_0000", "test.palette.command_0003"]
+    );
+}
+
+#[test]
 fn palette_query_retains_only_the_requested_window_without_truncating_matches() {
     let mut registry = EditorCommandRegistry::default();
     for index in 0..1_000 {

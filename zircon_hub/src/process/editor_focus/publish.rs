@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use zircon_runtime_interface::hub_protocol::{
-    hub_editor_focus_request_directory, hub_editor_focus_signal_path, HubEditorFocusSignalV1,
-    HubSessionToken,
+    HubEditorFocusSignalV1, HubSessionToken, hub_editor_focus_request_directory,
+    hub_editor_focus_signal_path,
 };
 use zircon_runtime_interface::project::session_lock::{
     ProjectSessionAdmissionLifecycleV1, ProjectSessionAdmissionRecordV1,

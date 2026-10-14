@@ -4,6 +4,17 @@ import type { FieldProjection, FIELD_ICON_PATHS } from './bridge/zui-field-proje
 import { layoutControlText, refreshControlParts } from './penpot-control-parts';
 import { ZUI_METADATA_NAMESPACE, ZUI_METADATA_ROLE, ZUI_ROLE_AUXILIARY } from './metadata';
 
+const FIELD_ICON_PAINT = 'field-icon-paint';
+type IconPaint = { fills: Shape['fills']; strokes: Shape['strokes'] };
+interface IconPaintState {
+  version: 1;
+  sourceSize: { width: number; height: number };
+  sourceWidths: number[];
+  originalWidths?: Record<string, number[]>;
+  desired?: string;
+  generated?: Record<string, IconPaint>;
+}
+
 export function refreshFieldDecoration(board: Board, field?: FieldProjection): boolean {
   if (!field) return false;
   const geometry = fieldGeometry(field, board.width, board.height);
@@ -27,6 +38,7 @@ export function refreshFieldDecoration(board: Board, field?: FieldProjection): b
       icon.name = `Field ${key}`;
       icon.setSharedPluginData(ZUI_METADATA_NAMESPACE, ZUI_METADATA_ROLE, ZUI_ROLE_AUXILIARY);
       icon.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'field-icon', key);
+      icon.setSharedPluginData(ZUI_METADATA_NAMESPACE, FIELD_ICON_PAINT, JSON.stringify(newIconPaintState(svg)));
       board.appendChild(icon);
       if (icon.layoutChild) icon.layoutChild.absolute = true;
     }
@@ -48,7 +60,7 @@ export function refreshFieldDecoration(board: Board, field?: FieldProjection): b
     );
     const width = sourceSize.width * strokeScale;
     const height = sourceSize.height * strokeScale;
-    tint(icon, key === 'stepper' ? field.stepperColor : field.iconColor, strokeScale);
+    tint(icon, key === 'stepper' ? field.stepperColor : field.iconColor, rect);
     icon.resize(width, height);
     icon.x = board.x + rect.x + (rect.width - width) / 2;
     icon.y = board.y + rect.y + (rect.height - height) / 2;
@@ -57,7 +69,7 @@ export function refreshFieldDecoration(board: Board, field?: FieldProjection): b
   return true;
 }
 
-function hasUsableSize(shape: Shape): boolean {
+function hasUsableSize(shape: Pick<Shape, 'width' | 'height'>): boolean {
   return (
     Number.isFinite(shape.width) &&
     shape.width > 0 &&
@@ -104,11 +116,97 @@ export function layoutFieldText(board: Board, text: Text, field: FieldProjection
   layoutControlText(board, text, fieldGeometry(field, board.width, board.height).texts);
 }
 
-function tint(shape: Shape, color: string, strokeScale: number): void {
+function newIconPaintState(svg: string): IconPaintState {
+  // The field resources author each stroke width, either as an XML attribute
+  // or inline style. Keep these values independent of native resize results.
+  const sourceWidths = [...svg.matchAll(
+    /\bstroke-width\s*(?:=\s*(["'])(.*?)\1|:\s*([^;"']+))/gi,
+  )].map((match) => {
+    const raw = (match[2] ?? match[3] ?? '').trim();
+    const width = Number.parseFloat(raw);
+    if (!/^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?(?:px)?$/i.test(raw) ||
+        !Number.isFinite(width) || width < 0)
+      throw new Error(`Field icon has an unsupported source stroke width: ${raw}`);
+    return width;
+  });
+  if (sourceWidths.length === 0)
+    throw new Error('Field icon resource has no explicit source stroke widths.');
+  return { version: 1, sourceSize: intrinsicSvgSize(svg), sourceWidths };
+}
+
+function samePaintValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object')
+    return false;
+  if (Array.isArray(left) || Array.isArray(right))
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length &&
+      left.every((value, index) => samePaintValue(value, right[index]));
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const keys = Object.keys(leftRecord);
+  return keys.length === Object.keys(rightRecord).length && keys.every((key) =>
+    Object.prototype.hasOwnProperty.call(rightRecord, key) &&
+    samePaintValue(leftRecord[key], rightRecord[key]));
+}
+
+function tint(shape: Shape, color: string, rect: { width: number; height: number }): void {
+  const raw = shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, FIELD_ICON_PAINT);
+  if (!raw) throw new Error('Field icon has no original paint metadata; reimport it.');
+  const state = JSON.parse(raw) as IconPaintState;
+  if (state.version !== 1 || !Array.isArray(state.sourceWidths) || state.sourceWidths.length === 0 ||
+      !state.sourceSize || !hasUsableSize(state.sourceSize))
+    throw new Error('Field icon has invalid original paint metadata.');
+  const scale = Math.min(rect.width / state.sourceSize.width, rect.height / state.sourceSize.height);
+  const desired = JSON.stringify([color, scale]);
+  if (state.desired === desired) return;
+
+  const shapes: Shape[] = [];
+  const visit = (current: Shape): void => {
+    shapes.push(current);
+    if ('children' in current) for (const child of current.children) visit(child);
+  };
+  visit(shape);
+  const current: Record<string, IconPaint> = Object.fromEntries(shapes.map((child) => [
+    child.id, JSON.parse(JSON.stringify({ fills: child.fills, strokes: child.strokes })) as IconPaint,
+  ]));
+  if (!state.originalWidths) {
+    const widths = shapes.flatMap((child) => child.strokes.map((stroke) => stroke.strokeWidth));
+    // createShapeFromSvg may still have no children, or only part of its tree.
+    // The imported viewport rectangle has no strokes and is not a source stroke.
+    if (widths.length < state.sourceWidths.length || widths.some((width) => width == null)) return;
+    if (JSON.stringify([...widths].sort((a, b) => a! - b!)) !==
+        JSON.stringify([...state.sourceWidths].sort((a, b) => a - b)))
+      throw new Error('Field icon original strokes do not match its SVG source.');
+    state.originalWidths = Object.fromEntries(shapes.map((child) => [
+      child.id, child.strokes.map((stroke) => stroke.strokeWidth!),
+    ]));
+  } else if (!state.generated || !samePaintValue(current, state.generated)) {
+    // Check the entire tree before any paint write, including later siblings.
+    throw new Error('Field icon paint changed without a ZUI source mapping.');
+  }
+
   const opacity = color.length === 9 ? parseInt(color.slice(7), 16) / 255 : 1;
-  if (Array.isArray(shape.fills))
-    shape.fills = shape.fills.map((fill) => ({ ...fill, fillColor: color.slice(0, 7), fillOpacity: opacity }));
-  shape.strokes = shape.strokes.map((stroke) => ({ ...stroke, strokeColor: color.slice(0, 7), strokeOpacity: opacity,
-    strokeWidth: (stroke.strokeWidth ?? 0) * strokeScale }));
-  if ('children' in shape) for (const child of shape.children) tint(child, color, strokeScale);
+  const generated: Record<string, IconPaint> = Object.fromEntries(shapes.map((child) => {
+    const paint = current[child.id];
+    const widths = state.originalWidths![child.id];
+    if (!widths || widths.length !== paint.strokes.length)
+      throw new Error('Field icon original paint metadata does not cover its tree.');
+    return [child.id, {
+      fills: Array.isArray(paint.fills)
+        ? paint.fills.map((fill) => ({ ...fill, fillColor: color.slice(0, 7), fillOpacity: opacity }))
+        : paint.fills,
+      strokes: paint.strokes.map((stroke, index) => ({
+        ...stroke, strokeColor: color.slice(0, 7), strokeOpacity: opacity,
+        strokeWidth: widths[index]! * scale,
+      })),
+    }];
+  }));
+  for (const child of shapes) {
+    const paint = generated[child.id];
+    if (Array.isArray(paint.fills)) child.fills = paint.fills;
+    child.strokes = paint.strokes;
+  }
+  state.desired = desired;
+  state.generated = generated;
+  shape.setSharedPluginData(ZUI_METADATA_NAMESPACE, FIELD_ICON_PAINT, JSON.stringify(state));
 }

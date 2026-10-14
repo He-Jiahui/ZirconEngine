@@ -634,9 +634,10 @@ impl DiagnosticLogState {
     }
 
     fn outputs_succeeded(&self) -> bool {
-        self.sink
-            .as_ref()
-            .is_some_and(SinkRuntime::outputs_succeeded)
+        match self.sink.as_ref() {
+            Some(sink) => sink.outputs_succeeded(),
+            None => !self.console_enabled && !self.file_enabled,
+        }
     }
 
     #[cfg(test)]

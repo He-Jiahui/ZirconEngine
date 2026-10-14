@@ -91,7 +91,7 @@ def write_json(path: Path, value: object) -> None:
 
 def inventory_tree(root: Path, output: Path) -> list[dict]:
     root = physical(root)
-    if root.parent != output or root.name not in {"basetemp", "temp", "cache"}:
+    if root.parent != output or root.name not in {"basetemp", "temp", "cache", "fixtures"}:
         raise ValueError("cleanup_root_not_registered")
     result: list[dict] = []
     pending = [root]
@@ -203,7 +203,7 @@ def verify_pins(repo: Path, expected_driver: str, expected_runtime: str,
         raise ValueError("management_capsule_runtime_mismatch")
 
     files = config.get("files")
-    allowed_capsule_files = {"runner.py", "source_preparation.py", "zircon-management.groovy"}
+    allowed_capsule_files = {"runner.py", "source_preparation.py", "zircon-management.groovy", "checkout_guard.py"}
     if (not isinstance(files, dict) or not {"runner.py", "zircon-management.groovy"}.issubset(files)
             or not set(files).issubset(allowed_capsule_files)):
         raise ValueError("management_capsule_files_invalid")

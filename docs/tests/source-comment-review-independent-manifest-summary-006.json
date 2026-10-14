@@ -1,0 +1,532 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "manifest-summary-006",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewer": "/root",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignmentBaseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "observedHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+  "observedAtUtc": "2026-10-13T16:55:55.884088+00:00",
+  "state": "independently-reviewed-awaiting-coordinator",
+  "agentEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-manifest-summary-006.json",
+    "sha256": "a358e3c08b19aba9f98adeb036269d0d3533ba5d6893e327e1a09caa6f991f0a",
+    "bytes": 54280,
+    "sectionsReviewed": [
+      "all8 objectEvidence entries",
+      "all26 callerEvidence entries",
+      "files",
+      "issues",
+      "validation",
+      "notes"
+    ]
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/admission.rs",
+      "beforeSha256": "075b50c4db71adc540998b5b9997298922b9f31588ec361e4c4e35439d207dd6",
+      "reviewedSha256": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+      "insertedStandaloneCommentOrBlankLines": 10,
+      "objectEvidence": [
+        "PROJ06-002"
+      ],
+      "callerEvidence": [
+        "CALL-05",
+        "CALL-10"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/error.rs",
+      "beforeSha256": "f149fc4680848d83dd1ce998c1c425cacfe94bbc4c8a555c9b22c0f8c903f8e2",
+      "reviewedSha256": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+      "insertedStandaloneCommentOrBlankLines": 28,
+      "objectEvidence": [
+        "PROJ06-004"
+      ],
+      "callerEvidence": [
+        "CALL-07",
+        "CALL-10",
+        "CALL-11",
+        "CALL-17"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/limits.rs",
+      "beforeSha256": "24af40946ebf4d6031eb15b0dcf43e60dd27cc2bbd8e40f0b1d06ba596b61efe",
+      "reviewedSha256": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+      "insertedStandaloneCommentOrBlankLines": 5,
+      "objectEvidence": [
+        "PROJ06-003"
+      ],
+      "callerEvidence": [
+        "CALL-07",
+        "CALL-10",
+        "CALL-12",
+        "CALL-22",
+        "CALL-23"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+      "beforeSha256": "215ccd0c3b6868b8e91df50672750646697ffe853fe3ac0d79d5dc4bc0b3646b",
+      "reviewedSha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "insertedStandaloneCommentOrBlankLines": 33,
+      "objectEvidence": [
+        "PROJ06-005"
+      ],
+      "callerEvidence": [
+        "CALL-03",
+        "CALL-04",
+        "CALL-05",
+        "CALL-06",
+        "CALL-07",
+        "CALL-13",
+        "CALL-14",
+        "CALL-15",
+        "CALL-17"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/mod.rs",
+      "beforeSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "reviewedSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "insertedStandaloneCommentOrBlankLines": 0,
+      "objectEvidence": [
+        "PROJ06-001"
+      ],
+      "callerEvidence": [
+        "CALL-01",
+        "CALL-02"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+      "beforeSha256": "88ddd9f9c55c2811cf74c8f67c879c74805ad3ca1b46c21072acb9d28157a239",
+      "reviewedSha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+      "insertedStandaloneCommentOrBlankLines": 50,
+      "objectEvidence": [
+        "PROJ06-006"
+      ],
+      "callerEvidence": [
+        "CALL-02",
+        "CALL-07",
+        "CALL-08",
+        "CALL-11",
+        "CALL-12",
+        "CALL-13",
+        "CALL-14",
+        "CALL-15",
+        "CALL-17"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+      "beforeSha256": "2d5adf83ef2a407396accf393cd693a7731c8380ad8a4afda970d3080cb131d1",
+      "reviewedSha256": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+      "insertedStandaloneCommentOrBlankLines": 41,
+      "objectEvidence": [
+        "PROJ06-007"
+      ],
+      "callerEvidence": [
+        "CALL-01",
+        "CALL-02",
+        "CALL-13",
+        "CALL-18",
+        "CALL-19",
+        "CALL-20",
+        "CALL-21",
+        "CALL-24",
+        "CALL-25",
+        "CALL-26"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+      "beforeSha256": "7ecbcd4b4c5ecda9c598ecc3afd3848a7b48c33f89310a5fabb1fc8752a44b16",
+      "reviewedSha256": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989",
+      "insertedStandaloneCommentOrBlankLines": 4,
+      "objectEvidence": [
+        "PROJ06-008"
+      ],
+      "callerEvidence": [
+        "CALL-10",
+        "CALL-11",
+        "CALL-17",
+        "CALL-24"
+      ],
+      "sourceTokensExcludingDocumentationEqual": true,
+      "originalRawLinesAndEolPreserved": true,
+      "compilerFacingTokensEqual": false
+    }
+  ],
+  "coverage": {
+    "sourceFiles": 8,
+    "objectGroups": 8,
+    "associatedTestFunctions": 8,
+    "newCommentsFiles": 7,
+    "unchangedAdequatelyDocumentedFiles": 1,
+    "countMeaning": "Every source/test body and every agent object group was read; counts are navigation and do not establish whole-repository coverage."
+  },
+  "independentFindings": [
+    {
+      "subject": "摘要职责与生命周期",
+      "finding": "ProjectManifestSummary is an owned compact projection. Public fields and Serde allow direct construction, so only parser results demonstrate its validation path. Byte entry validates size and UTF-8, text entry validates existing text length before TOML, complexity, DTO and semantic admission; Runtime-only validation and resource existence remain consumer responsibilities."
+    },
+    {
+      "subject": "迁移与调用顺序",
+      "finding": "Project loader rejects future source versions before MigrationChain::migrate_value; v0 is rejected, v1 supplies established defaults, and v2 advances to v3. Loaded.migrated_from preserves source provenance. Root read current generic chain execute/validate: complete chain is checked before indexed step calls, but its unrelated future-version TODO remains unresolved."
+    },
+    {
+      "subject": "消费者边界",
+      "finding": "Runtime load.rs bounds input, rejects migrated input, then decodes and validates the full manifest. Editor preflight bounds file read and digests the source, parses summary, and creates the Runtime manifest only for current format. Hub validation and recent-project loading consume summary as compact project identity; their caller bodies do not turn this parser into full Runtime admission."
+    },
+    {
+      "subject": "现有 TODO",
+      "finding": "CR-PROJECT-0003 remains at the public raw TOML loader: it has no raw byte ceiling of its own, while summary text parsing and Runtime load guard it first. This is an unresolved contract question rather than a proven defect; no marker or behavior was changed."
+    }
+  ],
+  "independentChecks": {
+    "actualSourceReads": "Root cell84/85 completed all eight source/test files without a missing span. Root cell84 reviewed all object/caller entries; cell87 inspected validation/issues/notes; current migration/Runtime/Editor/Hub consumer contexts were read in cells90/91/92.",
+    "physicalInsertions": {
+      "rootNativeTerminalChunk": "d30cc6",
+      "rootNativeSession": 35816,
+      "exitCode": 0,
+      "failedPriorDiagnostic": {
+        "chunk": "014955",
+        "exitCode": 1,
+        "reason": "initial inspection treated the lexer dictionary as an object; no verification completed and no file write occurred"
+      },
+      "all8BeforeMatchAssignedPhysicalPins": true,
+      "all8FinalMatchAgentPins": true,
+      "insertedStandaloneCommentOrBlankLines": 171,
+      "deletedLines": 0,
+      "originalRawLinesAndEolPreserved": true,
+      "sourceTokensExcludingDocumentationEqual": true,
+      "compilerFacingTokensChangedFor7Files": true,
+      "method": "Read raw git show 5a547d4e... bytes and compare byte-line opcodes: only standalone // or blank inserts. Mask doc_comment_spans while preserving CR/LF before lexical comparison. The historical rust_non_doc_tokens name does not mean documentation is excluded.",
+      "lineSensitiveMacros": [],
+      "sourceEmbeddingMacros": [],
+      "rustcDirectiveComments": false
+    },
+    "changeGuard": {
+      "rootNativeTerminalChunk": "8949b1",
+      "rootNativeSession": 32204,
+      "exitCode": 0,
+      "declaredPaths": 8,
+      "changedPaths": 7,
+      "patchDigest": "f0199861da6ea9975d447ebe6af56f49043e468854a6692a5e271394373c0e8e",
+      "writeGrantCheck": true,
+      "errors": 0,
+      "warnings": 0
+    },
+    "languageChecks": {
+      "status": "reuse final-pin-bound exact8 rustfmt edition2021 skip_children=true receipt; no broadened checks",
+      "agentNativeSession": 31704,
+      "agentExitCode": 0,
+      "agentDiffWhitespaceChunk": "316674",
+      "structuralAgentNativeSession": 47618,
+      "allSourcePinsStillMatch": true
+    },
+    "dependencies": {
+      "currentCallerPins": [
+        {
+          "id": "CALL-01",
+          "path": "zircon_runtime_interface/src/lib.rs",
+          "historicalAgentSha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+          "currentSha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+          "status": "agent pin physically matches current source",
+          "relationship": "Crate root exports the shared project interface.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-02",
+          "path": "zircon_runtime_interface/src/project/mod.rs",
+          "historicalAgentSha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+          "currentSha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+          "status": "agent pin physically matches current source",
+          "relationship": "Exposes summary, parser, migration, limits, and errors through crate::project.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-03",
+          "path": "zircon_runtime_interface/src/serialization/loaded.rs",
+          "historicalAgentSha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
+          "currentSha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
+          "status": "agent pin physically matches current source",
+          "relationship": "Defines migration provenance on successful old-version loads.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-04",
+          "path": "zircon_runtime_interface/src/serialization/migration/chain.rs",
+          "historicalAgentSha256": "bd62c53932c045f94fe14b11ef1fa807ac072f135879355d39d55a9782b72f8f",
+          "currentSha256": "bd62c53932c045f94fe14b11ef1fa807ac072f135879355d39d55a9782b72f8f",
+          "status": "agent pin physically matches current source",
+          "relationship": "Static ordered migration steps; no runtime registry.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-05",
+          "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+          "historicalAgentSha256": "81a3623b3c7eb076318e03c3f44bbafe1a7c179febb4884c6294d456ca2a0d82",
+          "currentSha256": "81a3623b3c7eb076318e03c3f44bbafe1a7c179febb4884c6294d456ca2a0d82",
+          "status": "agent pin physically matches current source",
+          "relationship": "Validates the chain then applies step function pointers.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-06",
+          "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+          "historicalAgentSha256": "874314dc22f58dd8a6924f3b980392a02be5fb9baa0779e575d89538b71ed5ac",
+          "currentSha256": "874314dc22f58dd8a6924f3b980392a02be5fb9baa0779e575d89538b71ed5ac",
+          "status": "agent pin physically matches current source",
+          "relationship": "Checks ordered steps and complete chain length.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-07",
+          "path": "zircon_runtime/src/asset/project/manifest/load.rs",
+          "historicalAgentSha256": "d91087c23aa610106a02fc8f90202cb76c528a47337c8b0a3ea0fa3b9e624fcd",
+          "currentSha256": "d91087c23aa610106a02fc8f90202cb76c528a47337c8b0a3ea0fa3b9e624fcd",
+          "status": "agent pin physically matches current source",
+          "relationship": "Bounds bytes, calls shared loader, rejects migrated input, decodes and validates full Runtime type.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-08",
+          "path": "zircon_runtime/src/asset/project/manifest/validation.rs",
+          "historicalAgentSha256": "e2528d416eea11d15253a4ae5715308fb2c166b39ea68980ee5e9c0729abd297",
+          "currentSha256": "e2528d416eea11d15253a4ae5715308fb2c166b39ea68980ee5e9c0729abd297",
+          "status": "agent pin physically matches current source",
+          "relationship": "Adds Runtime engine, receipt, asset-root, and UI-root checks.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-09",
+          "path": "zircon_runtime/src/asset/project/manifest/project_manifest.rs",
+          "historicalAgentSha256": "862eccba6ca7f434d371065c86290f69c6aeffa613f2aa2b824aeffdafec7464",
+          "currentSha256": "862eccba6ca7f434d371065c86290f69c6aeffa613f2aa2b824aeffdafec7464",
+          "status": "agent pin physically matches current source",
+          "relationship": "Defines authoritative Runtime type and compact projection.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-10",
+          "path": "zircon_runtime/src/asset/project/manifest/tests/load.rs",
+          "historicalAgentSha256": "9638551d990a4a3d3e508211441df3b6cafe6f19ebf4c310199fca27813d9adc",
+          "currentSha256": "9638551d990a4a3d3e508211441df3b6cafe6f19ebf4c310199fca27813d9adc",
+          "status": "agent pin physically matches current source",
+          "relationship": "Checks bounded read, exact byte ceiling, UTF-8 and pre-parse rejection.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-11",
+          "path": "zircon_runtime/src/asset/tests/project/manifest.rs",
+          "historicalAgentSha256": "0bece787b6770b56ed55582d2f3185cfbf967d1d0975cf0ebbe466c8e7879022",
+          "currentSha256": "0bece787b6770b56ed55582d2f3185cfbf967d1d0975cf0ebbe466c8e7879022",
+          "status": "agent pin physically matches current source",
+          "relationship": "Compares source-version provenance and confirms Runtime legacy gate.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-12",
+          "path": "zircon_runtime/src/asset/project/manifest/validation/tests/astra_root_tests.rs",
+          "historicalAgentSha256": "1d9cef99ad2ab4ac3dff1d867331003d10645dbbd59e2d914ccf885b6d474ea1",
+          "currentSha256": "1d9cef99ad2ab4ac3dff1d867331003d10645dbbd59e2d914ccf885b6d474ea1",
+          "status": "agent pin physically matches current source",
+          "relationship": "Uses shared engine-requirement check and root-budget contract.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-13",
+          "path": "zircon_editor/src/core/project/preflight_manifest_reader.rs",
+          "historicalAgentSha256": "92b04791cc0f0d814d0b7c7431304aff1da0c16a046b56e197f2d4f32c134179",
+          "currentSha256": "92b04791cc0f0d814d0b7c7431304aff1da0c16a046b56e197f2d4f32c134179",
+          "status": "agent pin physically matches current source",
+          "relationship": "Bounded read/digest, summary parse, full Runtime manifest only for current input.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-14",
+          "path": "zircon_editor/src/core/project/authority/preflight.rs",
+          "historicalAgentSha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+          "currentSha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+          "status": "agent pin physically matches current source",
+          "relationship": "Carries migrated_from into migration decision and receipt.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-15",
+          "path": "zircon_editor/src/core/project/authority/recent_validation.rs",
+          "historicalAgentSha256": "125305a01c4b80a134eebf972aa6c9d876842e12994058fe0f5f2b6bd47c82d7",
+          "currentSha256": "125305a01c4b80a134eebf972aa6c9d876842e12994058fe0f5f2b6bd47c82d7",
+          "status": "agent pin physically matches current source",
+          "relationship": "Separates legacy RequiresMigration from current and invalid summary.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-16",
+          "path": "zircon_editor/src/core/project/project_preflight/manifest_migration_decision.rs",
+          "historicalAgentSha256": "8426e98d1a7848041e8b083f39bc7a816a30338cd5ab7a0f0a0273892f247db5",
+          "currentSha256": "8426e98d1a7848041e8b083f39bc7a816a30338cd5ab7a0f0a0273892f247db5",
+          "status": "agent pin physically matches current source",
+          "relationship": "Maps source marker to explicit decision; does not execute migration.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-17",
+          "path": "zircon_editor/src/core/project/tests/preflight.rs",
+          "historicalAgentSha256": "678194c06912b8a62c325ba878c56d425c6a2de092de7aa0080ab18030ffa038",
+          "currentSha256": "678194c06912b8a62c325ba878c56d425c6a2de092de7aa0080ab18030ffa038",
+          "status": "agent pin physically matches current source",
+          "relationship": "Checks explicit source version decision, no implicit action, and bounded input.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-18",
+          "path": "zircon_hub/src/projects/validation.rs",
+          "historicalAgentSha256": "c506060ec2bc7432560f79d1866782fffb7c5f0e4fd1896a174b57f8e240ae82",
+          "currentSha256": "c506060ec2bc7432560f79d1866782fffb7c5f0e4fd1896a174b57f8e240ae82",
+          "status": "agent pin physically matches current source",
+          "relationship": "Uses summary for parse classification, not full Runtime validation.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-19",
+          "path": "zircon_hub/src/projects/recent_project.rs",
+          "historicalAgentSha256": "9b28b75b94b1b8d5990bba4faa0f66cfeaf13798ee347d9658948e5c897dff5c",
+          "currentSha256": "9b28b75b94b1b8d5990bba4faa0f66cfeaf13798ee347d9658948e5c897dff5c",
+          "status": "agent pin physically matches current source",
+          "relationship": "Loads summary as persisted Hub display identity.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-20",
+          "path": "zircon_hub/src/account/cloud/snapshot.rs",
+          "historicalAgentSha256": "1fd31996575c5ba278a8188823fdf216306ee59b1a9b89ae98b98f05ad488df4",
+          "currentSha256": "a6733db50d1bbe6aae5326cabc64d14d55ee486be64233a6e4678927a3a5a0f8",
+          "status": "current caller re-read by root cell92",
+          "relationship": "Parses summary and compares project GUID with Hub state.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-21",
+          "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+          "historicalAgentSha256": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+          "currentSha256": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+          "status": "agent pin physically matches current source",
+          "relationship": "Parses summary after manifest identity rewrite and requirement validation.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-22",
+          "path": "zircon_runtime/src/plugin/package_service/admission/project_lock/input.rs",
+          "historicalAgentSha256": "0b7b151afef8c293b270c523e3f81297d722e964393c33c8a03f3c02286c7658",
+          "currentSha256": "0b7b151afef8c293b270c523e3f81297d722e964393c33c8a03f3c02286c7658",
+          "status": "agent pin physically matches current source",
+          "relationship": "Uses shared byte ceiling for bounded admission input.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-23",
+          "path": "zircon_runtime/src/asset/project/manifest/save.rs",
+          "historicalAgentSha256": "92f1a92e43661612ca67e1ff70c57625d76a75f6f035d13b8c722ad55322c85a",
+          "currentSha256": "92f1a92e43661612ca67e1ff70c57625d76a75f6f035d13b8c722ad55322c85a",
+          "status": "agent pin physically matches current source",
+          "relationship": "Applies the same byte ceiling to serialized output.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-24",
+          "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+          "historicalAgentSha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+          "currentSha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+          "status": "agent pin physically matches current source",
+          "relationship": "Checks GUID propagation and current-format GUID requirement.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-25",
+          "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+          "historicalAgentSha256": "79c1c13d78440f2308c53d8ae1b44a036b87b0dae683732ab6df04e590101bb5",
+          "currentSha256": "79c1c13d78440f2308c53d8ae1b44a036b87b0dae683732ab6df04e590101bb5",
+          "status": "agent pin physically matches current source",
+          "relationship": "Checks rendered summary matches current schema and template requirement.",
+          "consumerFullFileCoverageCredit": false
+        },
+        {
+          "id": "CALL-26",
+          "path": "zircon_hub/src/tauri_app/runtime_state/project_actions/tests/cases.rs",
+          "historicalAgentSha256": "7b552cb774bdd377fceaa2d74fb1c575e81157aba57e21d69a0e0e352722a933",
+          "currentSha256": "eb6223799a60d60ed908544fa5f918b456ab87992701b921d6b933996d8c7d50",
+          "status": "current caller re-read by root cell92",
+          "relationship": "Uses summary parser to validate Hub test fixture.",
+          "consumerFullFileCoverageCredit": false
+        }
+      ],
+      "historicalAgentEvidencePreserved": true,
+      "driftReconciled": [
+        {
+          "id": "CALL-20",
+          "readScope": "snapshot.rs lines28-102 and163-173",
+          "conclusion": "Current capture parses summary before checking expected GUID; verify_manifest_generation checks raw source digest separately. The compact-parser relationship remains valid."
+        },
+        {
+          "id": "CALL-26",
+          "readScope": "project_actions/tests/cases.rs lines498-504 and related fixture uses",
+          "conclusion": "Current fixture still validates format3/GUID/name/default scene through parse_toml_str before writing; this is static evidence, not test execution."
+        }
+      ],
+      "compatibilityCallerReconciliation": {
+        "frozenProof": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "frozenProofSha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "callerId": "CALL-03",
+        "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+        "previousSha256": "88ddd9f9c55c2811cf74c8f67c879c74805ad3ca1b46c21072acb9d28157a239",
+        "currentSha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+        "currentReadAndNonDocProof": "all current parse.rs body/doc read and byte/lexical proof in this batch; 50 inserted comments only",
+        "status": "independently-reconciled; old proof not rewritten"
+      }
+    }
+  },
+  "formalRequirements": {
+    "classification": "documentation_comment semantic because compiler-facing #[doc] attributes changed",
+    "registeredLane": "module_unit scoped to zircon_runtime_interface as admitted by selected runner",
+    "pending": "Actual supported source-owner/preparation inputs, registered language/receipt flow, exact stage commit and attached notification; no compiler/test execution or formal acceptance inferred.",
+    "unregisteredDocMacroGate": false,
+    "historicalAgentRustdocPendingWording": "Agent notes absence of Cargo doc or macro execution. This does not create a separate required gate; use the actual registered scoped language validation and static primary-source observability evidence."
+  },
+  "formalAcceptance": false,
+  "wholeRepositoryComplete": false,
+  "artifactLifecycle": {
+    "rootBuilds": 0,
+    "rootGeneratedProducts": 0,
+    "rootTemporaryHelpers": 0,
+    "rootSourceCopies": 0,
+    "releasedBytes": 0,
+    "originalTaskArtifactsManifestPending": true,
+    "closed": false
+  }
+}

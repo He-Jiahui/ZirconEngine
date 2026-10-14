@@ -8,15 +8,21 @@ use super::ProjectGuidParseError;
 
 /// Stable project-owned GUID. Missing values must be handled by explicit migration policy.
 /// 项目持久化身份；缺失值只能经显式迁移处理，不能在读取清单时隐式补造。
+/// 该类型拒绝 nil UUID，但不校验 UUID 版本/变体，也不判断跨项目重复。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
 #[serde(transparent)]
 pub struct ProjectGuid(Uuid);
 
 impl ProjectGuid {
+    /// 通过 `Uuid::new_v4` 为新项目生成随机标识；不会查询既有项目值。
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
+    /// 将已有 UUID 包装为项目身份，仅拒绝 nil 值。
+    ///
+    /// # Errors
+    /// UUID 为 nil 时返回 [`ProjectGuidParseError::Nil`]；版本、变体和重复策略由调用方负责。
     pub fn try_from_uuid(value: Uuid) -> Result<Self, ProjectGuidParseError> {
         if value.is_nil() {
             return Err(ProjectGuidParseError::Nil);
@@ -38,6 +44,10 @@ impl Display for ProjectGuid {
 impl FromStr for ProjectGuid {
     type Err = ProjectGuidParseError;
 
+    /// 解析 `Uuid::parse_str` 支持的文本表示，并在解析后应用 nil 检查。
+    ///
+    /// # Errors
+    /// 文本不是受支持的 UUID 表示，或解析结果为 nil 时返回错误。
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         Uuid::parse_str(value)
             .map_err(|source| ProjectGuidParseError::InvalidUuid { source })

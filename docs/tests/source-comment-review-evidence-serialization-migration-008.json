@@ -1,0 +1,596 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "serialization-migration-008",
+  "owner": "/root/public_serialization",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignment": {
+    "head": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "coverageLedger": "docs/tests/source-comment-review-coverage-03.json",
+    "coverageLedgerSha256": "3997e1db8352d11a06786396eb88a128905e79191218b8b0ddd1f1620a0064ee",
+    "coverageRevision": 12,
+    "grant": "Only the seven listed sources and this unique evidence file; all other files/ledgers remain read-only.",
+    "initialStatus": "Root confirmed all seven sources clean and initial pins matched."
+  },
+  "state": "partial-author-review-awaiting-root-review",
+  "scope": [
+    "zircon_runtime_interface/src/serialization/migration/mod.rs",
+    "zircon_runtime_interface/src/serialization/migration/chain.rs",
+    "zircon_runtime_interface/src/serialization/migration/step.rs",
+    "zircon_runtime_interface/src/serialization/migration/execute.rs",
+    "zircon_runtime_interface/src/serialization/migration/validate.rs",
+    "zircon_runtime_interface/src/serialization/migration/error.rs",
+    "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs"
+  ],
+  "changeClassification": {
+    "summary": "Partial: one step intra-doc link and one UnexpectedStep boundary phrase remain frozen for root correction.",
+    "sourceDelta": "Scoped diff contains added doc comments and one private invariant comment only; no baseline line was removed or edited.",
+    "declarationsAndBehavior": "Executable expressions, item signatures, fields, derives/error attrs, fixture bodies and assertions are unchanged. Rust //! and /// add compiler-facing #[doc] attributes; macro inputs are not claimed unchanged.",
+    "existingComments": "All baseline English docs, comments, TODOs, attrs, error strings and tests are retained.",
+    "lineEndings": "Seven before/after files are LF-only with zero CRLF and no BOM.",
+    "unresolved": [
+      "step.rs:14 unqualified intra-doc link.",
+      "error.rs:44 phrase can imply strictly greater than target while implementation boundary includes equality."
+    ]
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/mod.rs",
+      "beforeSha256": "737666b9dad1f40d059bb288a37977c930493e8e0e84d8e086072d43312a644b",
+      "afterSha256": "39d4198effe113e67dafa7bb759aef14048170d0384b7e231ed8da1da5c8e76b",
+      "beforeBytes": 258,
+      "afterBytes": 902,
+      "beforeLineCount": 14,
+      "afterLineCount": 24,
+      "beforeLineEndingCounts": {
+        "LF": 14,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "finalLineEndingCounts": {
+        "LF": 24,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Scoped diff is insertion-only; baseline lines/comments remain and file is LF-only.",
+      "objectEvidence": [
+        {
+          "object": "module docs",
+          "entered": "Crate root exposes serialization; serialization/mod.rs declares/re-exports migration.",
+          "status": "Added Chinese overview of static VersionedSchema chain, JSON callback flow, reexports, current-version validation, and no runtime registry.",
+          "impact": "Clarifies ownership/entry path; graph unchanged."
+        },
+        {
+          "object": "private module declarations/path attrs",
+          "entered": "Five child modules chain/error/execute/step/validate are path-bound.",
+          "status": "Reviewed; overview plus child contracts make per-declaration docs repetitive.",
+          "impact": "Paths and visibility unchanged."
+        },
+        {
+          "object": "public reexports",
+          "entered": "serialization/mod.rs reexports MigrationChain, MigrateError, MigrationStep.",
+          "status": "Reviewed and linked from module overview.",
+          "impact": "Public access route unchanged."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/chain.rs",
+      "beforeSha256": "bd62c53932c045f94fe14b11ef1fa807ac072f135879355d39d55a9782b72f8f",
+      "afterSha256": "608418fd0e3c8ec20045990b8cc82f6c9b11c592d256eada5ca0693bdf7d02f9",
+      "beforeBytes": 402,
+      "afterBytes": 1558,
+      "beforeLineCount": 18,
+      "afterLineCount": 37,
+      "beforeLineEndingCounts": {
+        "LF": 18,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "finalLineEndingCounts": {
+        "LF": 37,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Scoped diff is insertion-only; baseline lines/comments remain and file is LF-only.",
+      "objectEvidence": [
+        {
+          "object": "MigrationChain<T> and steps/marker",
+          "entered": "VersionedSchema::migrations returns a static chain; execute/validate read steps; PhantomData associates T.",
+          "status": "Preserved English summary; added Chinese type association, no construction-time validation, static lifetime, and later validation contract.",
+          "impact": "Clarifies chain contract; fields/representation unchanged."
+        },
+        {
+          "object": "MigrationChain<T>::new",
+          "entered": "Schema implementations compose static MigrationStep slices.",
+          "status": "Added Chinese parameter/lifetime/reference guidance; states it does not validate/reorder.",
+          "impact": "Clarifies boundary; signature/body unchanged."
+        },
+        {
+          "object": "impl<T> MigrationChain<T> block",
+          "entered": "Groups chain construction; execution/validation are sibling impl blocks.",
+          "status": "Reviewed; no repeated block docs.",
+          "impact": "No implementation change."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "beforeSha256": "7935b23aa35623802fde67d64bf1a1f24c7791da026d76f9251a2da4e23c94b0",
+      "afterSha256": "00cc6857dfd65e54f05868d675c842ca444f704478615233e5c6ef6b2b168a85",
+      "beforeBytes": 492,
+      "afterBytes": 1616,
+      "beforeLineCount": 21,
+      "afterLineCount": 38,
+      "beforeLineEndingCounts": {
+        "LF": 21,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "finalLineEndingCounts": {
+        "LF": 38,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Scoped diff is insertion-only; baseline lines/comments remain and file is LF-only.",
+      "objectEvidence": [
+        {
+          "object": "MigrationFn alias",
+          "entered": "migrate_value calls each fn pointer with owned JSON Value and wraps callback errors as StepFailed.",
+          "status": "Added Chinese input/output ownership and error propagation docs.",
+          "impact": "Alias unchanged."
+        },
+        {
+          "object": "MigrationStep and from_version/migrate fields",
+          "entered": "validate reads adjacent source version; execute invokes matching callback.",
+          "status": "Preserved English summary; added Chinese one-edge role and states order/timing belong to chain.",
+          "impact": "Fields/derive unchanged; line 14 link remains pending."
+        },
+        {
+          "object": "impl MigrationStep block",
+          "entered": "Provides const construction for static entries.",
+          "status": "Reviewed with constructor docs; no duplicate block docs.",
+          "impact": "No implementation change."
+        },
+        {
+          "object": "MigrationStep::new",
+          "entered": "VersionedSchema tables compose steps through constructor.",
+          "status": "Added Chinese parameter/return/reference guidance; construction stores pointer/version, does not call or position-check.",
+          "impact": "Signature/body unchanged."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "beforeSha256": "81a3623b3c7eb076318e03c3f44bbafe1a7c179febb4884c6294d456ca2a0d82",
+      "afterSha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+      "beforeBytes": 1272,
+      "afterBytes": 2705,
+      "beforeLineCount": 30,
+      "afterLineCount": 51,
+      "beforeLineEndingCounts": {
+        "LF": 30,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "finalLineEndingCounts": {
+        "LF": 51,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "existingIssueTags": [
+        "CR-SERIALIZATION-0001"
+      ],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Scoped diff is insertion-only; baseline lines/comments remain and file is LF-only.",
+      "objectEvidence": [
+        {
+          "object": "impl<T> execution block",
+          "entered": "Loader calls it after source-version validation; validation is separate.",
+          "status": "Reviewed; no repetitive block docs.",
+          "impact": "Code unchanged."
+        },
+        {
+          "object": "MigrationChain<T>::migrate_value",
+          "entered": "load_migrated_value invokes it for normalized JSON; also publicly reachable by reexport.",
+          "status": "Added Chinese usage/ownership, parameters, return, errors and boundary docs; preserved English overview.",
+          "impact": "Separates loader precheck from public API target-chain check."
+        },
+        {
+          "object": "target validate call",
+          "entered": "validate(schema_id,target_version) precedes range loop.",
+          "status": "Method docs state validation runs even for empty forward range.",
+          "impact": "Order unchanged."
+        },
+        {
+          "object": "loop/error map/final return",
+          "entered": "Each version edge consumes/returns Value; error wraps schema/from/source then exits.",
+          "status": "Covered by lifecycle/return/error docs; no line-by-line restatement.",
+          "impact": "Expressions unchanged."
+        },
+        {
+          "object": "preexisting CR-SERIALIZATION-0001 TODO",
+          "entered": "Tracks direct source-version-above-target behavior and missing boundary test.",
+          "status": "Preserved exactly; remains TODO, not new issue or BUG.",
+          "impact": "Unresolved boundary remains explicit."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "beforeSha256": "874314dc22f58dd8a6924f3b980392a02be5fb9baa0779e575d89538b71ed5ac",
+      "afterSha256": "fa122993908ff320ad19260683fe722654507e6f101efab01c706b77446cb1e1",
+      "beforeBytes": 2056,
+      "afterBytes": 2408,
+      "beforeLineCount": 53,
+      "afterLineCount": 57,
+      "beforeLineEndingCounts": {
+        "LF": 53,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "finalLineEndingCounts": {
+        "LF": 57,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Scoped diff is insertion-only; baseline lines/comments remain and file is LF-only.",
+      "objectEvidence": [
+        {
+          "object": "impl<T>::validate",
+          "entered": "Called by migrate_value and loader, including current-version reads.",
+          "status": "Added Chinese exact coverage/first structural error docs.",
+          "impact": "Visibility/signature unchanged."
+        },
+        {
+          "object": "required-prefix loop/branches",
+          "entered": "Requires each index to equal from_version; smaller is duplicate, larger out-of-order.",
+          "status": "Added private comment stating precedence before length checks.",
+          "impact": "Makes error order intentional without restating branches."
+        },
+        {
+          "object": "missing-step branch",
+          "entered": "After matching present prefix, reports next missing edge.",
+          "status": "Reviewed; public method docs/error semantics suffice.",
+          "impact": "No code change."
+        },
+        {
+          "object": "unexpected-tail branch",
+          "entered": "Distinguishes in-range duplicate from from_version >= target.",
+          "status": "Reviewed; no redundant branch comment.",
+          "impact": "No code change."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "beforeSha256": "ab21c53ae8681a988153d819ae42d18613c0324b79d7dd9b68455a4cea87ed09",
+      "afterSha256": "6956d37fcd9423b73ea92b6f365b1e894c27c659997a5be0bf0b1ffdf93138a0",
+      "beforeBytes": 1497,
+      "afterBytes": 3252,
+      "beforeLineCount": 50,
+      "afterLineCount": 80,
+      "beforeLineEndingCounts": {
+        "LF": 50,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "finalLineEndingCounts": {
+        "LF": 80,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Scoped diff is insertion-only; baseline lines/comments remain and file is LF-only.",
+      "objectEvidence": [
+        {
+          "object": "MigrateError and InvalidPayload",
+          "entered": "validate creates table errors; execute wraps callback errors; callbacks can use helper.",
+          "status": "Added Chinese enum/variant docs; kept thiserror attrs/display strings.",
+          "impact": "Variants and format unchanged."
+        },
+        {
+          "object": "MissingStep plus schema_id/from_version/target_version",
+          "entered": "Used when required chain ends before target.",
+          "status": "Added variant and all field descriptions.",
+          "impact": "Types/order unchanged."
+        },
+        {
+          "object": "DuplicateStep plus schema_id/from_version",
+          "entered": "Used for repeated edge in required prefix or tail.",
+          "status": "Added variant and field descriptions.",
+          "impact": "Behavior unchanged."
+        },
+        {
+          "object": "OutOfOrderStep plus schema_id/expected/found",
+          "entered": "Used when prefix version exceeds index-required source version.",
+          "status": "Added variant and field descriptions.",
+          "impact": "Behavior unchanged."
+        },
+        {
+          "object": "UnexpectedStep plus schema_id/from_version/target_version",
+          "entered": "Returned for extra tail from_version >= target after ruling out in-range duplicate.",
+          "status": "Added fields; line 44 summary remains imprecise because “目标版本之后” can imply strict greater.",
+          "impact": "Frozen pending wording correction; code unchanged."
+        },
+        {
+          "object": "StepFailed plus schema_id/from_version/source",
+          "entered": "execute wraps failed edge and preserves boxed source.",
+          "status": "Added variant/field descriptions; kept #[source].",
+          "impact": "Error chain unchanged."
+        },
+        {
+          "object": "impl MigrateError::invalid_payload",
+          "entered": "Fixture callback uses to create InvalidPayload.",
+          "status": "Added Chinese parameter/return docs.",
+          "impact": "Signature/body unchanged."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "beforeSha256": "66d3ae69af41c79f437e6ee513b7ad6a7869da61dc96aa9ebc55e68b0d8783c0",
+      "afterSha256": "b84d67e5ab56cbf6baef0b9f9347c4c99ccd0307fd5049fbc07fc4ddaed157cd",
+      "beforeBytes": 1315,
+      "afterBytes": 1545,
+      "beforeLineCount": 42,
+      "afterLineCount": 46,
+      "beforeLineEndingCounts": {
+        "LF": 42,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "finalLineEndingCounts": {
+        "LF": 46,
+        "CRLF": 0,
+        "BOM": false
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "physicalLinePreservation": "Scoped diff is insertion-only; baseline lines/comments remain and file is LF-only.",
+      "objectEvidence": [
+        {
+          "object": "test module",
+          "entered": "tests/mod.rs registers this path module.",
+          "status": "Added Chinese module intent and distinction from table-integrity tests.",
+          "impact": "No test behavior change."
+        },
+        {
+          "object": "FailingStepDocument and VersionedSchema impl",
+          "entered": "Fixture returns a static one-step rejecting chain.",
+          "status": "Reviewed; names/module intent suffice; no repetitive item docs.",
+          "impact": "Fixture unchanged."
+        },
+        {
+          "object": "FAILING_CHAIN and fail_migration",
+          "entered": "Source edge 0 callback returns fixture InvalidPayload.",
+          "status": "Reviewed; module contract says why; no duplicate docs.",
+          "impact": "Callback unchanged."
+        },
+        {
+          "object": "migration_step_failure_preserves_schema_version_and_source test/assertion",
+          "entered": "Text schema-zero load matches StepFailed schema/from and nested source.",
+          "status": "Reviewed; module docs summarize assertion; no test docs/body edits.",
+          "impact": "Coverage remains text legacy error propagation only."
+        }
+      ]
+    }
+  ],
+  "callerPinsCount": 6,
+  "callerPins": [
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "bytes": 15832,
+      "lineCount": 251,
+      "symbols": "pub mod serialization",
+      "contract": "Crate-root subsystem reachability.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "bytes": 1689,
+      "lineCount": 53,
+      "symbols": "pub use migration::{MigrateError, MigrationChain, MigrationStep};",
+      "contract": "Public migration reexports.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/versioned_schema.rs",
+      "sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+      "bytes": 1389,
+      "lineCount": 26,
+      "symbols": "VersionedSchema::migrations; SCHEMA; VERSION",
+      "contract": "Static schema metadata and chain provider.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "bytes": 11575,
+      "lineCount": 278,
+      "symbols": "validate_source_version; load_migrated_value; text/binary/legacy loaders",
+      "contract": "Source version validated before migrate_value; migrated Value deserializes to T; current reads validate the full chain.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "497341e9ea1ad82fed314704cff7ae97b982f80fefa8c1a38cc73f87adbc12a3",
+      "bytes": 2161,
+      "lineCount": 67,
+      "symbols": "path registration for migration_failure_contract",
+      "contract": "Registers in-scope test module.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "sha256": "6f639acc69f3e9a8bd9a638bd5ee300d3ed76be6359106512a59c5ea90c0b76a",
+      "bytes": 4362,
+      "lineCount": 155,
+      "symbols": "migration table contract cases",
+      "contract": "Held cases cover duplicate/out-of-order/missing/extra and current-version validation; no direct from_version > target test.",
+      "editGrant": false
+    }
+  ],
+  "callGraphAndContract": {
+    "registration": "VersionedSchema::migrations returns &'static MigrationChain<T>; steps are callback function pointers in a static slice. No runtime registry, dynamic discovery, trait-object callback dispatch, or FFI registration path was found.",
+    "loader": "Text/legacy/binary readers normalize to JSON Value; load_migrated_value validates source version, calls T::migrations().migrate_value(...), then deserializes migrated Value to T. Current reads also validate the full chain.",
+    "directPublicCall": "migrate_value is public through serialization reexports. It validates target chain and loops over from_version..target_version. If from_version > target_version the range is empty and original Value returns unchanged after validation. Loader avoids this by checking source first. Existing CR-SERIALIZATION-0001 tracks this direct-call boundary.",
+    "testCoverage": "migration_failure_contract covers Text schema-zero loading where version-0 callback rejects, preserving StepFailed schema id/source version/nested cause. Held migration_contract covers table shape errors and current-version validation. Neither tests direct from_version > target."
+  },
+  "patchObservations": [
+    {
+      "wrapperCell": "89",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/migration/mod.rs",
+        "zircon_runtime_interface/src/serialization/migration/chain.rs",
+        "zircon_runtime_interface/src/serialization/migration/step.rs",
+        "zircon_runtime_interface/src/serialization/migration/execute.rs",
+        "zircon_runtime_interface/src/serialization/migration/validate.rs",
+        "zircon_runtime_interface/src/serialization/migration/error.rs",
+        "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs"
+      ],
+      "result": "Initial Chinese documentation insertions succeeded for all seven sources; no code/test edits."
+    },
+    {
+      "wrapperCell": "90",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/migration/chain.rs",
+        "zircon_runtime_interface/src/serialization/migration/step.rs"
+      ],
+      "result": "Combined link correction failed writing chain.rs; no change from this attempt observed."
+    },
+    {
+      "wrapperCell": "92",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/migration/chain.rs"
+      ],
+      "result": "Successful explicit VersionedSchema link qualification; current pin 608418fd0e3c8ec20045990b8cc82f6c9b11c592d256eada5ca0693bdf7d02f9."
+    },
+    {
+      "wrapperCell": "93",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/migration/step.rs"
+      ],
+      "result": "Explicit link replacement returned Failed to write file; readback unchanged."
+    },
+    {
+      "wrapperCell": "95",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/migration/step.rs"
+      ],
+      "result": "Plain wording link correction returned Failed to write file; readback unchanged."
+    },
+    {
+      "wrapperCell": "100",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/migration/error.rs"
+      ],
+      "result": "Context mismatch; patch verification failed without change."
+    },
+    {
+      "wrapperCell": "102",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/migration/error.rs"
+      ],
+      "result": "Exact wording patch returned Failed to write file. Cause unknown; not characterized as sandbox denial."
+    }
+  ],
+  "pendingCorrections": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "line": 14,
+      "currentPin": "00cc6857dfd65e54f05868d675c842ca444f704478615233e5c6ef6b2b168a85",
+      "currentText": "/// 表中顺序或执行时机，这些由 [MigrationChain] 的验证和迁移入口统一处理。",
+      "proposedText": "/// 表中顺序或执行时机，这些由 [MigrationChain](super::MigrationChain) 的验证和迁移入口统一处理。",
+      "reason": "MigrationChain is not imported in step.rs; use parent-module target.",
+      "ownership": "Frozen for root after ledger ownership transfer; no retry."
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "line": 44,
+      "currentPin": "6956d37fcd9423b73ea92b6f365b1e894c27c659997a5be0bf0b1ffdf93138a0",
+      "currentText": "/// 目标版本之后仍有迁移项，且该项不是目标范围内的重复步骤。",
+      "proposedText": "/// 目标范围之外仍有迁移项，且该项不是目标范围内的重复步骤。",
+      "reason": "validate returns UnexpectedStep for an extra from_version equal to target_version as well as greater values.",
+      "ownership": "Frozen for root after ledger ownership transfer; no retry."
+    }
+  ],
+  "issueIds": {
+    "new": [],
+    "preserved": [
+      "CR-SERIALIZATION-0001"
+    ]
+  },
+  "validation": {
+    "rustfmt": {
+      "command": "rustfmt --edition 2021 --config skip_children=true --check <exact seven scope paths>",
+      "tool": "C:/Users/HeJiahui/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin/rustfmt.exe",
+      "toolSha256": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+      "version": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "wrapperCell": "103",
+      "nestedChunk": "9346d4",
+      "sessionId": null,
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "terminalEvidence": "functions.wait observed cell 103 complete; exec_command chunk 9346d4 exit_code 0."
+    },
+    "diffCheck": {
+      "command": "git --no-optional-locks diff --check -- <exact seven paths>",
+      "wrapperCell": "103",
+      "nestedChunk": "1caf02",
+      "sessionId": null,
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Only Git LF-to-CRLF warnings; physical files are LF-only. No whitespace error."
+    },
+    "finalPinReadback": {
+      "wrapperCell": "104",
+      "result": "All seven final hashes/bytes/EOL and exact scoped status matched; only seven assigned tracked sources modified; user-level ignore access warning preserved."
+    },
+    "callerPinReadback": {
+      "wrapperCell": "109",
+      "result": "Six exact caller/test pins matched and scoped tracked status clean; user-level ignore access warning preserved."
+    },
+    "checksNotRun": [
+      "Cargo/build/tests",
+      "rustdoc/doctest/procedural-macro execution",
+      "generation/helper creation"
+    ],
+    "formalAcceptance": "No Jenkins receipt requested or produced for this bounded comment batch.",
+    "changeGuard": {
+      "command": "python.exe -B -X utf8 .codex/skills/zircon-change-guard/scripts/change_guard.py --json patch --git --base d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef --path <exact seven sources and this evidence>",
+      "wrapperCell": "114",
+      "nestedChunk": "611e40",
+      "sessionId": null,
+      "exitCode": 0,
+      "status": "passed",
+      "patchDigest": "b53d48b6b4354947f86bd426b5889013742b1ea03305c3582ee1a570fd070165",
+      "writeGrantCheck": true,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    }
+  },
+  "artifactLifecycle": {
+    "created": [
+      "docs/tests/source-comment-review-evidence-serialization-migration-008.json"
+    ],
+    "sourceCopies": 0,
+    "temporaryHelpers": 0,
+    "buildProducts": 0,
+    "compilerCaches": 0,
+    "gitWrites": 0
+  }
+}

@@ -1,6 +1,6 @@
 use super::authorization::authorize;
 use crate::service::{error::ServiceError, identity::Principal};
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::Serialize;
 
 pub(super) const MAX_GLOBAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;

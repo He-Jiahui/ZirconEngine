@@ -1,11 +1,11 @@
 use super::super::{authorization::authorize, quota::MAX_REVISIONS};
 use crate::service::{
     error::ServiceError,
-    identity::{now_seconds, Principal},
+    identity::{Principal, now_seconds},
     organization,
     storage::receipt,
 };
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 
 const MAX_TRASH_SECONDS: u64 = 30 * 86_400;

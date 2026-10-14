@@ -1,3 +1,6 @@
+//! 版本化文本格式的内部实现，负责封套结构、读取识别与规范化写出。
+//! 未封套输入是否按旧版数据接纳，由父级加载入口的显式策略决定。
+
 #[path = "canonical.rs"]
 pub(super) mod canonical;
 #[path = "canonical_map_key.rs"]

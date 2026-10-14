@@ -1,3 +1,5 @@
+//! 验证私有渲染辅助逻辑对路径布局和模板 provider 准入声明的边界。
+
 use super::{
     project_template_descriptor, render_entries, validate_manifest_requirements,
     EmbeddedProjectTemplateEntry, ProjectTemplateId, ProjectTemplatePackError,

@@ -1,3 +1,7 @@
+//! Runtime owner 的规范启动失败清理和阻塞事件回调关闭测试。
+//!
+//! 断言真实 Core/scope/插件代次仍由原失败状态持有，且同一清理不会被短等待重跑。
+
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Mutex};
 
@@ -10,6 +14,7 @@ use crate::scene::RuntimeEventMirrorRegistration;
 use super::*;
 
 #[test]
+/// 让真实 scope 任务阻塞第一次关闭，释放后沿原 failure 重试，最后才关闭日志与插件代次。
 fn failed_startup_callback_retains_core_scope_and_plugins_until_canonical_retry() {
     use crate::core::{
         CoreError, CoreRuntime, LifecycleState, TaskDescriptor, TaskGraphScopeDescriptor, TaskId,
@@ -80,6 +85,7 @@ fn failed_startup_callback_retains_core_scope_and_plugins_until_canonical_retry(
         .values()
         .any(|entry| entry.lifecycle == LifecycleState::Running));
 
+    // 日志 lease 的测试观察只计关闭次序；Core、scope 和模块仍使用真实实例。
     let log_calls = Arc::new(AtomicUsize::new(0));
     let log_calls_for_shutdown = Arc::clone(&log_calls);
     let startup = RuntimeSessionStartupFailure::capture(failure).with_dynamic_process_log(
@@ -93,6 +99,7 @@ fn failed_startup_callback_retains_core_scope_and_plugins_until_canonical_retry(
     assert_eq!(log_calls.load(Ordering::SeqCst), 0);
     assert!(catalog.upgrade().is_some());
     assert!(plan.upgrade().is_some());
+    // 原任务放行之后，第二次关闭应取得原 Core 的完整报告并卸载原插件代次。
     release_tx.send(()).expect("release the real scope task");
     assert!(shutdown_owner_state_until(
         &mut state,
@@ -125,11 +132,14 @@ fn failed_startup_callback_retains_core_scope_and_plugins_until_canonical_retry(
 }
 
 #[test]
+/// 真实事件退订回调阻塞时，两次短 shutdown 都保留同一回调和代码 owner。
+/// 原 deadline 已到期的回调完成后先报告 Retryable，再由新清理完成 Joined。
 fn astra_life_a4_runtime_owner_bounds_blocking_event_callback_without_reinvocation() {
     const EVENT: &str = "astra.owner.event";
     const SCHEMA: &str = "astra.owner.event.v1";
     const SHUTDOWN_BUDGET: Duration = Duration::from_millis(25);
     // Allow 10x scheduler and lock-handoff jitter on Windows while still detecting an unbounded wait.
+    // 测量容差单独留出调度抖动，不把 25ms 清理预算延长到此上限。
     const SHUTDOWN_SCHEDULER_CEILING: Duration = Duration::from_millis(250);
     let code_owner = Arc::new(());
     let weak_code_owner = Arc::downgrade(&code_owner);
@@ -185,6 +195,7 @@ fn astra_life_a4_runtime_owner_bounds_blocking_event_callback_without_reinvocati
         .unwrap()
         .unwrap();
 
+    // 短等待返回后仍核对回调实际进入且尚未完成，而非仅依据 Pending 分类。
     let first_shutdown_started_at = Instant::now();
     assert_eq!(
         owner.shutdown_until(Instant::now() + SHUTDOWN_BUDGET),
@@ -206,6 +217,7 @@ fn astra_life_a4_runtime_owner_bounds_blocking_event_callback_without_reinvocati
     assert!(!released.load(Ordering::Acquire));
     assert!(!callback_completed.load(Ordering::Acquire));
     assert!(weak_code_owner.upgrade().is_some());
+    // 放行原退订回调；其已用尽的 deadline 不能替代下一次规范关闭尝试。
     released.store(true, Ordering::Release);
     release_tx.send(()).unwrap();
     assert_eq!(

@@ -13,7 +13,7 @@ env:
 jobs:
   portable-runtime-core:
     name: Portable runtime core (Wasm)
-    # local-cargo requires a physical D/E/F build root and 35 GiB free.
+    # CI outputs must pass the physical E: root and reparse-point guard.
     runs-on: [self-hosted, Windows, X64]
     env:
       CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
@@ -42,27 +42,48 @@ jobs:
 
   dependency-governance:
     name: Dependency governance (${{ matrix.manifest }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\deny-${{ matrix.output }}\target
     strategy:
       fail-fast: false
       matrix:
         manifest:
           - Cargo.toml
           - zircon_plugins/Cargo.toml
+        include:
+          - manifest: Cargo.toml
+            output: root
+          - manifest: zircon_plugins/Cargo.toml
+            output: plugins
     steps:
       - uses: actions/checkout@v5
+
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned Rust toolchain for cargo-deny
+        uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Test dependency-governance contract
         run: python -B -m unittest tools.tests.test_frameworks_06_dependency_governance_contract -v
 
+      - name: Install pinned cargo-deny
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 install --locked --version 0.20.2 --root "$env:CARGO_TARGET_DIR\cargo-deny" cargo-deny
+
       - name: Check advisories, duplicate versions, licenses, and sources
-        uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          rust-version: "1.94.1"
-          manifest-path: ${{ matrix.manifest }}
-          arguments: --all-features
-          command: check
-          command-arguments: advisories bans licenses sources
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 "$env:CARGO_TARGET_DIR\cargo-deny\bin\cargo-deny.exe" --manifest-path "${{ matrix.manifest }}" --all-features check advisories bans licenses sources
 
   runtime-profile-feature-matrix-plan:
     name: Runtime profile feature matrix plan
@@ -84,7 +105,8 @@ jobs:
   runtime-profile-feature-matrix:
     name: Runtime profile feature (${{ matrix.profile }})
     needs: runtime-profile-feature-matrix-plan
-    # Cargo output and toolchain caches must stay on the physical D: cargo root.
+    # Compile on the Windows runner because the physical E: cargo root is required.
+    # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
     runs-on: [self-hosted, Windows, X64]
     env:
       CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
@@ -102,14 +124,21 @@ jobs:
         shell: pwsh
         run: ./.github/scripts/prepare-cargo-roots.ps1
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Check application profile preset
-        run: cargo check -p zircon_app --lib --no-default-features --features "${{ matrix.cargo_feature }}" --locked --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_app --lib --no-default-features --features "${{ matrix.cargo_feature }}" --locked --verbose
 
   runtime-domain-feature-matrix:
     name: Runtime additive domain (${{ matrix.feature }})
+    # Compile on the Windows runner because the physical E: cargo root is required.
+    # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
     runs-on: [self-hosted, Windows, X64]
     env:
       CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
@@ -140,17 +169,21 @@ jobs:
         shell: pwsh
         run: ./.github/scripts/prepare-cargo-roots.ps1
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Check additive runtime domain
-        run: cargo check -p zircon_runtime --lib --no-default-features --features "core-min,${{ matrix.feature }}" --locked --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_runtime --lib --no-default-features --features "core-min,${{ matrix.feature }}" --locked --verbose
 
   rust:
     name: Rust build & test
+    # This Windows lane preserves the workspace gate on the physical E: cargo root.
+    # It does not claim Linux-host ABI/system dependency coverage.
     runs-on: [self-hosted, Windows, X64]
     env:
       CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
@@ -166,20 +199,20 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.94.1
         with:
           components: rustfmt, clippy
 
-      - name: Prepare physical output roots
-        shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
-
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
-
       - name: Test convention runner
         run: python -B -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
+
+      - name: Test CI gate wiring
+        run: python -B .github/tests/test_ci_gates_contract.py
 
       - name: Test Cargo test-reachability guard
         run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
@@ -209,9 +242,11 @@ jobs:
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 fmt --all -- --check
 
       - name: Build workspace
+        shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --workspace --locked --verbose
 
       - name: Run unit tests
+        shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo test --workspace --locked --verbose
 
       - name: Run Clippy with warnings denied
@@ -219,10 +254,12 @@ jobs:
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Check plugin workspace
-        run: cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose
 
       - name: Build plugin workspace
-        run: cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 
       - name: Check plugin workspace formatting
         shell: pwsh
@@ -240,7 +277,8 @@ jobs:
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo run --locked -p cargo-zircon -- plugin check --root . --artifact-root "$env:CARGO_TARGET_DIR\debug"
 
       - name: Run plugin workspace tests
-        run: cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 
   scene-ecs-miri:
     name: Scene ECS storage and query (Miri)
@@ -511,6 +549,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Prepare physical output roots
         shell: pwsh
         run: ./.github/scripts/prepare-cargo-roots.ps1
@@ -519,10 +561,12 @@ jobs:
         uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Check standalone dist package
-        run: cargo check --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
 
       - name: Build standalone dist package
-        run: cargo build --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
 
   export-platform-contract:
     name: Export platform contract (${{ matrix.export-platform }})
@@ -540,6 +584,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Prepare physical output roots
         shell: pwsh
         run: ./.github/scripts/prepare-cargo-roots.ps1
@@ -550,4 +598,5 @@ jobs:
       - name: Check export policy for ${{ matrix.export-platform }}
         env:
           ZR_EXPORT_CONTRACT_PLATFORM: ${{ matrix.export-platform }}
-        run: cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose

@@ -1,0 +1,1586 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "legacy-runtime-abi-transfer-007",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewer": "/root",
+  "observedAtUtc": "2026-10-14T05:06:55.007676+00:00",
+  "observedHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "state": "independent source/call/issue review passed; historical marker-policy check failed; actual coordinator pending",
+  "userTransfer": {
+    "oldThread": "01a13045-75e3-7dd2-86d8-de54d914c232",
+    "authorization": "旧聊天已结束，核对证据后由本聊天续办",
+    "nativeTerminationInferred": false
+  },
+  "agentEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-legacy-runtime-abi-transfer-007.json",
+    "sha256": "5576752bebf89c2c9c0f6cced867db11b3f344167899ffe0c6a4b2f74a03fbea",
+    "bytes": 321559,
+    "objects": 55,
+    "flows": 99,
+    "callerPins": 41
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+      "initialCurrentSha256": "73bf4e3c281a7faf1b16ed4f7c16046d7a38033cbd456a37a4825bfcc2db7748",
+      "finalSha256": "73bf4e3c281a7faf1b16ed4f7c16046d7a38033cbd456a37a4825bfcc2db7748",
+      "historicalBeforeSha256": "2cde4d3035febc16e0932c38638b8999b247d66536c9b66022d00dddb6bd899f",
+      "historicalReviewedLfSha256": "8ee41b220f2ee4789faa3b434af9d65f88758e013d6e3eaa26e11527206125cb",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-001",
+        "ABI-HST-007-002",
+        "ABI-HST-007-003"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "api_shape 模块导入",
+          "kind": "module",
+          "initialLine": 1
+        },
+        {
+          "line": 15,
+          "symbol": "ZrRuntimeApiV8ShapeError",
+          "kind": "enum",
+          "initialLine": 15
+        },
+        {
+          "line": 37,
+          "symbol": "validate_runtime_api_v8_shape",
+          "kind": "fn",
+          "initialLine": 37
+        }
+      ],
+      "flowRecords": 6,
+      "currentCrlf": 54,
+      "currentBareLf": 0
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+      "initialCurrentSha256": "639850825e610339ba44b25cce9c670a0245cbd6730bb2b0cb8cb64602b13526",
+      "finalSha256": "4bb2b0e9ab8d62ad1923a96f13a77dc88a015cbaa0a72073f1f925fe36800f39",
+      "historicalBeforeSha256": "fe68da90bae75cfd151fc014aa64ffa3a64518beaec4b5db009b1af94c580369",
+      "historicalReviewedLfSha256": "fa2d76cdaedce3762ccaf63a0d937246b28eb9a050b0e1b9b5fbc6997c86b555",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-004",
+        "ABI-HST-007-005",
+        "ABI-HST-007-006",
+        "ABI-HST-007-007",
+        "ABI-HST-007-008"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "host_api_shape 模块导入",
+          "kind": "module",
+          "initialLine": 1
+        },
+        {
+          "line": 15,
+          "symbol": "ZrRuntimeHostApiV1ShapeError",
+          "kind": "enum",
+          "initialLine": 15
+        },
+        {
+          "line": 27,
+          "symbol": "ZrRuntimeHostApiV1PointerError",
+          "kind": "enum",
+          "initialLine": 27
+        },
+        {
+          "line": 50,
+          "symbol": "validate_runtime_host_api_v1_shape",
+          "kind": "fn",
+          "initialLine": 50
+        },
+        {
+          "line": 92,
+          "symbol": "validate_runtime_host_api_v1_pointer",
+          "kind": "unsafe fn",
+          "initialLine": 92
+        }
+      ],
+      "flowRecords": 11,
+      "currentCrlf": 113,
+      "currentBareLf": 0
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+      "initialCurrentSha256": "00dffe19520f92f7f92a1b81110b17d47a64956e8b26929c332203c43fe6004a",
+      "finalSha256": "00dffe19520f92f7f92a1b81110b17d47a64956e8b26929c332203c43fe6004a",
+      "historicalBeforeSha256": "520b0f3fb481865c69195339b46771c7570d8592683cd8b8b9c7bb8aa59c1793",
+      "historicalReviewedLfSha256": "05b0ca372fa5911cea13eb04437b36cdaa1d45b71b5cc3410cb87852855bda32",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-009"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "ABI module/reexports/cfg tests",
+          "kind": "module",
+          "initialLine": 1
+        }
+      ],
+      "flowRecords": 2,
+      "currentCrlf": 35,
+      "currentBareLf": 0
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+      "initialCurrentSha256": "0e71d0727da6657b67d173146865ec34194f9238eee8a93ce5bcc5866ff284c7",
+      "finalSha256": "0e71d0727da6657b67d173146865ec34194f9238eee8a93ce5bcc5866ff284c7",
+      "historicalBeforeSha256": "2276690b903fd368f523f4dc6b49b8b0db5dcc4eaf61262bb3e4d6f5d3f790e5",
+      "historicalReviewedLfSha256": "3d92b8a3e73ab084125199d0070342c8e48a5493bbb660e9a71e6c086eb2eb59",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-010",
+        "ABI-HST-007-011",
+        "ABI-HST-007-012",
+        "ABI-HST-007-013",
+        "ABI-HST-007-014"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "api_shape_tests 模块/导入",
+          "kind": "test module",
+          "initialLine": 1
+        },
+        {
+          "line": 14,
+          "symbol": "runtime_api_v8_shape_accepts_the_frozen_exact_table",
+          "kind": "test fn",
+          "initialLine": 14
+        },
+        {
+          "line": 23,
+          "symbol": "runtime_api_v8_shape_rejects_a_different_api_family",
+          "kind": "test fn",
+          "initialLine": 23
+        },
+        {
+          "line": 38,
+          "symbol": "runtime_api_v8_shape_rejects_a_shorter_table",
+          "kind": "test fn",
+          "initialLine": 38
+        },
+        {
+          "line": 53,
+          "symbol": "runtime_api_v8_shape_rejects_a_larger_table",
+          "kind": "test fn",
+          "initialLine": 53
+        }
+      ],
+      "flowRecords": 5,
+      "currentCrlf": 64,
+      "currentBareLf": 0
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "initialCurrentSha256": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4",
+      "finalSha256": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4",
+      "historicalBeforeSha256": "b094a9a20504ca1c91d784d256aca74ef5dea0a3750173eaf1e62f42f929fb39",
+      "historicalReviewedLfSha256": "2f1728a66e5d7363247a35e93215a044faab502e899a23ef71aee757a3802ada",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-015",
+        "ABI-HST-007-016",
+        "ABI-HST-007-017",
+        "ABI-HST-007-018",
+        "ABI-HST-007-019",
+        "ABI-HST-007-020"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "host_api_shape_tests 模块/导入",
+          "kind": "test module",
+          "initialLine": 1
+        },
+        {
+          "line": 17,
+          "symbol": "runtime_host_api_v1_shape_accepts_the_frozen_exact_table",
+          "kind": "test fn",
+          "initialLine": 17
+        },
+        {
+          "line": 26,
+          "symbol": "runtime_host_api_v1_shape_rejects_a_different_api_family",
+          "kind": "test fn",
+          "initialLine": 26
+        },
+        {
+          "line": 40,
+          "symbol": "runtime_host_api_v1_shape_rejects_a_non_exact_table_size",
+          "kind": "test fn",
+          "initialLine": 40
+        },
+        {
+          "line": 55,
+          "symbol": "runtime_host_api_v1_pointer_accepts_null_as_an_absent_optional_table",
+          "kind": "test fn",
+          "initialLine": 55
+        },
+        {
+          "line": 65,
+          "symbol": "runtime_host_api_v1_pointer_rejects_misalignment_before_dereference",
+          "kind": "test fn",
+          "initialLine": 65
+        }
+      ],
+      "flowRecords": 7,
+      "currentCrlf": 81,
+      "currentBareLf": 0
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "initialCurrentSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "finalSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "historicalBeforeSha256": "35031cb444dc0a5e059caded00936978b859b7d21410fd8bda099cb42885cdc2",
+      "historicalReviewedLfSha256": "a3ef8bd62a0c6d664c3391bcb87c428738cd5223d0f66ec07818eef125d75d6b",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-021",
+        "ABI-HST-007-022",
+        "ABI-HST-007-023",
+        "ABI-HST-007-024",
+        "ABI-HST-007-025",
+        "ABI-HST-007-026",
+        "ABI-HST-007-027",
+        "ABI-HST-007-028",
+        "ABI-HST-007-029",
+        "ABI-HST-007-030",
+        "ABI-HST-007-031",
+        "ABI-HST-007-032",
+        "ABI-HST-007-033",
+        "ABI-HST-007-034",
+        "ABI-HST-007-035",
+        "ABI-HST-007-036",
+        "ABI-HST-007-037"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "state 模块导入/diagnostic path",
+          "kind": "module",
+          "initialLine": 1
+        },
+        {
+          "line": 39,
+          "symbol": "RuntimeForeignOutputState/Default/impl",
+          "kind": "struct+trait impl",
+          "initialLine": 39
+        },
+        {
+          "line": 69,
+          "symbol": "ensure_available",
+          "kind": "fn",
+          "initialLine": 69
+        },
+        {
+          "line": 81,
+          "symbol": "is_protocol_failed",
+          "kind": "fn",
+          "initialLine": 81
+        },
+        {
+          "line": 88,
+          "symbol": "ensure_session_available",
+          "kind": "fn",
+          "initialLine": 88
+        },
+        {
+          "line": 102,
+          "symbol": "reject_protocol<T>",
+          "kind": "fn",
+          "initialLine": 102
+        },
+        {
+          "line": 125,
+          "symbol": "ensure_call_succeeded",
+          "kind": "unsafe fn",
+          "initialLine": 125
+        },
+        {
+          "line": 209,
+          "symbol": "decode_json<T,E>",
+          "kind": "unsafe fn",
+          "initialLine": 209
+        },
+        {
+          "line": 315,
+          "symbol": "metrics",
+          "kind": "fn",
+          "initialLine": 315
+        },
+        {
+          "line": 325,
+          "symbol": "diagnostic_line",
+          "kind": "fn",
+          "initialLine": 325
+        },
+        {
+          "line": 330,
+          "symbol": "reject_and_release<T>",
+          "kind": "private fn",
+          "initialLine": 330
+        },
+        {
+          "line": 350,
+          "symbol": "finish_acceptance<T>",
+          "kind": "private fn",
+          "initialLine": 350
+        },
+        {
+          "line": 391,
+          "symbol": "reject<T>",
+          "kind": "private fn",
+          "initialLine": 391
+        },
+        {
+          "line": 406,
+          "symbol": "reject_locked<T>",
+          "kind": "private fn",
+          "initialLine": 406
+        },
+        {
+          "line": 422,
+          "symbol": "fused_session_error",
+          "kind": "private fn",
+          "initialLine": 422
+        },
+        {
+          "line": 430,
+          "symbol": "fused_session_call_error",
+          "kind": "private fn",
+          "initialLine": 430
+        },
+        {
+          "line": 437,
+          "symbol": "reported_len",
+          "kind": "private fn",
+          "initialLine": 437
+        }
+      ],
+      "flowRecords": 34,
+      "currentCrlf": 439,
+      "currentBareLf": 0
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/error.rs",
+      "initialCurrentSha256": "7b2dd7608e0a6674abb17a97b4a1d41be73bb9a6e3be5192a6bd90bb89afb66e",
+      "finalSha256": "7b2dd7608e0a6674abb17a97b4a1d41be73bb9a6e3be5192a6bd90bb89afb66e",
+      "historicalBeforeSha256": "2a2e7a93ed4fb846fea5f638f5b4ed7a87805eba02cf93b3c790f4891cf11f29",
+      "historicalReviewedLfSha256": "81f60e51355ba9dc47b87127d6ec1c44e01c61d53b8e68dfd75f20a7e17b5dd7",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-038",
+        "ABI-HST-007-039",
+        "ABI-HST-007-040",
+        "ABI-HST-007-041",
+        "ABI-HST-007-042",
+        "ABI-HST-007-043",
+        "ABI-HST-007-044",
+        "ABI-HST-007-045"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "error 模块导入",
+          "kind": "module",
+          "initialLine": 1
+        },
+        {
+          "line": 14,
+          "symbol": "RuntimeForeignOutputErrorKind/Error/impl",
+          "kind": "enum+struct",
+          "initialLine": 14
+        },
+        {
+          "line": 32,
+          "symbol": "runtime_call",
+          "kind": "fn",
+          "initialLine": 32
+        },
+        {
+          "line": 40,
+          "symbol": "protocol_violation",
+          "kind": "fn",
+          "initialLine": 40
+        },
+        {
+          "line": 48,
+          "symbol": "kind",
+          "kind": "const fn",
+          "initialLine": 48
+        },
+        {
+          "line": 53,
+          "symbol": "with_cleanup_failure",
+          "kind": "fn",
+          "initialLine": 53
+        },
+        {
+          "line": 63,
+          "symbol": "from_status",
+          "kind": "unsafe fn",
+          "initialLine": 63
+        },
+        {
+          "line": 98,
+          "symbol": "Display/Error trait impl",
+          "kind": "trait impl",
+          "initialLine": 98
+        }
+      ],
+      "flowRecords": 12,
+      "currentCrlf": 104,
+      "currentBareLf": 0
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+      "initialCurrentSha256": "ff51a7201b8b1579a325cfd2262112ba35db08c82d13afee20bc9ce073045a88",
+      "finalSha256": "ff51a7201b8b1579a325cfd2262112ba35db08c82d13afee20bc9ce073045a88",
+      "historicalBeforeSha256": "2773848a2426649d7bbe659ee90eb7e86bc56f30edb6d951768be88b7bbd1b78",
+      "historicalReviewedLfSha256": "497c6269b754650e5c33258d6c94fa1c2243e1ea3e109afc335289eda399110c",
+      "rootCompleteSourceRead": true,
+      "objectIds": [
+        "ABI-HST-007-046",
+        "ABI-HST-007-047",
+        "ABI-HST-007-048",
+        "ABI-HST-007-049",
+        "ABI-HST-007-050",
+        "ABI-HST-007-051",
+        "ABI-HST-007-052",
+        "ABI-HST-007-053",
+        "ABI-HST-007-054",
+        "ABI-HST-007-055"
+      ],
+      "definitionAnchors": [
+        {
+          "line": 1,
+          "symbol": "owned_buffer 模块导入",
+          "kind": "module",
+          "initialLine": 1
+        },
+        {
+          "line": 18,
+          "symbol": "RuntimeOwnedOutputReleaser/fields/impl",
+          "kind": "struct",
+          "initialLine": 18
+        },
+        {
+          "line": 47,
+          "symbol": "RuntimeOwnedOutputReleaser::new",
+          "kind": "const unsafe fn",
+          "initialLine": 47
+        },
+        {
+          "line": 55,
+          "symbol": "RuntimeOwnedOutputReleaser::session",
+          "kind": "const fn",
+          "initialLine": 55
+        },
+        {
+          "line": 60,
+          "symbol": "RuntimeOwnedOutputReleaser::release",
+          "kind": "private fn",
+          "initialLine": 60
+        },
+        {
+          "line": 77,
+          "symbol": "release_owned_result",
+          "kind": "unsafe fn",
+          "initialLine": 77
+        },
+        {
+          "line": 105,
+          "symbol": "release_owned_result_after_error<T>",
+          "kind": "unsafe fn",
+          "initialLine": 105
+        },
+        {
+          "line": 125,
+          "symbol": "release_owned_result_after_result<T>",
+          "kind": "unsafe fn",
+          "initialLine": 125
+        },
+        {
+          "line": 146,
+          "symbol": "validate_owned_result",
+          "kind": "fn",
+          "initialLine": 146
+        },
+        {
+          "line": 190,
+          "symbol": "validate_owned_result_releasing_on_error",
+          "kind": "unsafe fn",
+          "initialLine": 190
+        }
+      ],
+      "flowRecords": 22,
+      "currentCrlf": 204,
+      "currentBareLf": 0
+    }
+  ],
+  "rootReadEvidence": {
+    "complete8SourceChunks": [
+      "fbc2f7",
+      "aef228",
+      "b5622c"
+    ],
+    "all55ObjectGroupsAnd99Flows": [
+      "5f3f5d",
+      "a34ed8"
+    ],
+    "actualCallers": [
+      "ae9fe3 App/Editor status handling and shape guard",
+      "614475 Runtime static V8 export/get_api path",
+      "4a3fed App local Host table lifetime",
+      "38a827 checked_slice length checks, Host acceptance/cleanup/concurrent/ordinary failure tests and App/Editor error conversions"
+    ],
+    "partialTruncatedReadsNotUsedAsCompleteness": [
+      "8e5c39 metadata summary truncated",
+      "32e452 object dump truncated; subsequently read all55 concise groups"
+    ]
+  },
+  "independentFindings": [
+    {
+      "topic": "shape vs trust",
+      "finding": "Shared safe shape functions accept an already valid full reference and compare family and exact table size only. They do not establish raw pointer readability, required slots, provider lifetime or BuildSet admission. Editor gateway directly uses shared V8 shape; App uses independent local validate_v8_api, correcting the old relationship while retaining historical JSON."
+    },
+    {
+      "topic": "unsafe Host pointer",
+      "finding": "Null optional Host pointer returns without dereference; nonnull alignment is checked before shared borrow. Readability/initialization/full table validity and borrow lifetime come from the unsafe contract and live synchronous caller. One authorized ordinary SAFETY line states those premises; it claims no dangling/mapping detection."
+    },
+    {
+      "topic": "output ownership",
+      "finding": "Metadata guards do not prove payload readability. Unsafe caller owns a unique allocation and keeps matching provider/session/callback alive; decode returns owned data and terminates borrow before release. Releaser Copy does not duplicate allocation ownership or retain library. Canonical empty has no release callback."
+    },
+    {
+      "topic": "acceptance serialization",
+      "finding": "Decode/validator/release callback run outside acceptance gate; final acceptance holds mutex and rechecks fuse after release. First rejection fuses once; later in-flight value is rejected. Metrics across atomics are not a transactional snapshot."
+    },
+    {
+      "topic": "error classification",
+      "finding": "A ProtocolViolation error value does not itself update RuntimeForeignOutputState. App/Editor conversions only map the error. The specific HST-001 empty-cleanup branch returns the diagnostic protocol error without reject; existing Runtime status producer bound is not generalized to all unsafe ABI providers."
+    },
+    {
+      "topic": "ABI fixture",
+      "finding": "Fixed add(1) on a u8 array is not a language-level guarantee of misalignment; assert_ne occurs before unsafe validator call. This remains an open fixture intent/portability TODO without claimed executed failure."
+    }
+  ],
+  "checks": {
+    "rootRawPhysicalLexicalProof": {
+      "chunk": "8be18e",
+      "exitCode": 0,
+      "sourcesMatched": 8,
+      "genuineHistoricalRawBeforeMatched": 8,
+      "initialCurrentBytesRecovered": 8,
+      "oldReviewedLfMatched": 8,
+      "historicalStandaloneCommentOrBlankInsertions": 188,
+      "thisChatAdditionalOrdinaryCommentLines": 1,
+      "nonDocumentTokensEqual": true,
+      "compilerFacingDocAttributesEqual": false,
+      "baselineCommentsAndCodePreserved": true,
+      "currentCrlfPreservedForNewLine": true,
+      "historicalPhysicalEolEqualityClaimed": false,
+      "note": "Historical LF SHA pins are separate from current CRLF physical bytes. Existing normalization/native EOF is not inferred closed."
+    },
+    "callerReconciliation": {
+      "chunk": "8be18e",
+      "currentPinsMatched": 41,
+      "mismatches": [],
+      "scope": "only actual selected caller contracts; no full caller file coverage credit"
+    },
+    "format": {
+      "executed": true,
+      "binaryPath": "C:\\Users\\HeJiahui\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\bin\\rustfmt.exe",
+      "binarySha256": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+      "argv": [
+        "C:\\Users\\HeJiahui\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\bin\\rustfmt.exe",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+        "zircon_runtime_host/src/foreign_output/state.rs",
+        "zircon_runtime_host/src/foreign_output/error.rs",
+        "zircon_runtime_host/src/foreign_output/owned_buffer.rs"
+      ],
+      "cwd": "E:\\Git\\ZirconEngine",
+      "exitCode": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutBytes": 0,
+      "stdoutExcerpt": "",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrBytes": 0,
+      "stderrExcerpt": "",
+      "childPipesConsumedToEOF": true,
+      "completedVia": "subprocess.run(wait/communicate completed); no timeout/kill/restart",
+      "inputPins": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+          "sha256": "73bf4e3c281a7faf1b16ed4f7c16046d7a38033cbd456a37a4825bfcc2db7748"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+          "sha256": "4bb2b0e9ab8d62ad1923a96f13a77dc88a015cbaa0a72073f1f925fe36800f39"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+          "sha256": "00dffe19520f92f7f92a1b81110b17d47a64956e8b26929c332203c43fe6004a"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+          "sha256": "0e71d0727da6657b67d173146865ec34194f9238eee8a93ce5bcc5866ff284c7"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+          "sha256": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4"
+        },
+        {
+          "path": "zircon_runtime_host/src/foreign_output/state.rs",
+          "sha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778"
+        },
+        {
+          "path": "zircon_runtime_host/src/foreign_output/error.rs",
+          "sha256": "7b2dd7608e0a6674abb17a97b4a1d41be73bb9a6e3be5192a6bd90bb89afb66e"
+        },
+        {
+          "path": "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+          "sha256": "ff51a7201b8b1579a325cfd2262112ba35db08c82d13afee20bc9ce073045a88"
+        }
+      ],
+      "all8FinalPinsUnchangedAfter": true,
+      "acceptanceScope": "standalone language format/parse check only, formal documentation_comment/module_unit receipt still pending",
+      "status": "passed-standalone-language-format-and-parser-check",
+      "inputConfiguration": "explicit --edition2021 --config skip_children=true; argv/cwd/binary SHA/input final pins recorded; no Cargo/build/script executed"
+    },
+    "formatNativeReceipt": {
+      "sessionId": 30075,
+      "terminalChunk": "106d9d",
+      "exitCode": 0
+    },
+    "currentExact8DiffCheck": {
+      "childExitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "scope": [
+        "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+        "zircon_runtime_host/src/foreign_output/state.rs",
+        "zircon_runtime_host/src/foreign_output/error.rs",
+        "zircon_runtime_host/src/foreign_output/owned_buffer.rs"
+      ]
+    },
+    "historicalExact8ChangeGuard": {
+      "chunk": "d2281e",
+      "exitCode": 1,
+      "status": "failed",
+      "base": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "patchDigest": "1942423f88a9a1f58c3d7ff55fe5f84095b4d5f15b609149fabc2462016da027",
+      "errors": [
+        {
+          "rule": "marker.format",
+          "path": "zircon_runtime_host/src/foreign_output/state.rs",
+          "line": 149,
+          "message": "checker only accepts CR-AREA-NNNN; existing user-audit marker ZCA-HST-001 retained"
+        }
+      ],
+      "policyResolution": "pending actual coordinator policy; no source tag rewrite/deletion/suppression or checker modification"
+    },
+    "currentOrdinarySafetyPatchGuard": {
+      "chunk": "07f5d1",
+      "exitCode": 0,
+      "base": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+      "patchDigest": "16a0c6905c2e63171a1df4615d8d390eb6668243a484fe8c4c00cc3fc3f5edb4",
+      "files": [
+        "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs"
+      ],
+      "errors": 0,
+      "warnings": 0,
+      "meaning": "Only present one-line ordinary-comment delta passed. This does not replace or pass historical exact8 guard."
+    },
+    "checkerRuleReview": {
+      "agent": "/root/core_review",
+      "chunk": "4a8a13",
+      "exitCode": 0,
+      "scriptSha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+      "finding": "marker.format examines only diff-added lines; scan treats all lines as added. ZCA not recognized by marker add/remove tracking, so an empty markers result cannot prove tag consistency."
+    }
+  },
+  "issueObservations": [
+    {
+      "id": "ZCA-HST-001",
+      "kind": "BUG",
+      "sourceId": "S5",
+      "sourceLine": 149,
+      "tagExpected": "// BUG: [ZCA-HST-001]",
+      "status": "existing-open-static-confirmed",
+      "trigger": "未fused新state、无并发reject，同一仍存活provider/session的失败status，diagnostics指向4097个存活可读初始化bytes，规范empty output及匹配releaser；所有unsafe内存/生命周期前提可满足。",
+      "controlFlow": [
+        [
+          "S6",
+          68,
+          "checked_slice4096在借用前返回长度限制错误"
+        ],
+        [
+          "S6",
+          75,
+          "SomeProtocolViolation"
+        ],
+        [
+          "S7",
+          160,
+          "canonicalempty validate Ok0"
+        ],
+        [
+          "S7",
+          82,
+          "canonicalempty release Ok无callback"
+        ],
+        [
+          "S5",
+          155,
+          "Err原call_error且不reject"
+        ],
+        [
+          "appOperation",
+          172,
+          "?只传播"
+        ],
+        [
+          "appError",
+          64,
+          "分类映射无reject"
+        ],
+        [
+          "gateway",
+          185,
+          "?只传播"
+        ],
+        [
+          "editorError",
+          31,
+          "Protocol映射无reject"
+        ]
+      ],
+      "effect": "call_failures增1，但protocol_failed/protocol_failures/rejected_payloads保持原值，后续availability仍Ok。",
+      "boundary": "不声称所读Runtime当前producer产生该输入；该producerTLS4096有界。没有执行或新增测试/行为修复。",
+      "finalSourceSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "currentTagPresent": true,
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "sourceMarkerText": "            // BUG: [ZCA-HST-001] 若失败 status 带有可读但超过 diagnostics 上限的字节，from_status"
+    },
+    {
+      "id": "ZCA-ABI-001",
+      "kind": "TODO",
+      "sourceId": "S4",
+      "sourceLine": 66,
+      "tagExpected": "// TODO: [ZCA-ABI-001]",
+      "status": "existing-open-evidence-gap",
+      "trigger": "u8数组只保证1字节对齐，基址余数可能为align-1；固定add1因此不普遍保证未对齐。",
+      "controlFlow": [
+        [
+          "S4",
+          68,
+          "u8 storage"
+        ],
+        [
+          "S4",
+          70,
+          "add1 cast"
+        ],
+        [
+          "S4",
+          72,
+          "assert_ne在unsafe调用前"
+        ],
+        [
+          "S4",
+          75,
+          "只有通过assert才调用pointervalidator"
+        ],
+        [
+          "S1",
+          101,
+          "未对齐时先拒绝"
+        ]
+      ],
+      "effect": "语言层面fixture普遍性缺口；未观察到真实测试先断言失败，不能升级已发生BUG。",
+      "boundary": "保留TODO，无测试执行或fixture修改。",
+      "finalSourceSha256": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4",
+      "currentTagPresent": true,
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "sourceMarkerText": "    // TODO: [ZCA-ABI-001] 字节数组只保证一字节对齐，偏移一不能普遍保证目标地址未对齐。"
+    }
+  ],
+  "callerEvidence": [
+    {
+      "id": "C001",
+      "key": "table",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+      "sha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+      "lineCount": 320,
+      "readRanges": [
+        [
+          1,
+          320
+        ]
+      ],
+      "contract": "foreign read-only；repr(C) Host4/Runtime28fields，GetApi/ReleaseFn别名、empty、手工slot清单",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C002",
+      "key": "buf",
+      "path": "zircon_runtime_interface/src/buffer.rs",
+      "sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+      "lineCount": 357,
+      "readRanges": [
+        [
+          1,
+          357
+        ]
+      ],
+      "contract": "4096诊断上限，checked_slice元数据先检查，OwnedResult canonical empty/no CloneCopy",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C003",
+      "key": "status",
+      "path": "zircon_runtime_interface/src/status.rs",
+      "sha256": "c91b0bb349423b1fdb001e0c9a41dcf8493ee17afca50c26c54a3ada8997b679",
+      "lineCount": 89,
+      "readRanges": [
+        [
+          1,
+          89
+        ]
+      ],
+      "contract": "raw0 is_ok，未知status_code映射Error",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C004",
+      "key": "exports",
+      "path": "zircon_runtime/src/dynamic_api/exports.rs",
+      "sha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+      "lineCount": 291,
+      "readRanges": [
+        [
+          1,
+          110
+        ],
+        [
+          112,
+          119
+        ]
+      ],
+      "contract": "get_api同步Host校验、静态V8table，release slot/FFI panic boundary",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C005",
+      "key": "appLoader",
+      "path": "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
+      "sha256": "dbed33b3ceaefbea03b9d6bf34d6639bd04a94f0c2fbbe43d72038ff9624dfbc",
+      "lineCount": 746,
+      "readRanges": [
+        [
+          1,
+          92
+        ],
+        [
+          140,
+          225
+        ],
+        [
+          405,
+          718
+        ]
+      ],
+      "contract": "library owner；独立rawpointer header/requiredslot guard，未调用sharedshape",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C006",
+      "key": "apiMod",
+      "path": "zircon_runtime_interface/src/runtime_api/mod.rs",
+      "sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+      "lineCount": 145,
+      "readRanges": [
+        [
+          1,
+          50
+        ]
+      ],
+      "contract": "abi装入/导出",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C007",
+      "key": "lib",
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "lineCount": 251,
+      "readRanges": [
+        [
+          1,
+          155
+        ]
+      ],
+      "contract": "crate根module和runtimeapi重导出",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C008",
+      "key": "appOperation",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
+      "sha256": "ed31e8343b9b5520adb3d15b49725f6b67558dbfdd309a6d66d626f0e0709b1c",
+      "lineCount": 198,
+      "readRanges": [
+        [
+          1,
+          198
+        ]
+      ],
+      "contract": "availability→FFI→ensure_call?→decode；失败只传播",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C009",
+      "key": "appError",
+      "path": "zircon_app/src/entry/runtime_library/runtime_library_error.rs",
+      "sha256": "7b4f71766c6afc5575b7a35ed9a6d67f46a130736976e4de072cdce65b860f39",
+      "lineCount": 79,
+      "readRanges": [
+        [
+          1,
+          79
+        ]
+      ],
+      "contract": "From Host错误分类/消息，不fuse",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C010",
+      "key": "gateway",
+      "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+      "sha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+      "lineCount": 222,
+      "readRanges": [
+        [
+          1,
+          222
+        ]
+      ],
+      "contract": "owner Arc/copied table；sharedshape77直接调用，release配对90，失败?映射",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C011",
+      "key": "editorOutput",
+      "path": "zircon_editor/src/core/gateway/session/output.rs",
+      "sha256": "98ee9ed09a36d487422b0ff0727ca84d74bfb6554c30209edbf9c3e8cb97e789",
+      "lineCount": 139,
+      "readRanges": [
+        [
+          1,
+          139
+        ]
+      ],
+      "contract": "Option rawoutput一次release/Drop；capture_owned_output失败?先返回",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C012",
+      "key": "editorError",
+      "path": "zircon_editor/src/core/gateway/error.rs",
+      "sha256": "a2bc51237897bc3f5c97f3351368d33afe907affafc69a9aa938d18ee09ac547",
+      "lineCount": 44,
+      "readRanges": [
+        [
+          1,
+          44
+        ]
+      ],
+      "contract": "From Host分类，不fuse",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C013",
+      "key": "hostTests",
+      "path": "zircon_runtime_host/src/foreign_output/tests/cases.rs",
+      "sha256": "9c9d2ce002f796ddb96f0a587b992cd009efe700edd976573a1be53aa8e2a2d2",
+      "lineCount": 1183,
+      "readRanges": [
+        [
+          80,
+          214
+        ],
+        [
+          329,
+          461
+        ],
+        [
+          965,
+          1047
+        ]
+      ],
+      "contract": "fixture/单次释放/empty/budget/failure/concurrent acceptance；未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C014",
+      "key": "metrics",
+      "path": "zircon_runtime_host/src/foreign_output/metrics.rs",
+      "sha256": "e053670a26f7935543920ebf23b0546284143f7939fe53716eb27462c3eb2d2f",
+      "lineCount": 158,
+      "readRanges": [
+        [
+          1,
+          82
+        ],
+        [
+          125,
+          145
+        ]
+      ],
+      "contract": "Relaxed counters，callfailure独立，非事务快照",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C015",
+      "key": "decode",
+      "path": "zircon_runtime_host/src/foreign_output/decode.rs",
+      "sha256": "281d572365d15d76d5e1210168caf5706d827a0bb3f73de19f3d33071408dbe8",
+      "lineCount": 721,
+      "readRanges": [
+        [
+          1,
+          178
+        ]
+      ],
+      "contract": "typed owned decode+allocationfree preflight+deadline/item/validator预算",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C016",
+      "key": "budget",
+      "path": "zircon_runtime_host/src/foreign_output/budget.rs",
+      "sha256": "5f4117969dd893392ad95d73d56b3eebf68086bcc1ebcf9c15485e696043a39c",
+      "lineCount": 162,
+      "readRanges": [
+        [
+          118,
+          162
+        ]
+      ],
+      "contract": "duration/encodedlen/itemcount大于预算拒绝",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C017",
+      "key": "diagnostic",
+      "path": "zircon_runtime_host/src/foreign_output/state/diagnostic.rs",
+      "sha256": "bc55f093030de9c9cc6bf1d58b1fc1e84f418db461cadbae637a98861a32f7df",
+      "lineCount": 101,
+      "readRanges": [
+        [
+          1,
+          101
+        ]
+      ],
+      "contract": "活动检查+稳定单行owned String",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C018",
+      "key": "kind",
+      "path": "zircon_runtime_host/src/foreign_output/kind.rs",
+      "sha256": "1a769c4023523037e7e93039174199dd6767a7ef241933216461cc592ce1cb0a",
+      "lineCount": 66,
+      "readRanges": [
+        [
+          1,
+          66
+        ]
+      ],
+      "contract": "7类ALL/index/label",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C019",
+      "key": "hostMod",
+      "path": "zircon_runtime_host/src/foreign_output/mod.rs",
+      "sha256": "042ce6b71a656f6c26ddc83309888580893a319d83e9e03e1716b6de37a2c04f",
+      "lineCount": 48,
+      "readRanges": [
+        [
+          1,
+          48
+        ]
+      ],
+      "contract": "private module + 公共reexports/cfgtests",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C020",
+      "key": "registry",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "sha256": "3156b029a64e5c1265318e3dd84524b1180b695ec8736d6ea8214f243a1f18c1",
+      "lineCount": 240,
+      "readRanges": [
+        [
+          1,
+          240
+        ]
+      ],
+      "contract": "Vec registry/opaque ID/session owner/census；释放时持action guard",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C021",
+      "key": "ffi",
+      "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+      "sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+      "lineCount": 924,
+      "readRanges": [
+        [
+          181,
+          191
+        ]
+      ],
+      "contract": "release_allocation185到registry",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C022",
+      "key": "runtimeStatus",
+      "path": "zircon_runtime/src/dynamic_api/session/status.rs",
+      "sha256": "aff771d571fa9e781521e5d87c56cdcec73440962ee7065b8e53717dacf74b6a",
+      "lineCount": 127,
+      "readRanges": [
+        [
+          1,
+          127
+        ]
+      ],
+      "contract": "所读producer TLS4096有界/UTF8 truncation；非所有producer保证",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C023",
+      "key": "runtimeSession",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+      "sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+      "lineCount": 860,
+      "readRanges": [
+        [
+          71,
+          116
+        ],
+        [
+          180,
+          207
+        ],
+        [
+          224,
+          272
+        ],
+        [
+          300,
+          351
+        ],
+        [
+          677,
+          744
+        ],
+        [
+          788,
+          832
+        ]
+      ],
+      "contract": "retained LoadedRuntime/shared Arc/releaser，Frame借用与Drop，teardown失败source abort非历史nativereceipt",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C024",
+      "key": "tableTests",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_table.rs",
+      "sha256": "716178442942d93c9ba2e172eacbde6d57ea9583109c611ea848ca919d1313b1",
+      "lineCount": 91,
+      "readRanges": [
+        [
+          1,
+          91
+        ]
+      ],
+      "contract": "include_str!读原table文本，清单字段分区守卫；未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C025",
+      "key": "contracts",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "lineCount": 2992,
+      "readRanges": [
+        [
+          682,
+          862
+        ]
+      ],
+      "contract": "slice/status/table大小/offset契约；未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C026",
+      "key": "safety",
+      "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+      "sha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+      "lineCount": 570,
+      "readRanges": [
+        [
+          1,
+          157
+        ],
+        [
+          305,
+          342
+        ],
+        [
+          406,
+          477
+        ]
+      ],
+      "contract": "reprC/fieldcounts/orderedfields/version策略原文本守卫；未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C027",
+      "key": "boundary",
+      "path": "zircon_runtime_interface/src/tests/boundary.rs",
+      "sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+      "lineCount": 1104,
+      "readRanges": [
+        [
+          914,
+          1011
+        ]
+      ],
+      "contract": "foreign read-only；ABI facade路径/linebudget/noglob守卫；未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C028",
+      "key": "diagTest",
+      "path": "zircon_runtime_host/src/foreign_output/state/tests/diagnostic.rs",
+      "sha256": "aff2d7535e406cc647db226f4c7344d4c0cb67e99386060cf21e31aac3977958",
+      "lineCount": 156,
+      "readRanges": [
+        [
+          1,
+          150
+        ]
+      ],
+      "contract": "诊断输出oracle；ignored benchmark未执行无性能结论",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C029",
+      "key": "registryTests",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "sha256": "94023c1ef7923e7c7e16ac4285b9dd22b5ce2422bfea70ccab2339256055947a",
+      "lineCount": 939,
+      "readRanges": [
+        [
+          726,
+          840
+        ]
+      ],
+      "contract": "onefree/forged/foreignsession/concurrentrelease原测试；未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C030",
+      "key": "statusTest",
+      "path": "zircon_runtime/src/dynamic_api/session/tests/status.rs",
+      "sha256": "d9ff4f65e578be2ed2ec154902e5ee0aa2a529b1a3f0b709a8abc51b24fd2c16",
+      "lineCount": 17,
+      "readRanges": [
+        [
+          1,
+          17
+        ]
+      ],
+      "contract": "所读producer4095UTF8测试，未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C031",
+      "key": "interfaceCargo",
+      "path": "zircon_runtime_interface/Cargo.toml",
+      "sha256": "8a61722b1b2eb8e37ce0ad8decbc67445bd15c9b1b550f2c4cc56b59932a5de7",
+      "lineCount": 26,
+      "readRanges": [
+        [
+          1,
+          26
+        ]
+      ],
+      "contract": "workspace edition/serde/thiserror/buildserde",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C032",
+      "key": "hostCargo",
+      "path": "zircon_runtime_host/Cargo.toml",
+      "sha256": "8aa20006f74cb876d65cac5c76fbe5006af3bfc485dbd81628cd64cf6995e9fc",
+      "lineCount": 11,
+      "readRanges": [
+        [
+          1,
+          11
+        ]
+      ],
+      "contract": "Host dependency interface/serde/serdejson",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C033",
+      "key": "build",
+      "path": "zircon_runtime_interface/build.rs",
+      "sha256": "15c7929ed8815b2be4ed35d908e914c34d43c9dd2f3f809188b01fb31dec7f72",
+      "lineCount": 321,
+      "readRanges": [
+        [
+          1,
+          321
+        ]
+      ],
+      "contract": "InterfaceSpec→OUT_DIR catalog producer，只读未运行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C034",
+      "key": "buildMod",
+      "path": "zircon_runtime_interface/src/runtime_build_set/mod.rs",
+      "sha256": "e412b5fef27560dfc7dd4395df3009faceba8be6d56e65b66d5b859b37e9adec",
+      "lineCount": 77,
+      "readRanges": [
+        [
+          1,
+          77
+        ]
+      ],
+      "contract": "slot_catalog装入/公开生成常量",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C035",
+      "key": "version",
+      "path": "zircon_runtime_interface/src/version.rs",
+      "sha256": "1ec6880f55ee8e46cf2aa427175755caf1b7f81526f7ab8cde1b787757377b26",
+      "lineCount": 20,
+      "readRanges": [
+        [
+          1,
+          20
+        ]
+      ],
+      "contract": "固定V1=1/V2/V3和生成V8重导出",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C036",
+      "key": "store",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "sha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+      "lineCount": 516,
+      "readRanges": [
+        [
+          295,
+          385
+        ]
+      ],
+      "contract": "releaseaction lookup与destroywait action屏障",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C037",
+      "key": "slot",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "sha256": "0953acd0c8c9539b72c3c16a310b589e3ee55e9610151161e11206048ebaa241",
+      "lineCount": 209,
+      "readRanges": [
+        [
+          116,
+          196
+        ]
+      ],
+      "contract": "非Closing允许release，activeactions++；close/wait/retrypending",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C038",
+      "key": "guard",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+      "sha256": "b98f76c4911d19dbc7fa1c2c1e29f0c674ad923d269490bfa3bd837b42b852be",
+      "lineCount": 20,
+      "readRanges": [
+        [
+          1,
+          20
+        ]
+      ],
+      "contract": "Drop finish_action减计数通知",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C039",
+      "key": "catalog",
+      "path": "zircon_runtime_interface/src/runtime_build_set/slot_catalog.rs",
+      "sha256": "b73fa8e6ce97f0e32270a391aaba3043f55066bfac18f81d4e453f102258e46a",
+      "lineCount": 2,
+      "readRanges": [
+        [
+          1,
+          2
+        ]
+      ],
+      "contract": "include!(concat!(env!(OUT_DIR),catalog))；无生成",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C040",
+      "key": "appWrapper",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/owned_buffer.rs",
+      "sha256": "f9a53391f084f7f36466d7a8fe0ddbf4aabaa746e06351e6e4b238553568b8a9",
+      "lineCount": 90,
+      "readRanges": [
+        [
+          1,
+          90
+        ]
+      ],
+      "contract": "basic release/validate直接委托Host；after_error/result是App独立实现",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    },
+    {
+      "id": "C041",
+      "key": "appTests",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/tests/cases.rs",
+      "sha256": "71288868a5a8e7c0ba44f7d450b2b8b562aa0374a15092ad3d01a56af0b0c49f",
+      "lineCount": 473,
+      "readRanges": [
+        [
+          230,
+          306
+        ]
+      ],
+      "contract": "transitiveHost validate cleanup和App独立双errororacle；未执行",
+      "sourceWriteGranted": false,
+      "coverage": "仅所列阅读范围/契约，不声明消费者全文件覆盖或formal通过"
+    }
+  ],
+  "historicalCorrections": [
+    {
+      "id": "ABI-HST-007-LEGACY-CALL-001",
+      "historicalEvidence": "docs/tests/source-comment-review-evidence-core-001-clear11.json",
+      "historicalObjectId": "CORE-001-023",
+      "historicalClaim": "App validate_v8_api 先建立读取前提再调sharedshape",
+      "actualCallerPin": "dbed33b3ceaefbea03b9d6bf34d6639bd04a94f0c2fbbe43d72038ff9624dfbc",
+      "correction": "当前App文件SHA精确等于历史caller pin，local validate_v8_api440–640独立校验alignment/header/layout/requiredslots；没有sharedshape调用。Editor gateway77才是直接sharedshape caller。旧JSON保持只读，纠正关系不暗示源码行为变化。"
+    },
+    {
+      "id": "ABI-HST-007-LEGACY-TAGS-002",
+      "observation": "旧issues账本sourceTag missing/currentPresentfalse是过去观察；本轮两个源码标签确实存在，必须记录本轮SHA/行锚点，不能静默更改旧账本或继承formal完成。"
+    }
+  ],
+  "sourceMutation": {
+    "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+    "authorization": "root exact host_api_shape.rs SAFETY grant; all other7 source readonly",
+    "beforeSha256": "639850825e610339ba44b25cce9c670a0245cbd6730bb2b0cb8cb64602b13526",
+    "afterSha256": "4bb2b0e9ab8d62ad1923a96f13a77dc88a015cbaa0a72073f1f925fe36800f39",
+    "insertBeforeOriginalLine": 109,
+    "addedLineCount": 1,
+    "addedDocAttributes": 0,
+    "commentText": "    // SAFETY: 非空和对齐已检查；完整可读且已初始化的表及借用期间有效性由本 unsafe 入口的契约和调用方保证。",
+    "onlyStandaloneOrdinaryCommentInserted": true,
+    "originalBytesRecoveredByRemovingInsertedLine": true,
+    "CRLFPreserved": true,
+    "allOther7SourcesUnchanged": true
+  },
+  "formalRequirements": {
+    "actualRegisteredFlow": "documentation_comment / module_unit; required actual scoped receipts pending",
+    "historicalMarkerPolicyConflictOpen": true,
+    "originalNativeTermination": "unknown; not inferred from completed read/format operations",
+    "actualCommit": null,
+    "actualWeCom": null,
+    "inventedCargoDocOrAbiGate": false
+  },
+  "artifactLifecycle": {
+    "rootHelpersCreated": 0,
+    "sourceCopies": 0,
+    "buildProducts": 0,
+    "bytesReleased": 0,
+    "originalManifestAndNativeLifecycle": "pending, not closed"
+  },
+  "formalAcceptance": false,
+  "wholeRepositoryComplete": false
+}

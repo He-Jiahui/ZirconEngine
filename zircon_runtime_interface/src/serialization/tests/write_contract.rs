@@ -1,3 +1,9 @@
+//! 版本化及流式 writer 的边界契约。
+//!
+//! 本文件主要覆盖规范文本写入和显式流预算；与二进制封套直接相关的用例固定文本/二进制
+//! 共用的 payload 校验，以及 writer 与 reader 共用的 body 字节上限。二进制大小用例经
+//! 生产版本化写入入口构造，以确保断言针对实际编码路径。
+
 use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::fmt;

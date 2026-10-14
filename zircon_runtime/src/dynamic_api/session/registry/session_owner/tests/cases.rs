@@ -1,3 +1,7 @@
+//! 通用 owner 的线程归属、清理重试与借用回调契约测试。
+//!
+//! 使用真实单 worker 池和屏障核对状态销毁、代码 owner 保留及回执阶段。
+
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
@@ -6,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use super::{OwnerDispatchError, OwnerShutdownReceipt, SessionOwner};
 
+/// Rc 强制此状态为非 Send；构造、动作和 Drop 都须落在工厂记录的同一线程。
 struct AffineState {
     _not_send: Rc<()>,
     owner: ThreadId,
@@ -14,12 +19,14 @@ struct AffineState {
 
 impl Drop for AffineState {
     fn drop(&mut self) {
+        // 记录真正的析构线程，不以清理回调进入或 terminal 标志替代状态 Drop。
         assert_eq!(self.owner, thread::current().id());
         self.drops.lock().unwrap().push(thread::current().id());
     }
 }
 
 #[test]
+/// 两次短等待共享一个在途清理，释放屏障后只执行一次并在同一线程销毁状态。
 fn astra_life_a4_managed_owner_keeps_non_send_state_and_pending_cleanup_on_one_thread() {
     let drops = Arc::new(Mutex::new(Vec::new()));
     let drops_for_factory = Arc::clone(&drops);
@@ -44,6 +51,7 @@ fn astra_life_a4_managed_owner_keeps_non_send_state_and_pending_cleanup_on_one_t
         .unwrap();
     assert_ne!(owner_thread, thread::current().id());
 
+    // 清理回调被真实屏障阻塞；Pending 必须保留状态与代码 owner，而不是重新调用清理。
     let invocations = Arc::new(AtomicUsize::new(0));
     let cleanup_invocations = Arc::clone(&invocations);
     let (release_tx, release_rx) = mpsc::sync_channel(1);
@@ -67,6 +75,7 @@ fn astra_life_a4_managed_owner_keeps_non_send_state_and_pending_cleanup_on_one_t
         OwnerShutdownReceipt::Pending
     );
 
+    // 释放原回调后重取同一回执；控制器 Drop 之前代码所有者仍然存活。
     release_tx.send(()).unwrap();
     assert_eq!(
         owner.shutdown_until(Instant::now() + Duration::from_secs(1), |_| {
@@ -83,6 +92,7 @@ fn astra_life_a4_managed_owner_keeps_non_send_state_and_pending_cleanup_on_one_t
 }
 
 #[test]
+/// 清理返回 false 后仍保留状态，拒绝普通动作，并允许一个新的显式清理尝试。
 fn astra_life_a4_owner_cleanup_failure_retains_state_for_explicit_retry() {
     let calls = Arc::new(AtomicUsize::new(0));
     let first_calls = Arc::clone(&calls);
@@ -107,6 +117,7 @@ fn astra_life_a4_owner_cleanup_failure_retains_state_for_explicit_retry() {
 }
 
 #[test]
+/// 清理 panic 只形成 Poisoned；普通重试不重跑它，显式恢复成功后才释放代码 owner。
 fn astra_life_a4_owner_cleanup_panic_requires_explicit_recovery_and_retains_code_owner() {
     let code_owner = Arc::new(());
     let retained = Arc::downgrade(&code_owner);
@@ -134,6 +145,7 @@ fn astra_life_a4_owner_cleanup_panic_requires_explicit_recovery_and_retains_code
 }
 
 #[test]
+/// 工厂 panic 的 terminal 标志仍须经过真实池 join，Panicked 回执允许随后 Drop。
 fn astra_life_a4_owner_factory_panic_has_joinable_terminal_receipt() {
     let owner = SessionOwner::<Rc<()>>::create(|| panic!("factory failed"), Arc::new(())).unwrap();
     let deadline = Instant::now() + Duration::from_secs(1);
@@ -149,6 +161,7 @@ fn astra_life_a4_owner_factory_panic_has_joinable_terminal_receipt() {
 }
 
 #[test]
+/// 动作借用调用栈上的 Vec，完成返回后即可安全读取该输出。
 fn astra_life_a4_scoped_dispatch_completes_before_borrowed_output_is_released() {
     let owner = SessionOwner::create(|| 41_u32, Arc::new(())).unwrap();
     let mut output = Vec::new();
@@ -163,6 +176,7 @@ fn astra_life_a4_scoped_dispatch_completes_before_borrowed_output_is_released() 
 }
 
 #[test]
+/// 同一 owner 的同步重入返回 Reentrant；外层完成后正常动作和关闭仍然可用。
 fn astra_life_a4_scoped_dispatch_rejects_same_owner_reentry_and_remains_usable() {
     let owner = SessionOwner::create(|| 0_u32, Arc::new(())).unwrap();
     assert_eq!(

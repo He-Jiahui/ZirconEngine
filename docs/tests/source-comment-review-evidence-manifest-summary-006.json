@@ -1,0 +1,1285 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "manifest-summary-006",
+  "owner": "/root/public_project",
+  "reviewModel": "gpt-6-luna",
+  "reviewEffort": "max",
+  "checkout": "E:/Git/ZirconEngine",
+  "baselineHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+  "observedHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+  "scope": "仅编辑授权的 manifest_summary 七个源码文件、project/tests/manifest_summary.rs 与本批唯一 evidence 文件；跨仓调用方只读。",
+  "state": "awaiting-independent-review",
+  "sourceStatusAtAssignment": "8 个精确源码路径 clean；initialSha256 与 assignment HEAD 原始字节一致。",
+  "sourceStatusAfterReview": "7 个源码仅有本批 worktree 改动且未暂存；mod.rs 保持 clean 和原 SHA。",
+  "objectEvidence": [
+    {
+      "id": "PROJ06-001",
+      "symbol": "manifest_summary 模块边界与公开重导出",
+      "kind": "module-contract",
+      "members": [
+        "现有 //! 模块总览",
+        "六个 #[path] 子模块",
+        "摘要、错误、迁移入口、版本与限额的 pub use"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/mod.rs",
+          "symbol": "module docs, child modules, pub use"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/mod.rs",
+          "symbol": "manifest_summary reexports",
+          "relationship": "提升所选共享值与入口到 crate::project"
+        },
+        {
+          "path": "zircon_runtime_interface/src/lib.rs",
+          "symbol": "pub mod project",
+          "relationship": "公开共享项目接口"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "模块声明与重导出",
+          "relationship": "实现留在私有子模块，调用方依赖中立值接口"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "attribute": "#[path]",
+          "relationship": "静态源码映射；无动态注册或 FFI"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "relationship": "共享摘要入口契约"
+        },
+        {
+          "path": "zircon_runtime/src/asset/tests/project/manifest.rs",
+          "symbol": "runtime_projection_matches_interface_summary_for_the_same_manifest_text",
+          "relationship": "对照共享摘要与 Runtime 来源标记"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "module declarations/reexports",
+          "entry": "crate 编译 project 接口",
+          "state": "私有实现由父模块选定重导出",
+          "effect": "Hub、Editor、Runtime 共用同一摘要接口"
+        }
+      ],
+      "commentDecision": {
+        "action": "已有中文模块总览充分，未新增重复文档",
+        "reason": "现有注释已说明消费者、展示/预检用途及 Runtime 完整校验边界"
+      },
+      "constraintsAndLifecycle": "模块无宿主状态，不读取文件，也不激活项目。"
+    },
+    {
+      "id": "PROJ06-002",
+      "symbol": "validate_toml_complexity 与 ensure_depth",
+      "kind": "private-algorithm",
+      "members": [
+        "显式 pending 栈",
+        "Array/Table 两分支",
+        "全树表项与数组元素累计",
+        "checked_add 溢出转 usize::MAX",
+        "zero-based ensure_depth"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/admission.rs",
+          "symbol": "validate_toml_complexity, ensure_depth"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+          "symbol": "load_project_manifest_value_from_toml_str",
+          "relationship": "TOML parse 后、JSON value 转换前调用"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "validate_toml_complexity",
+          "relationship": "迭代遍历已解析 TOML 值树；容器深度和两类累计量分别检查"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "relationship": "无自定义 trait、注册、生成宏或 FFI"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "symbols": [
+            "summary_parser_rejects_toml_container_complexity_over_budget",
+            "summary_parser_rejects_manifest_and_asset_root_count_over_budget"
+          ],
+          "relationship": "覆盖 depth、table entries、array items 和超限错误"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "pending loop",
+          "entry": "TOML parser 已返回根值，初始深度 0",
+          "state": "弹出当前值，容器子项以饱和加一后的深度入栈",
+          "effect": "检查整棵树且不在此 helper 中递归调用"
+        },
+        {
+          "block": "array/table arms",
+          "entry": "当前节点是数组或表",
+          "state": "累计本容器长度/键值数；溢出视为超限；检查后压入子值",
+          "effect": "跨容器预算超限时返回对应 typed error"
+        },
+        {
+          "block": "ensure_depth",
+          "entry": "遍历遇到数组或表",
+          "state": "仅 depth 大于上限时报错",
+          "effect": "上限边界值可通过"
+        }
+      ],
+      "commentDecision": {
+        "action": "在既有说明后补充参数、根层级、累计计数和边界",
+        "reason": "区分解析后复杂度预算与原始字节预算"
+      },
+      "constraintsAndLifecycle": "该 helper 在 TOML 已解析后运行，不能替代入口原始字节限制。"
+    },
+    {
+      "id": "PROJ06-003",
+      "symbol": "共享清单预算常量",
+      "kind": "public-constants",
+      "members": [
+        "MAX_PROJECT_MANIFEST_BYTES",
+        "MAX_PROJECT_ASSET_ROOTS",
+        "MAX_PROJECT_MANIFEST_NESTING_DEPTH",
+        "MAX_PROJECT_MANIFEST_TABLE_ENTRIES",
+        "MAX_PROJECT_MANIFEST_ARRAY_ITEMS"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/limits.rs",
+          "symbol": "five public usize limits"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+          "symbol": "ensure_document_size",
+          "relationship": "strictly rejects length above shared max"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/admission.rs",
+          "symbol": "validate_toml_complexity",
+          "relationship": "applies depth and cumulative tree budgets"
+        },
+        {
+          "path": "zircon_runtime/src/asset/project/manifest/load.rs",
+          "symbol": "bounded manifest adapter",
+          "relationship": "reuses byte limit"
+        },
+        {
+          "path": "zircon_runtime/src/plugin/package_service/admission/project_lock/input.rs",
+          "symbol": "manifest input reader",
+          "relationship": "reuses byte limit"
+        }
+      ],
+      "implementations": [
+        {
+          "symbols": [
+            "MAX_PROJECT_MANIFEST_BYTES",
+            "MAX_PROJECT_ASSET_ROOTS",
+            "MAX_PROJECT_MANIFEST_NESTING_DEPTH",
+            "MAX_PROJECT_MANIFEST_TABLE_ENTRIES",
+            "MAX_PROJECT_MANIFEST_ARRAY_ITEMS"
+          ],
+          "relationship": "single-document bytes, root count, zero-based depth and cumulative counts"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "relationship": "none"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "relationship": "all budget checks assert max+1 error"
+        },
+        {
+          "path": "zircon_runtime/src/asset/project/manifest/tests/load.rs",
+          "relationship": "exact byte ceiling and cap-at-limit-plus-one contract"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "raw byte budget",
+          "entry": "parser receives already held string/bytes",
+          "state": "reject above max and accept equality",
+          "effect": "establishes size boundary before TOML parse"
+        },
+        {
+          "block": "tree budgets",
+          "entry": "TOML value exists",
+          "state": "depth and both element counters enforced independently",
+          "effect": "maps each overage to typed error"
+        }
+      ],
+      "commentDecision": {
+        "action": "kept English descriptions and added unit, boundary and cumulative semantics",
+        "reason": "clarifies bytes vs characters and whole-tree vs individual-container counts"
+      },
+      "constraintsAndLifecycle": "Constants describe shared ceilings; enforcement depends on entrypoint. Direct raw migration entry has the preserved TODO noted in migration.rs."
+    },
+    {
+      "id": "PROJ06-004",
+      "symbol": "ProjectManifestSummaryError 与全部变体",
+      "kind": "public-error-enum",
+      "members": [
+        "InvalidUtf8",
+        "InvalidToml",
+        "InvalidShape",
+        "DocumentTooLarge",
+        "TomlNestingTooDeep",
+        "TooManyTomlTableEntries",
+        "TooManyTomlArrayItems",
+        "InvalidValue",
+        "InvalidProjectName",
+        "TooManyAssetRoots",
+        "DuplicateAssetRoot",
+        "OverlappingAssetRoots",
+        "InvalidEngineVersionReq",
+        "InvalidFormatVersion",
+        "FutureVersion",
+        "Migration",
+        "named source/max/found/message/value/ancestor/descendant fields"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/error.rs",
+          "symbol": "ProjectManifestSummaryError"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+          "symbol": "parse_toml_bytes and size helper",
+          "relationship": "UTF-8, TOML and byte failures"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+          "symbol": "SummaryDocument validators",
+          "relationship": "field, name, roots and semver failures"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+          "symbol": "loader",
+          "relationship": "version, future, complexity and migration failures"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "thiserror derive",
+          "relationship": "provides Error/Display and preserves source/transparent Migration error"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": "thiserror::Error",
+          "attributes": [
+            "#[error]",
+            "#[source]",
+            "#[from]"
+          ],
+          "relationship": "existing behavior unchanged; only docs were added"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "relationship": "matches typed invalid-shape/value/root/limit/version errors"
+        },
+        {
+          "path": "zircon_runtime/src/asset/project/manifest/tests/load.rs",
+          "relationship": "matches size and UTF-8 error variants"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "input failures",
+          "entry": "bytes/string/value entry receives input",
+          "state": "typed UTF-8, TOML, shape, size or complexity variant is constructed at its phase",
+          "effect": "caller can distinguish syntax and budgets"
+        },
+        {
+          "block": "semantic/migration failures",
+          "entry": "typed projection or version chain is checked",
+          "state": "field constraints use semantic variants and chain failures wrap MigrateError",
+          "effect": "preserves cause and failure category"
+        }
+      ],
+      "commentDecision": {
+        "action": "kept English enum summary, added Chinese scope and per-variant boundary notes",
+        "reason": "separates summary errors from Runtime complete validation and parse syntax from compatibility"
+      },
+      "constraintsAndLifecycle": "InvalidEngineVersionReq reports Some text that fails semver parsing; it is not a compatibility result."
+    },
+    {
+      "id": "PROJ06-005",
+      "symbol": "版本常量、静态迁移链及 TOML value loader",
+      "kind": "migration-control-flow",
+      "members": [
+        "PROJECT_MANIFEST_FORMAT_VERSION",
+        "PROJECT_MANIFEST_V2_FORMAT_VERSION",
+        "PROJECT_MANIFEST_SCHEMA",
+        "ProjectManifestValue marker",
+        "PROJECT_MANIFEST_MIGRATIONS",
+        "load_project_manifest_value_from_toml_str",
+        "source_version",
+        "migrate_v0_to_v1",
+        "migrate_v1_to_v2",
+        "migrate_v2_to_v3",
+        "manifest_object"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+          "symbol": "version schema, static chain, public loader and private steps"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+          "symbol": "parse_str",
+          "relationship": "byte guard precedes value loader and DTO validation"
+        },
+        {
+          "path": "zircon_runtime/src/asset/project/manifest/load.rs",
+          "symbol": "ProjectManifest::from_toml_str",
+          "relationship": "byte guard precedes value loader; old source is rejected for full Runtime load"
+        },
+        {
+          "path": "zircon_editor/src/core/project/preflight_manifest_reader.rs",
+          "symbol": "inspect_project_manifest",
+          "relationship": "bounded read and summary result feed preflight migration decision"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "MigrationChain::new with steps 0,1,2",
+          "relationship": "v0 rejects; v1->v2 adds defaults; v2->v3 only updates version"
+        },
+        {
+          "symbol": "load_project_manifest_value_from_toml_str",
+          "relationship": "TOML parse -> complexity check -> JSON value -> source/future gate -> validated chain -> Loaded value and source marker"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "registration": "MigrationChain::new / MigrationStep::new function pointers",
+          "relationship": "static ordered chain, no dynamic registration"
+        },
+        {
+          "relationship": "no FFI or code-generation macro"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "symbols": [
+            "legacy_v1_manifest_summary_migrates_to_v3_and_reports_source_version",
+            "summary_parser_rejects_future_manifest_versions",
+            "summary_parser_marks_shared_v2_for_migration_and_accepts_shared_v3"
+          ]
+        },
+        {
+          "path": "zircon_runtime/src/asset/tests/project/manifest.rs",
+          "symbol": "project_manifest_refuses_legacy_formats_until_explicit_migration"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "source version/future guard",
+          "entry": "TOML becomes JSON object",
+          "state": "missing format_version means v1; explicit version must fit u32; >v3 returns FutureVersion",
+          "effect": "only supported versions reach chain"
+        },
+        {
+          "block": "provenance",
+          "entry": "source is below v3",
+          "state": "migrated_from stores original version; v3 yields None",
+          "effect": "Editor asks for decision; Runtime blocks implicit legacy load"
+        },
+        {
+          "block": "migration steps",
+          "entry": "validated chain applies each from-version step",
+          "state": "v0 rejects; v1 gets compatibility defaults; v2 gets version 3",
+          "effect": "legacy supported structure reaches current schema shape"
+        }
+      ],
+      "commentDecision": {
+        "action": "documented static step meaning and loader caller limits while retaining CR-PROJECT-0003 unchanged",
+        "reason": "clarifies source-version handoff and raw-byte responsibility"
+      },
+      "constraintsAndLifecycle": "Public raw adapter does not itself enforce MAX_PROJECT_MANIFEST_BYTES. Its successful data migration is not activation permission."
+    },
+    {
+      "id": "PROJ06-006",
+      "symbol": "parse_str、SummaryDocument 与字段/根验证器",
+      "kind": "typed-projection",
+      "members": [
+        "parse_str",
+        "SummaryDocument and fields",
+        "SummaryDocument::validate",
+        "into_summary",
+        "validate_asset_roots",
+        "is_descendant",
+        "validate_engine_version_req",
+        "default_asset_roots"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+          "symbol": "private DTO and validators; public semver validator"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+          "symbol": "ProjectManifestSummary::parse_toml_str",
+          "relationship": "delegates to parse_str"
+        },
+        {
+          "path": "zircon_runtime/src/asset/project/manifest/validation.rs",
+          "symbol": "ProjectManifest::validate",
+          "relationship": "reuses semver syntax check as part of full validation"
+        },
+        {
+          "path": "zircon_editor/src/core/project/preflight_manifest_reader.rs",
+          "symbol": "inspect_project_manifest",
+          "relationship": "uses summary and source marker"
+        }
+      ],
+      "implementations": [
+        {
+          "symbols": [
+            "parse_str",
+            "SummaryDocument::validate",
+            "into_summary"
+          ],
+          "relationship": "byte guard, shared migration, serde projection, then name/scene/semver/receipt/GUID/root checks; settings RelPath and library_version u32 are checked then omitted"
+        },
+        {
+          "symbols": [
+            "validate_asset_roots",
+            "is_descendant"
+          ],
+          "relationship": "component sort plus equality/slash-boundary ancestor check"
+        },
+        {
+          "symbol": "validate_engine_version_req",
+          "relationship": "None passes; Some goes directly to semver parser"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": "serde::Deserialize on SummaryDocument",
+          "attributes": "serde defaults for optional/root fields",
+          "relationship": "input shape only; no custom trait, runtime registry or FFI"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "relationship": "bad shapes, project names, roots and budgets"
+        },
+        {
+          "path": "zircon_runtime/src/asset/tests/project/manifest.rs",
+          "symbol": "runtime_rejects_shared_invalid_engine_version_requirement_with_typed_source",
+          "relationship": "shared parser error propagates through full Runtime validation"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "parse_str",
+          "entry": "in-memory string has passed ensure_document_size",
+          "state": "migration then DTO Deserialize then validate with migrated_from.is_none()",
+          "effect": "returns summary plus original source marker"
+        },
+        {
+          "block": "DTO validation",
+          "entry": "typed projected input",
+          "state": "checks receipt parity, legacy-sensitive GUID and required roots; validates settings/library shape but drops them",
+          "effect": "only display/preflight projection survives"
+        },
+        {
+          "block": "root comparison",
+          "entry": "nonempty RelPath roots",
+          "state": "limit then component sort then adjacent equality/descendant check",
+          "effect": "a/child overlaps a; a-b does not"
+        },
+        {
+          "block": "version requirement",
+          "entry": "Option<&str>",
+          "state": "None succeeds; Some uses VersionReq::parse",
+          "effect": "syntax check only, no engine match decision"
+        }
+      ],
+      "commentDecision": {
+        "action": "documented projection fields, migration-sensitive GUID and omitted validation-only fields; kept existing invariant comments",
+        "reason": "distinguishes shared summary from full manifest"
+      },
+      "constraintsAndLifecycle": "No filesystem, scene, asset, or Runtime-only field existence checks occur here."
+    },
+    {
+      "id": "PROJ06-007",
+      "symbol": "ProjectManifestSummary 与两种解析入口",
+      "kind": "public-data-and-parser-api",
+      "members": [
+        "ProjectManifestSummary and six fields",
+        "parse_toml_str",
+        "parse_toml_bytes",
+        "ensure_document_size"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+          "symbol": "public struct/methods and private byte helper"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_hub/src/projects/validation.rs",
+          "symbol": "manifest_is_parsable",
+          "relationship": "parse classification"
+        },
+        {
+          "path": "zircon_hub/src/projects/recent_project.rs",
+          "symbol": "RecentProject::from_project_path",
+          "relationship": "display identity"
+        },
+        {
+          "path": "zircon_hub/src/account/cloud/snapshot.rs",
+          "symbol": "capture/verify_manifest_generation",
+          "relationship": "GUID and generation check"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+          "symbol": "render_project_template",
+          "relationship": "parses rewritten template manifest"
+        },
+        {
+          "path": "zircon_editor/src/core/project/preflight_manifest_reader.rs",
+          "symbol": "inspect_project_manifest",
+          "relationship": "bounded preflight summary"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "parse_toml_bytes",
+          "relationship": "size -> UTF-8 -> string parser"
+        },
+        {
+          "symbol": "parse_toml_str",
+          "relationship": "delegates to parse_str which applies same byte check"
+        },
+        {
+          "symbol": "ProjectManifestSummary",
+          "relationship": "serde data projection; direct construction/Deserialize alone does not validate"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": [
+            "Serialize",
+            "Deserialize",
+            "Clone",
+            "Debug",
+            "PartialEq",
+            "Eq"
+          ],
+          "attributes": "serde defaults and skip_serializing_if",
+          "relationship": "data representation only"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+          "symbols": [
+            "rendered_project_templates_persist_distinct_project_guids_in_the_manifest",
+            "current_manifest_summary_rejects_a_missing_project_guid"
+          ]
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+          "symbol": "render_rewrites_only_manifest_identity_and_preserves_current_schema"
+        },
+        {
+          "path": "zircon_hub/src/tauri_app/runtime_state/project_actions/tests/cases.rs",
+          "symbol": "write_valid_project_manifest"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "bytes parser",
+          "entry": "caller already owns byte slice",
+          "state": "size check then UTF-8 decode then string parse",
+          "effect": "size/UTF-8 failures precede TOML parse; no file read"
+        },
+        {
+          "block": "string parser",
+          "entry": "caller already owns str",
+          "state": "delegates to private parse pipeline",
+          "effect": "returns summary and migration origin, not full Runtime manifest"
+        },
+        {
+          "block": "public data fields",
+          "entry": "parser output or direct construction/serde",
+          "state": "only parser path runs semantic validation",
+          "effect": "public value is not a validation or activation capability"
+        }
+      ],
+      "commentDecision": {
+        "action": "retained existing Chinese parser summaries and added Markdown call-time/parameter/return/boundary docs plus field meanings",
+        "reason": "callers need to know the value is in-memory, bounded but not file-reading, and incomplete by design"
+      },
+      "constraintsAndLifecycle": "Byte slice is already allocated. Summary does not verify scene/resource existence or grant activation."
+    },
+    {
+      "id": "PROJ06-008",
+      "symbol": "manifest_summary 测试模块和 fixture helpers",
+      "kind": "unit-test-contracts",
+      "members": [
+        "8 named #[test] functions",
+        "manifest_with_roots",
+        "manifest_with_name",
+        "fixture"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "symbol": "module overview, eight tests and three helpers"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+          "symbol": "parse_toml_str/bytes",
+          "relationship": "public parser under test"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+          "symbol": "value loader",
+          "relationship": "version behavior exercised through parser"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "test helpers",
+          "relationship": "build current v3 input strings and locate versioned TOML fixtures"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "attribute": "#[test]",
+          "relationship": "unit test harness only; no custom registration, generated tests, or FFI"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+          "relationship": "v1/v2/v3/future, shape, portable name, duplicate/nested roots, byte/root count, depth/table/array budget contracts"
+        },
+        {
+          "path": "zircon_runtime/src/asset/tests/project/manifest.rs",
+          "symbol": "runtime_projection_matches_interface_summary_for_the_same_manifest_text",
+          "relationship": "independent runtime provenance comparison"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "version tests",
+          "entry": "fixture passed to bytes parser",
+          "state": "asserts output schema and migrated_from or FutureVersion",
+          "effect": "locks version range and provenance"
+        },
+        {
+          "block": "semantic tests",
+          "entry": "synthetic fields and roots",
+          "state": "matches exact typed errors",
+          "effect": "locks shared name and component-boundary behavior"
+        },
+        {
+          "block": "budget tests",
+          "entry": "max+1 synthetic input",
+          "state": "asserts exact max/found",
+          "effect": "locks inclusive ceiling and cumulative counts"
+        }
+      ],
+      "commentDecision": {
+        "action": "added one module-level coverage note; no per-test prose",
+        "reason": "test names and assertions already state each contract without translation-only comments"
+      },
+      "constraintsAndLifecycle": "This suite tests the lightweight interface only; Runtime complete-manifest tests are separate."
+    }
+  ],
+  "callerEvidence": [
+    {
+      "id": "CALL-01",
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "symbol": "pub mod project",
+      "relationship": "Crate root exports the shared project interface.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-02",
+      "path": "zircon_runtime_interface/src/project/mod.rs",
+      "sha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+      "symbol": "manifest_summary reexports",
+      "relationship": "Exposes summary, parser, migration, limits, and errors through crate::project.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-03",
+      "path": "zircon_runtime_interface/src/serialization/loaded.rs",
+      "sha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
+      "symbol": "Loaded<T>::migrated_from",
+      "relationship": "Defines migration provenance on successful old-version loads.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-04",
+      "path": "zircon_runtime_interface/src/serialization/migration/chain.rs",
+      "sha256": "bd62c53932c045f94fe14b11ef1fa807ac072f135879355d39d55a9782b72f8f",
+      "symbol": "MigrationChain::new",
+      "relationship": "Static ordered migration steps; no runtime registry.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-05",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "sha256": "81a3623b3c7eb076318e03c3f44bbafe1a7c179febb4884c6294d456ca2a0d82",
+      "symbol": "MigrationChain::migrate_value",
+      "relationship": "Validates the chain then applies step function pointers.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-06",
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "sha256": "874314dc22f58dd8a6924f3b980392a02be5fb9baa0779e575d89538b71ed5ac",
+      "symbol": "MigrationChain::validate",
+      "relationship": "Checks ordered steps and complete chain length.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-07",
+      "path": "zircon_runtime/src/asset/project/manifest/load.rs",
+      "sha256": "d91087c23aa610106a02fc8f90202cb76c528a47337c8b0a3ea0fa3b9e624fcd",
+      "symbol": "ProjectManifest::from_toml_str, load_with_report",
+      "relationship": "Bounds bytes, calls shared loader, rejects migrated input, decodes and validates full Runtime type.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-08",
+      "path": "zircon_runtime/src/asset/project/manifest/validation.rs",
+      "sha256": "e2528d416eea11d15253a4ae5715308fb2c166b39ea68980ee5e9c0729abd297",
+      "symbol": "ProjectManifest::validate",
+      "relationship": "Adds Runtime engine, receipt, asset-root, and UI-root checks.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-09",
+      "path": "zircon_runtime/src/asset/project/manifest/project_manifest.rs",
+      "sha256": "862eccba6ca7f434d371065c86290f69c6aeffa613f2aa2b824aeffdafec7464",
+      "symbol": "ProjectManifest; ProjectManifest::summary",
+      "relationship": "Defines authoritative Runtime type and compact projection.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-10",
+      "path": "zircon_runtime/src/asset/project/manifest/tests/load.rs",
+      "sha256": "9638551d990a4a3d3e508211441df3b6cafe6f19ebf4c310199fca27813d9adc",
+      "symbol": "three project_manifest_bounded_file_read / string_entry tests",
+      "relationship": "Checks bounded read, exact byte ceiling, UTF-8 and pre-parse rejection.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-11",
+      "path": "zircon_runtime/src/asset/tests/project/manifest.rs",
+      "sha256": "0bece787b6770b56ed55582d2f3185cfbf967d1d0975cf0ebbe466c8e7879022",
+      "symbol": "runtime_projection_matches_interface_summary_for_the_same_manifest_text; project_manifest_refuses_legacy_formats_until_explicit_migration",
+      "relationship": "Compares source-version provenance and confirms Runtime legacy gate.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-12",
+      "path": "zircon_runtime/src/asset/project/manifest/validation/tests/astra_root_tests.rs",
+      "sha256": "1d9cef99ad2ab4ac3dff1d867331003d10645dbbd59e2d914ccf885b6d474ea1",
+      "symbol": "legacy_manifest_validation; astra_m2_asset_root_count_matches_interface_admission_limit",
+      "relationship": "Uses shared engine-requirement check and root-budget contract.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-13",
+      "path": "zircon_editor/src/core/project/preflight_manifest_reader.rs",
+      "sha256": "92b04791cc0f0d814d0b7c7431304aff1da0c16a046b56e197f2d4f32c134179",
+      "symbol": "inspect_project_manifest",
+      "relationship": "Bounded read/digest, summary parse, full Runtime manifest only for current input.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-14",
+      "path": "zircon_editor/src/core/project/authority/preflight.rs",
+      "sha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+      "symbol": "preflight_resolved_project_with_composition_profile",
+      "relationship": "Carries migrated_from into migration decision and receipt.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-15",
+      "path": "zircon_editor/src/core/project/authority/recent_validation.rs",
+      "sha256": "125305a01c4b80a134eebf972aa6c9d876842e12994058fe0f5f2b6bd47c82d7",
+      "symbol": "validate_recent_project",
+      "relationship": "Separates legacy RequiresMigration from current and invalid summary.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-16",
+      "path": "zircon_editor/src/core/project/project_preflight/manifest_migration_decision.rs",
+      "sha256": "8426e98d1a7848041e8b083f39bc7a816a30338cd5ab7a0f0a0273892f247db5",
+      "symbol": "from_migrated_from; blocks_activation",
+      "relationship": "Maps source marker to explicit decision; does not execute migration.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-17",
+      "path": "zircon_editor/src/core/project/tests/preflight.rs",
+      "sha256": "678194c06912b8a62c325ba878c56d425c6a2de092de7aa0080ab18030ffa038",
+      "symbol": "migration decision/action, recent migration, oversized manifest tests",
+      "relationship": "Checks explicit source version decision, no implicit action, and bounded input.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-18",
+      "path": "zircon_hub/src/projects/validation.rs",
+      "sha256": "c506060ec2bc7432560f79d1866782fffb7c5f0e4fd1896a174b57f8e240ae82",
+      "symbol": "manifest_is_parsable; validate_project_root",
+      "relationship": "Uses summary for parse classification, not full Runtime validation.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-19",
+      "path": "zircon_hub/src/projects/recent_project.rs",
+      "sha256": "9b28b75b94b1b8d5990bba4faa0f66cfeaf13798ee347d9658948e5c897dff5c",
+      "symbol": "RecentProject::from_project_path; refresh_summary",
+      "relationship": "Loads summary as persisted Hub display identity.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-20",
+      "path": "zircon_hub/src/account/cloud/snapshot.rs",
+      "sha256": "1fd31996575c5ba278a8188823fdf216306ee59b1a9b89ae98b98f05ad488df4",
+      "symbol": "capture; verify_manifest_generation",
+      "relationship": "Parses summary and compares project GUID with Hub state.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-21",
+      "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+      "sha256": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+      "symbol": "render_project_template",
+      "relationship": "Parses summary after manifest identity rewrite and requirement validation.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-22",
+      "path": "zircon_runtime/src/plugin/package_service/admission/project_lock/input.rs",
+      "sha256": "0b7b151afef8c293b270c523e3f81297d722e964393c33c8a03f3c02286c7658",
+      "symbol": "project manifest lock input reader",
+      "relationship": "Uses shared byte ceiling for bounded admission input.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-23",
+      "path": "zircon_runtime/src/asset/project/manifest/save.rs",
+      "sha256": "92f1a92e43661612ca67e1ff70c57625d76a75f6f035d13b8c722ad55322c85a",
+      "symbol": "ProjectManifest save adapter",
+      "relationship": "Applies the same byte ceiling to serialized output.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-24",
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "sha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+      "symbol": "rendered_project_templates_persist_distinct_project_guids_in_the_manifest; current_manifest_summary_rejects_a_missing_project_guid",
+      "relationship": "Checks GUID propagation and current-format GUID requirement.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-25",
+      "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+      "sha256": "79c1c13d78440f2308c53d8ae1b44a036b87b0dae683732ab6df04e590101bb5",
+      "symbol": "render_rewrites_only_manifest_identity_and_preserves_current_schema",
+      "relationship": "Checks rendered summary matches current schema and template requirement.",
+      "worktreeStatus": "clean; read only"
+    },
+    {
+      "id": "CALL-26",
+      "path": "zircon_hub/src/tauri_app/runtime_state/project_actions/tests/cases.rs",
+      "sha256": "7b552cb774bdd377fceaa2d74fb1c575e81157aba57e21d69a0e0e352722a933",
+      "symbol": "write_valid_project_manifest",
+      "relationship": "Uses summary parser to validate Hub test fixture.",
+      "worktreeStatus": "clean; read only"
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/admission.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "075b50c4db71adc540998b5b9997298922b9f31588ec361e4c4e35439d207dd6",
+      "afterSha256": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+      "beforeLines": 57,
+      "afterLines": 67,
+      "insertedCommentOrBlankLines": 10,
+      "reviewedSha256": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-002"
+      ],
+      "callerEvidence": [
+        "CALL-05",
+        "CALL-10"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/error.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "f149fc4680848d83dd1ce998c1c425cacfe94bbc4c8a555c9b22c0f8c903f8e2",
+      "afterSha256": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+      "beforeLines": 60,
+      "afterLines": 88,
+      "insertedCommentOrBlankLines": 28,
+      "reviewedSha256": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-004"
+      ],
+      "callerEvidence": [
+        "CALL-07",
+        "CALL-10",
+        "CALL-11",
+        "CALL-17"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/limits.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "24af40946ebf4d6031eb15b0dcf43e60dd27cc2bbd8e40f0b1d06ba596b61efe",
+      "afterSha256": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+      "beforeLines": 14,
+      "afterLines": 19,
+      "insertedCommentOrBlankLines": 5,
+      "reviewedSha256": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-003"
+      ],
+      "callerEvidence": [
+        "CALL-07",
+        "CALL-10",
+        "CALL-12",
+        "CALL-22",
+        "CALL-23"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "215ccd0c3b6868b8e91df50672750646697ffe853fe3ac0d79d5dc4bc0b3646b",
+      "afterSha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "beforeLines": 101,
+      "afterLines": 134,
+      "insertedCommentOrBlankLines": 33,
+      "reviewedSha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-005"
+      ],
+      "callerEvidence": [
+        "CALL-03",
+        "CALL-04",
+        "CALL-05",
+        "CALL-06",
+        "CALL-07",
+        "CALL-13",
+        "CALL-14",
+        "CALL-15",
+        "CALL-17"
+      ],
+      "existingIssueTags": [
+        "CR-PROJECT-0003"
+      ],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/mod.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "afterSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "beforeLines": 24,
+      "afterLines": 24,
+      "insertedCommentOrBlankLines": 0,
+      "reviewedSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-001"
+      ],
+      "callerEvidence": [
+        "CALL-01",
+        "CALL-02"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "88ddd9f9c55c2811cf74c8f67c879c74805ad3ca1b46c21072acb9d28157a239",
+      "afterSha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+      "beforeLines": 156,
+      "afterLines": 206,
+      "insertedCommentOrBlankLines": 50,
+      "reviewedSha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-006"
+      ],
+      "callerEvidence": [
+        "CALL-02",
+        "CALL-07",
+        "CALL-08",
+        "CALL-11",
+        "CALL-12",
+        "CALL-13",
+        "CALL-14",
+        "CALL-15",
+        "CALL-17"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+      "language": "Rust first-party source",
+      "beforeSha256": "2d5adf83ef2a407396accf393cd693a7731c8380ad8a4afda970d3080cb131d1",
+      "afterSha256": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+      "beforeLines": 45,
+      "afterLines": 86,
+      "insertedCommentOrBlankLines": 41,
+      "reviewedSha256": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-007"
+      ],
+      "callerEvidence": [
+        "CALL-01",
+        "CALL-02",
+        "CALL-13",
+        "CALL-18",
+        "CALL-19",
+        "CALL-20",
+        "CALL-21",
+        "CALL-24",
+        "CALL-25",
+        "CALL-26"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+      "language": "Rust test source",
+      "beforeSha256": "7ecbcd4b4c5ecda9c598ecc3afd3848a7b48c33f89310a5fabb1fc8752a44b16",
+      "afterSha256": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989",
+      "beforeLines": 216,
+      "afterLines": 220,
+      "insertedCommentOrBlankLines": 4,
+      "reviewedSha256": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ06-008"
+      ],
+      "callerEvidence": [
+        "CALL-10",
+        "CALL-11",
+        "CALL-17",
+        "CALL-24"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "formatTicket": "functions.exec cell 111; edition 2021 rustfmt exit 0",
+        "diffWhitespaceTicket": "exec_command:316674; exit 0"
+      }
+    }
+  ],
+  "issues": [
+    {
+      "id": "CR-PROJECT-0003",
+      "classification": "pre-existing TODO",
+      "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+      "symbol": "load_project_manifest_value_from_toml_str",
+      "status": "unresolved; preserved",
+      "evidence": "直接入口先解析 TOML，但自身没有原始字节预算；parse_str 与 Runtime ProjectManifest::from_toml_str 在调用前限长。",
+      "nextAction": "由接口 owner 决定是否将共享字节上限下沉到公开直接入口；本批没有 BUG 结论。"
+    }
+  ],
+  "newIssueTags": [],
+  "independentReview": {
+    "reviewer": "/root",
+    "status": "pending"
+  },
+  "validation": {
+    "status": "scoped parser/format and diff checks passed; independent review and formal receipt pending",
+    "format": {
+      "status": "passed",
+      "nativeTool": "rustfmt",
+      "ticketId": "functions.exec cell 111; session 31704 completed with exit 0",
+      "command": "rustfmt --edition 2021 --config skip_children=true --check <exact 8 authorized source paths>",
+      "sourcePins": {
+        "zircon_runtime_interface/src/project/manifest_summary/admission.rs": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+        "zircon_runtime_interface/src/project/manifest_summary/error.rs": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+        "zircon_runtime_interface/src/project/manifest_summary/limits.rs": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+        "zircon_runtime_interface/src/project/manifest_summary/migration.rs": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+        "zircon_runtime_interface/src/project/manifest_summary/mod.rs": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+        "zircon_runtime_interface/src/project/manifest_summary/parse.rs": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+        "zircon_runtime_interface/src/project/manifest_summary/summary.rs": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+        "zircon_runtime_interface/src/project/tests/manifest_summary.rs": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989"
+      }
+    },
+    "diffWhitespace": {
+      "status": "passed",
+      "nativeTool": "git",
+      "ticketId": "exec_command:316674",
+      "exitCode": 0,
+      "command": "git --no-optional-locks diff --check -- <exact 8 authorized source paths>",
+      "sourcePins": {
+        "zircon_runtime_interface/src/project/manifest_summary/admission.rs": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+        "zircon_runtime_interface/src/project/manifest_summary/error.rs": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+        "zircon_runtime_interface/src/project/manifest_summary/limits.rs": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+        "zircon_runtime_interface/src/project/manifest_summary/migration.rs": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+        "zircon_runtime_interface/src/project/manifest_summary/mod.rs": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+        "zircon_runtime_interface/src/project/manifest_summary/parse.rs": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+        "zircon_runtime_interface/src/project/manifest_summary/summary.rs": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+        "zircon_runtime_interface/src/project/tests/manifest_summary.rs": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989"
+      },
+      "advisory": "Git emitted LF-to-CRLF advisory; working tree bytes remain LF and existing EOL was preserved."
+    },
+    "structuralDiff": {
+      "status": "passed",
+      "nativeTool": "Python -B plus git diff --unified=0",
+      "ticketId": "functions.exec cell 114; session 47618 exit 0",
+      "exitCode": 0,
+      "addedLines": 171,
+      "deletedLines": 0,
+      "nonCommentAddedLines": [],
+      "sourcePins": {
+        "zircon_runtime_interface/src/project/manifest_summary/admission.rs": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+        "zircon_runtime_interface/src/project/manifest_summary/error.rs": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+        "zircon_runtime_interface/src/project/manifest_summary/limits.rs": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+        "zircon_runtime_interface/src/project/manifest_summary/migration.rs": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+        "zircon_runtime_interface/src/project/manifest_summary/mod.rs": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+        "zircon_runtime_interface/src/project/manifest_summary/parse.rs": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+        "zircon_runtime_interface/src/project/manifest_summary/summary.rs": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+        "zircon_runtime_interface/src/project/tests/manifest_summary.rs": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989"
+      }
+    },
+    "compilerFacingChange": "Rust /// and //! lower to #[doc = ...] attributes, so compiler-facing documentation tokens changed; this is not an ordinary comments_only lane. No executable statements, public signatures, data layout, non-doc attributes, strings, assertions, cfg branches, or behavior changed.",
+    "rustdocAndMacro": "pending; no Cargo doc/build/test or macro expansion run. rustfmt parsed exact edition-2021 sources. New public links were checked against the crate/project/serialization reexports and definitions in CALL-01/02/03/05.",
+    "formalCoordinator": "pending; no coordinator receipt, builds, tests, or generated outputs run for this small documentation delta."
+  },
+  "commit": {
+    "status": "pending",
+    "sha": null
+  },
+  "notes": [
+    "mod.rs 的既有中文模块职责和 Runtime 完整校验边界已足够，不重复改写。",
+    "project-compatibility-005 的 frozen CALL-03 parse.rs pin 为 88ddd9f9c55c2811cf74c8f67c879c74805ad3ca1b46c21072acb9d28157a239；当前 parse.rs 为 0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917，变化仅为 doc 属性。旧 evidence 保持冻结，请主审复核后协调当前 dependency record。",
+    "只读 caller serialization/migration/execute.rs 含旧 TODO CR-SERIALIZATION-0001：通用 MigrationChain::migrate_value 对 from_version > target_version 的直接调用边界尚待确定；本项目入口先拒绝 source_version > v3，因此未外推为项目 loader BUG，也未编辑该 caller。",
+    "本批仅写 7 个授权源路径与唯一 evidence；未运行 Git 写命令、build/test/generation，也未创建临时 helper 或源码副本。"
+  ],
+  "objectGroupCount": 8,
+  "objectGroupNote": "按逻辑审查组计数；每组 members 列举其实际函数、类型、字段、变体或测试符号，组数不代表文件数。",
+  "observedHeadNote": "本批分配与复核期间 HEAD 保持 assignmentHead；初始 raw pins 锚定该提交。"
+}

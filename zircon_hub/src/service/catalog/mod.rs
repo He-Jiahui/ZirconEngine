@@ -1,11 +1,11 @@
 use super::{
     config::read_bounded,
     error::ServiceError,
-    identity::{now_seconds, Principal},
+    identity::{Principal, now_seconds},
     storage::receipt,
 };
-use jsonwebtoken::{decode, decode_header, jwk::JwkSet, Algorithm, DecodingKey, Validation};
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::Path};
 

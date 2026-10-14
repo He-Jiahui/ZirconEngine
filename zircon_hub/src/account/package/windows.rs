@@ -1,4 +1,4 @@
-use super::{digest, AccountError};
+use super::{AccountError, digest};
 use sha2::{Digest, Sha256};
 use std::{
     fs::File,

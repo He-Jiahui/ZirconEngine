@@ -1,0 +1,459 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "positional-codec-006",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewer": "/root",
+  "observedAtUtc": "2026-10-14T04:44:57.586883+00:00",
+  "observedHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "state": "independent-review-passed; actual coordinator acceptance pending",
+  "agentEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-positional-codec-006.json",
+    "sha256": "90b1f28fce8f52d4e02cd46f669df616a3a56510e8c2f47b9443dfd7d28a5e5a",
+    "bytes": 27948
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/positional.rs",
+      "initialSha256": "870a25e1eb20480ac16a96548f2d9ff9a980987fed3aeb2c748545672cda391f",
+      "finalSha256": "7d5a42f1fa3ac1fa44ca0537014473ede9f314a03624522da5df8c02391e4105",
+      "objectEvidence": [
+        {
+          "object": "module serialization::positional",
+          "entered": "该模块被 serialization/mod.rs 公共 re-export，直接用于既有资产、二进制 envelope 与缓存键。",
+          "status": "补充中文模块说明：codec 只处理调用方选定布局，不承载统一 schema/version/framing；封套身份及尾随策略归具体调用方。",
+          "impact": "限定本模块的兼容职责，并链接 VersionedSchema/PayloadHeader；不改变编解码路径。"
+        },
+        {
+          "object": "MAX_DECODE_ALLOCATION_BYTES",
+          "entered": "共享 decoder 的历史上限为 2 GiB；各 wire 格式另行给出更小字节预算。",
+          "status": "保留原有 256 MiB 截断约束说明，补充区分每次 wire 上限、decoder claim 预算与共享硬上限。",
+          "impact": "文档明确 max 不是逐字节等值的分配承诺；变长整数会有单独 claim 倍率。常量与限额不变。"
+        },
+        {
+          "object": "PositionalEncoding::{FixedLittleEndian, VariableLittleEndian}",
+          "entered": "两个分支分别使用 legacy 固定宽度小端与 legacy 变长整数小端配置；持久化调用方依赖稳定字节。",
+          "status": "新增枚举和 variant 中文文档，说明其仅选择整数布局、不携带 schema/version；封套及版本校验责任与时机由具体格式决定，读写端保持同一变体。",
+          "impact": "固定直接调用方的兼容边界；derive 属性与 match 分支未改。"
+        },
+        {
+          "object": "PositionalEncodeError::{SizeLimit { max }, Codec(EncodeError)}",
+          "entered": "encode_into 将本地限额拒写映射为 SizeLimit；serde/bincode 或底层 writer 错误包装为 Codec。",
+          "status": "保留基线单行变体代码；新增变体 rustdoc 说明 max 单位及 Codec 携带的原始编码/I/O 错误，不拆分字段或改变内联 #[source]。",
+          "impact": "调用方可区分 wire cap 与编码/I/O 失败；error format/source 属性未改。"
+        },
+        {
+          "object": "PositionalDecodeError::{SizeLimit { max }, TrailingBytes { remaining }, Codec(DecodeError)}",
+          "entered": "SizeLimit 用于输入切片长于 max；完整切片解码检测剩余字节；格式、EOF 和 decoder claim 限制通过 Codec 返回。",
+          "status": "保留基线单行变体代码；新增变体 rustdoc 说明 max、remaining 及 Codec 携带的原始错误，不拆分字段或改变内联 #[source]。",
+          "impact": "没有改变错误选择或字段。"
+        },
+        {
+          "object": "impl PositionalEncoding::{encode, encode_bounded, encode_into}",
+          "entered": "生产调用者包括 binary::encode、artifact store 与 render manifest；encoding match 固定 bincode_next::config::legacy()，writer wrapper 按总输出字节限制。",
+          "status": "为三个公开入口补参数、返回值、错误和 writer 生命周期说明；明确 encode 的调用方 cap 与 encode_bounded/encode_into 的界限。",
+          "impact": "encode_into 超限或写入失败不回滚已写前缀；外层已有 cap writer/原子写策略仍由调用者负责。实现不变。"
+        },
+        {
+          "object": "impl PositionalEncoding::{decode, decode_bounded, decode_prefix_bounded, decode_from}",
+          "entered": "生产调用者有 binary::decode、artifact store、render manifest、animation 与 navigation；实现分别选择完整切片、前缀或受限 reader。",
+          "status": "补充 wire max 与 decoder claim 区别；说明完整切片拒绝尾随、prefix 返回 used 而留余部、stream 只解一个值且不检查 EOF。",
+          "impact": "artifact store 通过解压后显式 drain 检查尾随；其他调用方须按自身 envelope 策略处理。没有改消费顺序或错误行为。"
+        },
+        {
+          "object": "encoding/decoding config match blocks",
+          "entered": "每个入口按 FixedLittleEndian/VariableLittleEndian 选择同一 legacy 配置；binary wire v1 采用 variable，其他持久调用点主要采用 fixed。",
+          "status": "逐分支对照读写调用与历史字节测试；配置逻辑已有模块/variant 文档，不另重复逐行解释。",
+          "impact": "match arms 与 bincode 配置完全未改。"
+        },
+        {
+          "object": "LimitedWriter<'a, W> fields and Write::{write, flush}",
+          "entered": "encode_into 在 bincode writer 外包装此限额计数器；超限标记用于优先返回 SizeLimit。",
+          "status": "新增结构及字段注释，说明 remaining 仅在底层成功写入后减少、超限拒绝先于转发、flush 仍交给底层 writer。",
+          "impact": "此前写出的前缀不回滚；只补充既有状态与错误映射不变量。"
+        },
+        {
+          "object": "#[cfg(test)] #[path = \"tests/positional.rs\"] mod tests",
+          "entered": "测试模块仅在 cfg(test) 下从指定路径编入本 crate。",
+          "status": "核对 path/cfg 与测试来源；映射保持原样。",
+          "impact": "无测试注册或宏语义改动。"
+        }
+      ],
+      "issueTags": [],
+      "eol": {
+        "lf": 318,
+        "crlf": 0
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/positional/bounded_decode.rs",
+      "initialSha256": "c3f0b74c8345857820fbcbeee9f7b1536108648b692e49645745621c16fda661",
+      "finalSha256": "0c99f5bc2feec2cafed62d6096a8af1a4bc828f14a041d940d97fb17135e71c8",
+      "objectEvidence": [
+        {
+          "object": "module serialization::positional::bounded_decode",
+          "entered": "仅由 positional.rs 调用，围绕 bincode Decoder/Reader trait 在分配或读取前施加额外限制。",
+          "status": "保留原英文职责说明并增加中文 wire-consumption 与 decoder-claim 双计数动机。",
+          "impact": "突出长度前缀容器的提前分配路径和变长整数的短 wire/宽 claim 区别。"
+        },
+        {
+          "object": "slice<T, C>",
+          "entered": "PositionalEncoding::decode_prefix_bounded 经此切片解码前缀并读取累计 consumed 偏移。",
+          "status": "新增文档：上层先限完整切片长度；此处限制 bincode 累计申领；后续字节留给上层。",
+          "impact": "与 PayloadHeader 后接 payload 的调用契约一致，不做完整切片尾随判定。"
+        },
+        {
+          "object": "stream<T, C>",
+          "entered": "PositionalEncoding::decode_from 将 reader.take(max) 交给此入口；Compat 只解一个拥有型 serde 值。",
+          "status": "新增文档，说明只消费单值所需输入，不确认 EOF。",
+          "impact": "流尾完整性明确归调用者；ArtifactStore::decode_from 后确有独立尾随读取检查。"
+        },
+        {
+          "object": "BoundedDecoder<D> fields and new",
+          "entered": "新建 DecoderImpl 后，claim 计数和 wire 读取计数共同保护长度前缀容器及标量。",
+          "status": "新增 struct/field/new 文档。变量整数令 claim 上限 saturating_mul(16) 后截于 2 GiB；wire_max 仍按 max 截于 2 GiB。",
+          "impact": "没有把调用 max 误述为严格分配上限；配置和计数值未改。"
+        },
+        {
+          "object": "Sealed and BincodeErrorPathCovered<0> implementations",
+          "entered": "BoundedDecoder 包装 Decoder 时需要满足 bincode sealed extension 与 error-path coverage 静态约束。",
+          "status": "在两个 marker impl 前补充转发约束说明；ASSERT 仍从底层 decoder 取值。",
+          "impact": "关联类型/常量/trait 实现均未更改。"
+        },
+        {
+          "object": "Decoder implementation forwarding blocks",
+          "entered": "config/reader/context 直接委托给 inner；claim/unclaim/container 方法在委托前后维护预算。",
+          "status": "新增 impl 级文档及 claim 顺序说明：checked_add/限额通过后才提交本地计数；unclaim_bytes_read 只回退本层并向内层转发预算记账，不表示容器存储已释放。",
+          "impact": "底层硬限额仍生效；错误路径不会提交包装层累计值。"
+        },
+        {
+          "object": "claim_container_read<T>",
+          "entered": "bincode 在读完字符串/字节缓冲区内容前会先 claim_container_read；非字节容器走累计 claim 限额。",
+          "status": "保留原注释，补充中文说明长度前缀分配时序与 1-byte 容器 wire 检查。",
+          "impact": "oversized byte buffer 在 payload read 前返回 LimitExceeded；这是实现现状而非新行为。"
+        },
+        {
+          "object": "BorrowDecoder implementation",
+          "entered": "slice path 通过 BorrowCompat 访问 BorrowReader，但 T 仍受 DeserializeOwned 限定。",
+          "status": "补充转发义务和拥有型结果边界。",
+          "impact": "borrow reader 仍由 inner 提供。"
+        },
+        {
+          "object": "CountedSlice<'de>, ReadProgress, Reader, BorrowReader",
+          "entered": "切片前缀偏移需累计成功 read、显式 consume、borrow take_bytes；peek_read 仅窥看。",
+          "status": "新增 trait/struct/字段与 impl block 文档，说明各路径何时推进偏移。",
+          "impact": "成功解码返回准确 consumed；借用路径不会造成 wire 预算或返回偏移漏计。"
+        },
+        {
+          "object": "CountedStream<R> fields and Reader implementation",
+          "entered": "stream decoder 使用 IoReader；成功的 Reader 请求推进 consumed，解码结束后 caller 负责流尾策略。",
+          "status": "新增 struct/field/impl 说明成功读取计数与错误路径语义。",
+          "impact": "计数器供 byte-container 剩余预算使用；不引入 EOF 检查。"
+        },
+        {
+          "object": "imports, associated types, trait methods and static assertions",
+          "entered": "Config/IntEncoding、Reader/BorrowReader、Decoder/BorrowDecoder 和 DecodeError 共同定义 wrapper 合同。",
+          "status": "逐项核对所有 getter forwarding、associated type 与静态 ASSERT；简单直返不额外加重复注释。",
+          "impact": "未改 trait/macros/关联类型。"
+        }
+      ],
+      "issueTags": [],
+      "eol": {
+        "lf": 232,
+        "crlf": 0
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/positional.rs",
+      "initialSha256": "8bd7a97fbfe6736587d45c22087c2d4b34ddf0fa01646a07225f729fcc21534f",
+      "finalSha256": "aeea17c7c2b43500703b5fe88b33ff4d73d43b2d47c53de2e16c0a7d51719b2a",
+      "objectEvidence": [
+        {
+          "object": "positional_formats_preserve_historical_v1_integer_and_string_bytes",
+          "entered": "同一 bool/u32/i32/String 值对 fixed 与 variable 编码比较 golden bytes，并覆盖向量与流接口。",
+          "status": "新增中文注释说明这些 fixture 锁定历史 wire layout。",
+          "impact": "断言与 fixture 未改。"
+        },
+        {
+          "object": "positional_caps_and_trailing_bytes_are_enforced",
+          "entered": "分别验证 encode/decode cap、完整解码拒绝 tail、prefix 返回 (value, used)。",
+          "status": "新增中文注释连接完整切片与 envelope prefix 两种契约。",
+          "impact": "断言未改。"
+        },
+        {
+          "object": "positional_variable_integer_budget_uses_wire_size_for_small_wide_values",
+          "entered": "u128/i128 加 Vec<u64> 变长值以六字节编码并由 slice/stream 两路径恢复。",
+          "status": "新增中文注释说明 wire 长度与 decoder 原生宽度 claim 不同。",
+          "impact": "断言未改。"
+        },
+        {
+          "object": "positional_untrusted_string_lengths_do_not_allocate_unbounded_memory",
+          "entered": "固定八字节长度字段写入 u64::MAX，无 payload，slice 和 stream 均须失败。",
+          "status": "新增中文注释说明拒绝必须发生在巨大字符串分配之前。",
+          "impact": "输入和断言未改。"
+        },
+        {
+          "object": "positional_decoder_keeps_the_existing_large_artifact_size_range",
+          "entered": "300 MiB 声明配空输入，期望 UnexpectedEnd 而非更小的共享上限拒绝，且不分配该 payload。",
+          "status": "新增中文注释关联历史 cooked-artifact 范围与 EOF 预期。",
+          "impact": "fixture 与匹配断言未改。"
+        },
+        {
+          "object": "positional_stream_budget_rejects_container_claims_before_reading_payload and local HeaderOnly Read helper",
+          "entered": "HeaderOnly 在八字节 length 头后拒绝任何下一次读取；两种固定输入入口需在读取 payload 前报 LimitExceeded。",
+          "status": "新增中文注释说明 reader sentinel 是读取顺序契约。",
+          "impact": "Read impl、panic 条件与断言未改。"
+        },
+        {
+          "object": "positional_variable_stream_rejects_oversized_byte_buffers_before_reading",
+          "entered": "变长编码的字符串长度声明为 4096，max 为 64，reader 在内容读取前拒绝。",
+          "status": "新增中文注释说明变长长度前缀不能绕过剩余 wire 预算。",
+          "impact": "fixture 与断言未改。"
+        }
+      ],
+      "issueTags": [],
+      "eol": {
+        "lf": 145,
+        "crlf": 0
+      }
+    }
+  ],
+  "callerEvidence": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "symbols": "pub use positional::{PositionalDecodeError, PositionalEncodeError, PositionalEncoding};",
+      "contract": "公开导出 positional API。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/wire.rs",
+      "sha256": "ede1385469408fe9f8b9f8cb7720a37b8259d62b828e9a6308a33d431079b8cb",
+      "symbols": "options",
+      "contract": "Binary wire v1 固定 VariableLittleEndian；body 64 MiB、node 2,000,000、string 16 MiB 上限属于调用格式。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/encode.rs",
+      "sha256": "018afa6757cb55fa26f0c815b5feec1806afc0169d7e10e7fdebdc99bab4299c",
+      "symbols": "encode_binary_value",
+      "contract": "用 PositionalEncoding::encode_bounded(MAX_BINARY_BODY_BYTES) 写含 PayloadHeader 和 BinaryValue 的 envelope。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/decode.rs",
+      "sha256": "d4557f4482260256e11c048a8ab1ec9765c30ed330c445a904e99bfaeb3f2ea1",
+      "symbols": "decode_binary_header, decode_binary_payload",
+      "contract": "prefix decode 只读取 header 并返回 payload slice；外层 loader 随后检查目标 schema/version 并决定 payload 解码/迁移。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/payload_header.rs",
+      "sha256": "24de8fdb868a92f7176e78d154636d52361d2e6621626f31f5bc5e7a004882da",
+      "symbols": "PayloadHeader { schema_id, version }",
+      "contract": "通用二进制 header 承载 SchemaId 和版本，但 positional codec 本身不验证它们。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/schema_id.rs",
+      "sha256": "24db4fd7d2a41b25bafbbe18d6f2a7c4c7030e50689a930e6e77829ef59a4dff",
+      "symbols": "SchemaId::deserialize, validate_schema_id, MAX_SCHEMA_ID_BYTES",
+      "contract": "SchemaId deserialization 校验 ASCII dotted namespace 与 128-byte 上限；不是 positional 的通用限制。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/schema_id_contract.rs",
+      "sha256": "6e02f95f42352ce0b17af82a7b49b1d5b594aca35fda557dda406dc47b25bc58",
+      "symbols": "schema_id_accepts_the_portable_namespace_grammar_at_the_length_limit, schema_id_rejects_wire_names_above_the_length_limit",
+      "contract": "边界测试覆盖恰好 128 字节有效名及 129 字节拒绝。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "symbols": "load_binary_versioned, validate_schema",
+      "contract": "版本化 loader 在 typed decode 或迁移前检查 header schema/version；legacy/非 envelope positional callers 不自动得到此保护。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/artifact/store.rs",
+      "sha256": "db7ee65f852b13086927ad0331594755e38022004ccc450b39992fa81456e44f",
+      "symbols": "ArtifactCacheStore load/store, serialize_manifest, deserialize_manifest",
+      "contract": "decode_from 用 expected_raw_bytes 并在解压后另查 tail；encode_into 的 u64::MAX 外另有 RawPayloadLimitWriter；artifact manifest 用 magic 与 bounded decode。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/artifact/render_manifest/store.rs",
+      "sha256": "905b63ef0616af69fd8082f6c3601e6bae1f805c0903afe5dd648d676df71870",
+      "symbols": "load_manifest, serialize_manifest",
+      "contract": "文件先受 max_manifest_bytes 限制，codec 解码/编码也传该上限，解码后再验证 manifest 身份。"
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/asset/binary.rs",
+      "sha256": "bfc5e1c5ab6d6383b4fea3d8450eb1acf5625c77b30ee3108fd7b139909fdb6d",
+      "symbols": "encode_document, decode_document, decode_stream",
+      "contract": "fixed codec，格式自带 magic/version/kind 并用 ANIMATION_BINARY_MAX_DECODE_BYTES；stream 路径先验证 header 再解 payload。"
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/navigation/asset/mod.rs",
+      "sha256": "568c53ba79f52da13dc7708500a26a3cbad68cbdf2773bc915a232a97bf8b34f",
+      "symbols": "NavigationMeshAsset::to_bytes, from_bytes",
+      "contract": "fixed codec 自带版本头和 v1 migration，不使用通用 SchemaId；调用方输入预算是现成切片长度。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/asset/compiler/cache/persistent.rs",
+      "sha256": "026027c0ba40af05d5da979361e1e2b1fa0fbc0d630eae40f62928d4b6f45987",
+      "symbols": "disk record encode/decode, disk_payload_matches_asset_id",
+      "contract": "本地持久缓存记录使用固定 codec、record_version 与 key；默认 encode/decode 不传逐格式 max。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/v2/file_cache.rs",
+      "sha256": "0eb71a9939a8f85b286864e25670bbe6b2eb322e591b8ea5def6e8b69c43c2a3",
+      "symbols": "persistent_key_for_source_key",
+      "contract": "固定 codec 编码 source key 后取 fingerprint；不解码也不使用 SchemaId。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/asset_ref.rs",
+      "sha256": "2285a7d8167816cf67a29c19cc0c812e6d9aa4a93f684bebacf4edb5b3de562e",
+      "symbols": "AssetRef encode/decode test",
+      "contract": "覆盖 fixed positional 项目引用的 roundtrip。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/binding/model/types/tests/map_serialize_perf.rs",
+      "sha256": "cdffce3325c2b128a5cb7045f44e45d7292ebe109ce282e4750e3af4df07a98f",
+      "symbols": "PositionalEncoding fixed serialization comparison",
+      "contract": "binding map 的性能/编码对照调用。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/binding_value_contracts.rs",
+      "sha256": "9d52a72627060981e233f30c99e4568c6fff59ea45830d8eab2b2f583ca5f1b7",
+      "symbols": "binding value fixed encode/decode contracts",
+      "contract": "跨 crate binding 值的 fixed positional roundtrip 契约。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/v2/file_cache/tests/persistent_compatibility_tests.rs",
+      "sha256": "36bd51522e31c5cc774583ac7e745ec344fb31240e0c684d7aa54ba6967b59a0",
+      "symbols": "persistent key compatibility fixture",
+      "contract": "验证 file-cache positional key 持久字节兼容。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/artifact/tests/store.rs",
+      "sha256": "a1569567b8703551ea21dbee99f44beb25923fbde23383ec216ef0917050998a",
+      "symbols": "artifact store legacy payload contract",
+      "contract": "覆盖旧 artifact cache positional payload 的读取。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/tests/assets/navigation.rs",
+      "sha256": "60ade176e3e8f8eebee75846dbd4f2d66093f49f92c85a9b79fa6d7830299c8a",
+      "symbols": "navigation asset positional fixtures",
+      "contract": "构造 fixed positional navigation asset 数据。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/tests/assets/gltf_importer/woc_required_extensions.rs",
+      "sha256": "07564d343d45251a5e7815fa37573f14ea53695c6985b6fd6e2f37f15abc25bb",
+      "symbols": "importer fixture positional calls",
+      "contract": "导入器测试构造 positional fixture。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/tests/assets/artifact_store.rs",
+      "sha256": "5d7e5b2d3919ba9d70ddb7d82445924d1401d39426657e09e35af05f777164c4",
+      "symbols": "artifact store positional limits and source contracts",
+      "contract": "覆盖 bounded manifest payload 和 encode/decode call contracts。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/tests/assets/artifact_store/binary_payloads.rs",
+      "sha256": "525bc179a0cd3b8986efffc61077cef953f87a30cb29bec4e94e7c79116f133b",
+      "symbols": "artifact binary payload roundtrip fixtures",
+      "contract": "覆盖 artifact payload 的 fixed positional 编解码。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/tests/assets/animation.rs",
+      "sha256": "70bf7fe353f60fcf76143be109a2408657baf879f7530a39d135652ea21a72cf",
+      "symbols": "animation binary fixture calls",
+      "contract": "构造/解码动画二进制 positional fixtures。"
+    }
+  ],
+  "rootSourceReadEvidence": [
+    "previous root cell78 complete3 sources; cell80/81 full24 caller contracts",
+    "previous root83 actual ArtifactStore, wire/encode/decode, animation and navigation contexts",
+    "root 9f60e6 corrected codec/budget doc sentences",
+    "1075df full changed errors before restoration",
+    "3fca45 actual restored five inline variant lines and docs"
+  ],
+  "independentFindings": [
+    {
+      "topic": "positional compatibility",
+      "finding": "Two legacy bincode integer configurations are stable wire choices; framing/schema/version responsibility and validation order belong to each caller. Animation decodes its aggregate before header checks; shared codec docs no longer promise universal prevalidation."
+    },
+    {
+      "topic": "bounded decode",
+      "finding": "Wire byte cap, 2 GiB historical hard ceiling and variable integer claim budget are distinct. Claim rollback updates accounting; it does not claim allocator/storage release or bound arbitrary custom Deserialize allocations."
+    },
+    {
+      "topic": "input and output boundaries",
+      "finding": "Complete-slice decode rejects trailing bytes; prefix decode returns consumed length; stream decode reads one value without EOF guarantee. Writer failure leaves an accepted prefix and offers no rollback."
+    },
+    {
+      "topic": "review correction",
+      "finding": "Agent expanded five baseline error variants and introduced five trailing comma tokens. Root restored original inline lines and moved added field docs into variant docs. Baseline error strings, source attributes, code and existing comments now remain unchanged. This is documentation patch correction, not a behavior repair."
+    }
+  ],
+  "checks": {
+    "freshPhysicalAndLexical": {
+      "rootNativeTerminalChunk": "8792b7",
+      "exitCode": 0,
+      "sourceFiles": 3,
+      "initialRawPinsMatched": 3,
+      "insertedStandaloneCommentsOrBlankLines": 182,
+      "perFileInsertedLines": [
+        138,
+        36,
+        8
+      ],
+      "deletedLines": 0,
+      "maskedNonDocumentTokensEqual": true,
+      "compilerFacingDocumentationChangedFiles": 2,
+      "originalEolPreserved": true,
+      "callerPinsMatched": 24,
+      "method": "Raw git 5a54 bytes match registered beforeSHA; full-line insertion comparison preserves baseline code and comments; doc spans masked before non-doc token comparison."
+    },
+    "changeGuard": {
+      "rootNativeTerminalChunk": "c211b2",
+      "exitCode": 0,
+      "patchDigest": "a0e436b58ced594db2622375038d9a9cb9dcbd647e3c04c3ae60b81680defbf0",
+      "base": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "exactFiles": 3,
+      "writeGrantCheck": true,
+      "errors": 0,
+      "warnings": 0
+    },
+    "formatAndDiff": {
+      "currentPositionalRustfmt": {
+        "chunk": "934c89",
+        "exitCode": 0,
+        "childExitCode": 0,
+        "binarySha256": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+        "edition": "2021",
+        "skipChildren": true,
+        "sourceSha256": "7d5a42f1fa3ac1fa44ca0537014473ede9f314a03624522da5df8c02391e4105"
+      },
+      "currentPositionalDiffCheck": {
+        "chunk": "e978d9",
+        "exitCode": 0
+      },
+      "unchangedOtherTwo": "Reuse final-SHA-bound exact3 rustfmt c52e90 and diff dbde75 exit0 before positional-only restoration; bounded/test hashes unchanged."
+    },
+    "retainedFailedObservations": [
+      "initial formatting receipt lacked native identity; not used as current proof",
+      "agent two apply_patch Failed to write file; unchanged source pins; cause unknown, not classified as sandbox denial",
+      "root original structural result non-doc unequal superseded only by actual corrected8792b7"
+    ]
+  },
+  "issueIds": [],
+  "formalRequirements": {
+    "actualClassification": "documentation_comment / module_unit; no forced comments_only",
+    "actualCoordinatorAcceptance": false,
+    "cargoOrRustdocInventedGate": false,
+    "sourcePreparationCommitAndNotification": "pending actual supported receipts"
+  },
+  "artifactLifecycle": {
+    "rootHelperScripts": 0,
+    "sourceCopies": 0,
+    "buildProductsCreated": 0,
+    "bytesReleased": 0,
+    "originalManifestAndNativeLifecycle": "pending; not closed"
+  },
+  "formalAcceptance": false,
+  "wholeRepositoryComplete": false
+}

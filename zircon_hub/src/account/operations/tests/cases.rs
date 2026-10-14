@@ -48,10 +48,12 @@ fn payload() -> OperationPayload {
 fn restart_keeps_unknown_and_rejects_ack_new_id_and_changed_payload() {
     let fixture = Fixture::new();
     let identity = identity();
-    assert!(fixture
-        .journal()
-        .admit(&identity, OP, "7", payload())
-        .unwrap());
+    assert!(
+        fixture
+            .journal()
+            .admit(&identity, OP, "7", payload())
+            .unwrap()
+    );
     let restarted = fixture.journal();
     assert_eq!(
         restarted.list(&identity).unwrap()[0].status,
@@ -235,10 +237,12 @@ fn persisted_payload_rejects_unknown_fields_and_dto_never_exposes_payload() {
         assert!(!dto.contains(secret));
     }
     #[cfg(windows)]
-    assert!(!std::fs::read(&fixture.journal().path)
-        .unwrap()
-        .windows(12)
-        .any(|bytes| bytes == b"Project Team"));
+    assert!(
+        !std::fs::read(&fixture.journal().path)
+            .unwrap()
+            .windows(12)
+            .any(|bytes| bytes == b"Project Team")
+    );
 }
 
 #[test]
@@ -320,9 +324,11 @@ fn revisions_are_durable_ordered_and_overflow_never_replaces_the_journal() {
         })
         .unwrap();
     let before = std::fs::read(&journal.path).unwrap();
-    assert!(journal
-        .finish(&identity, OP, OperationStatus::Committed)
-        .is_err());
+    assert!(
+        journal
+            .finish(&identity, OP, OperationStatus::Committed)
+            .is_err()
+    );
     assert_eq!(std::fs::read(&journal.path).unwrap(), before);
 }
 
@@ -528,9 +534,11 @@ fn denied_atomic_replacement_retains_the_previous_unknown_record() {
             .share_mode(3)
             .open(&journal.path)
             .unwrap();
-        assert!(journal
-            .finish(&identity, OP, OperationStatus::Committed)
-            .is_err());
+        assert!(
+            journal
+                .finish(&identity, OP, OperationStatus::Committed)
+                .is_err()
+        );
         assert_eq!(std::fs::read(&journal.path).unwrap(), original);
         drop(held);
     }
@@ -545,9 +553,10 @@ fn denied_atomic_replacement_retains_the_previous_unknown_record() {
 fn cloud_payload() -> OperationPayload {
     use crate::account::cloud::manifest::{FileEntry, Manifest};
     use zircon_runtime_interface::project::{
-        ProjectGuid, ProjectManifestDigest, ProjectPackageLock, ProjectPackageLockAuthority,
-        ProjectPackageLockPlatform, ProjectPackageLockProject, ProjectPackageLockRuntimeMode,
-        ProjectPackageLockState, ProjectPackageLockTarget, PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1,
+        PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1, ProjectGuid, ProjectManifestDigest,
+        ProjectPackageLock, ProjectPackageLockAuthority, ProjectPackageLockPlatform,
+        ProjectPackageLockProject, ProjectPackageLockRuntimeMode, ProjectPackageLockState,
+        ProjectPackageLockTarget,
     };
     let lock = ProjectPackageLock {
         schema_version: PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1,
@@ -652,9 +661,11 @@ fn cloud_commit_upgrades_the_journal_and_retries_only_the_identical_payload() {
     let restarted = fixture.journal();
     assert_eq!(restarted.access(false, |file| Ok(file.version)).unwrap(), 4);
     assert!(restarted.get(&identity, NEXT).unwrap().payload == cloud);
-    assert!(!restarted
-        .admit_retry(&identity, NEXT, "9", cloud.clone())
-        .unwrap());
+    assert!(
+        !restarted
+            .admit_retry(&identity, NEXT, "9", cloud.clone())
+            .unwrap()
+    );
     let mut changed = cloud.clone();
     if let OperationPayload::CloudCommit { base_revision, .. } = &mut changed {
         *base_revision = "1".into();
@@ -831,11 +842,13 @@ fn cloud_commit_over_service_file_limit_and_large_legacy_mutation_fail_closed() 
     }
     assert!(cloud.request(OP).is_err());
     assert!(journal.admit(&identity(), OP, "7", cloud).is_err());
-    assert!(OperationPayload::CreateOrganization {
-        name: "x".repeat(MAX_REQUEST_BYTES)
-    }
-    .request(OP)
-    .is_err());
+    assert!(
+        OperationPayload::CreateOrganization {
+            name: "x".repeat(MAX_REQUEST_BYTES)
+        }
+        .request(OP)
+        .is_err()
+    );
     assert!(!journal.path.exists());
 }
 
@@ -893,9 +906,11 @@ fn acknowledged_cloud_id_reuse_is_terminal_without_poisoning_new_operations() {
         restarted.snapshot(&identity).unwrap().0[0].error.as_deref(),
         Some("account_operation_id_conflict")
     );
-    assert!(restarted
-        .admit(&identity, NEXT, "9", cloud_payload())
-        .unwrap());
+    assert!(
+        restarted
+            .admit(&identity, NEXT, "9", cloud_payload())
+            .unwrap()
+    );
     assert_eq!(
         restarted.get(&identity, NEXT).unwrap().status,
         OperationStatus::Unknown

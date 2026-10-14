@@ -322,6 +322,14 @@ class RecipePlanner:
              cargo_path: str | Path | None = None) -> RecipePlan:
         sealed = self._sealed(sealed_input_ref)
         from ..editor_product import TEMPLATES as PRODUCT_TEMPLATES, PACKAGES, product_recipe
+        from .orchestrator import TEMPLATES
+        from ..validation.receipts import HEAVY_STAGES
+        if not isinstance(template, str) or template not in TEMPLATES:
+            raise JenkinsError("cargo_template_invalid", "Planning requires a registered workflow DAG")
+        template_stages = TEMPLATES[template]
+        cargo_required = any(stage in HEAVY_STAGES for stage in template_stages)
+        test_stages = [stage for stage in template_stages
+                       if stage in {"unit_test", "integration_test", "regression_test"}]
         product = template in PRODUCT_TEMPLATES
         if product:
             from ..current_source import validate_coverage
@@ -378,7 +386,7 @@ class RecipePlanner:
                                       (package_root and (normalized == package_root or normalized.startswith(package_root + "/"))) or
                                       False):
                         package_ids.add(str(package["id"])); break
-        if selected_paths and not package_ids and template not in {"comments_only", "cache_maintenance"}:
+        if selected_paths and not package_ids and cargo_required:
             raise JenkinsError("unknown_impact", "unknown impact: changed paths do not map to Cargo packages")
         selection_metadata = ({**metadata, "packages": [item for item in metadata.get("packages", ()) if item.get("id") in package_ids]}
                               if product else metadata)
@@ -394,7 +402,7 @@ class RecipePlanner:
             if isinstance(count, int) and count > 0 and isinstance(discovery.get("receiptRef"), str):
                 selected_tests = count
         package_names = adapter["packages"]
-        if template not in {"comments_only", "cache_maintenance"}:
+        if cargo_required:
             if not package_names:
                 raise JenkinsError("cargo_packages_missing", "Cargo validation requires affected package selection")
         env, environment_policy, environment_file = _environment_policy(self.state, self.repo_root)
@@ -423,7 +431,7 @@ class RecipePlanner:
         coverage_semantics = {str(k): _plain(v) for k, v in coverage.items()
                               if str(k).casefold() not in {"sourcedigest", "sourcemanifestref", "manifestdigest", "coveragedigest"}}
         recipe: dict[str, Any] = {
-            "kind": "cargo" if template not in {"comments_only", "cache_maintenance"} else "light",
+            "kind": "cargo" if cargo_required else "light",
             "template": template, "readOnly": True, "sourceDigest": sealed_input_ref,
             "coverageDigest": str(sealed.get("coverageDigest") or digest(coverage)),
             "sourceManifestRef": sealed_input_ref, "packages": adapter["packages"],
@@ -454,11 +462,6 @@ class RecipePlanner:
             "commands": {}, "requiredPhases": list(_CARGO_PHASES),
         }
         if recipe["kind"] == "cargo":
-            test_stages = {"module_unit": ["unit_test"],
-                           "cross_module": ["unit_test", "integration_test"],
-                           "failure_repair": ["unit_test", "regression_test"],
-                           "editor_product_development": ["unit_test"],
-                           "editor_product_shipping": ["unit_test"]}.get(template)
             if not test_stages:
                 raise JenkinsError("cargo_template_invalid", "Cargo requires a registered validation template")
             recipe["requiredTestStages"] = test_stages

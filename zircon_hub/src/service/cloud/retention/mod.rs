@@ -5,18 +5,18 @@ mod maintenance;
 #[path = "policy.rs"]
 mod policy;
 
-pub use maintenance::{maintain, MaintenanceReport, MaintenanceRequest};
-pub(super) use policy::{authorize_admin, authorize_receipt, load};
+pub use maintenance::{MaintenanceReport, MaintenanceRequest, maintain};
 pub use policy::{
-    get, update, RetentionOutcome, RetentionPolicy, RetentionRequest, RetentionState,
+    RetentionOutcome, RetentionPolicy, RetentionRequest, RetentionState, get, update,
 };
+pub(super) use policy::{authorize_admin, authorize_receipt, load};
 
-use super::{authorization::authorize, BlobStore};
+use super::{BlobStore, authorization::authorize};
 use crate::service::{
     error::ServiceError,
-    identity::{now_seconds, Principal},
+    identity::{Principal, now_seconds},
 };
-use rusqlite::{params, Connection, Transaction, TransactionBehavior};
+use rusqlite::{Connection, Transaction, TransactionBehavior, params};
 
 pub(super) const UPLOAD_LEASE_SECONDS: u64 = 86_400;
 pub(super) const GC_BATCH: u64 = 64;

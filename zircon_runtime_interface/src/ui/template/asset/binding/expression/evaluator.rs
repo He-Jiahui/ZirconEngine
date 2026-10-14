@@ -9,18 +9,24 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// 表达式执行把解析器缺值、布尔类型错误、预算超限和无效程序分开返回，调用端据此形成诊断。
+/// `BudgetExceeded` 的 `budget` 为 `nodes` 或 `depth`，`limit` 是相应上限；节点数按实际进入的表达式计。
 pub enum UiBindingExpressionEvaluationError {
+    /// 参数 resolver 未提供命名参数的值。
     UnresolvedParameter(String),
+    /// 属性 resolver 未提供命名属性的值。
     UnresolvedProperty(String),
+    /// control 属性 resolver 未提供指定 control/property 的值。
     UnresolvedControlProperty {
         control_id: String,
         property: String,
     },
+    /// `And`、`Or` 或 `Not` 读取到的操作数不是布尔值。
     ExpectedBoolean,
     BudgetExceeded {
         budget: &'static str,
         limit: usize,
     },
+    /// 内部值栈在求值结束时没有恰好一个结果，或某个续接步骤无法取得操作数。
     InvalidProgram,
 }
 
@@ -134,6 +140,29 @@ impl<T> EvaluationStack<T> {
 
 impl UiBindingExpression {
     /// 由宿主解析参数和属性；逻辑运算短路，未解析引用或预算超限会返回错误。
+    ///
+    /// # 使用时机与生命周期
+    /// Runtime 动作载荷以及 Editor 预览路径会直接调用此方法；普通 Runtime 绑定则先经
+    /// `UiBindingExpression::parse` 和 binding compiler 转成 compiled form。resolver 只在
+    /// 求值遍历到相应引用时调用，不会被保存。
+    ///
+    /// # 参数
+    /// `resolve_param`、`resolve_property` 分别按名称提供参数和当前节点属性；
+    /// `resolve_control_property` 按 control ID 与属性名查找跨 control 引用。返回 `None`
+    /// 会生成对应的 unresolved 错误。
+    ///
+    /// # 返回值
+    /// 返回表达式产生的 [`UiValue`]；未解析引用、非布尔逻辑操作数、节点/深度预算超限或
+    /// 内部结果栈不完整时返回 [`UiBindingExpressionEvaluationError`]。
+    ///
+    /// # 约束
+    /// 遍历按 AST 左侧优先执行，`And`/`Or` 按布尔左值短路；被跳过的右侧不会调用其 resolver。
+    /// 节点数限制统计实际进入的 AST 节点，深度限制使用 `UI_BINDING_EXPRESSION_MAX_DEPTH`。
+    ///
+    /// # 参考
+    /// 普通绑定在 Runtime `binding_program.rs::compile_expression` 中编译；直接 AST 调用见
+    /// Runtime `pointer_component_events/action.rs` 与 Editor `runtime/projection.rs`、
+    /// `runtime/compiled_template_action.rs`。
     pub fn evaluate_with<Param, Property, ControlProperty>(
         &self,
         mut resolve_param: Param,
@@ -149,6 +178,7 @@ impl UiBindingExpression {
         frames.push(EvaluationFrame::Enter(self, 1))?;
         let mut values = EvaluationStack::new();
         let mut visited_nodes = 0usize;
+        // Enter 帧才增加实际访问节点数；续接帧在子表达式完成后消费值栈并安排下一步。
         while let Some(frame) = frames.pop() {
             match frame {
                 EvaluationFrame::Enter(expression, depth) => {
@@ -238,6 +268,7 @@ impl UiBindingExpression {
                     }))?;
                 }
                 EvaluationFrame::AndAfterLeft { right, depth } => {
+                    // false 直接产出结果，右分支引用不会触发任何 resolver。
                     if !bool_value(pop_value(&mut values)?)? {
                         values.push(UiValue::Bool(false))?;
                     } else {
@@ -250,6 +281,7 @@ impl UiBindingExpression {
                     values.push(UiValue::Bool(value))?;
                 }
                 EvaluationFrame::OrAfterLeft { right, depth } => {
+                    // true 直接产出结果，右分支引用不会触发任何 resolver。
                     if bool_value(pop_value(&mut values)?)? {
                         values.push(UiValue::Bool(true))?;
                     } else {

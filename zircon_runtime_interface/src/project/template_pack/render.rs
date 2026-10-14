@@ -12,6 +12,16 @@ const PROJECT_MANIFEST_PATH: &str = "zircon-project.toml";
 
 /// Renders the versioned template pack without consulting a source checkout at runtime.
 /// 返回拥有数据的模板项；清单只改写项目身份与模板引擎范围，描述符摘要仍标识原始嵌入包。
+///
+/// # 参数
+/// - `id`：要渲染的内置模板稳定 ID。
+/// - `project_name`：新项目名称，按项目名称校验器的现有规则检查。
+///
+/// # 返回值
+/// 返回包含规范描述符、解析后的清单摘要和拥有文件字节的渲染结果；名称、模板布局或清单不满足约束时返回错误。
+///
+/// # 生命周期
+/// 结果不借用模板源码目录，可交由 Editor 创建事务写入 staging；本函数自身不访问项目目标路径。
 pub fn render_project_template(
     id: ProjectTemplateId,
     project_name: &str,
@@ -27,6 +37,7 @@ pub fn render_project_template(
         .iter_mut()
         .find(|entry| entry.path.as_str() == PROJECT_MANIFEST_PATH)
         .ok_or(ProjectTemplatePackError::MissingManifest)?;
+    // 只有身份与引擎要求来自新项目/当前模板版本，其余清单内容继续来自嵌入包。
     rewrite_manifest_identity(
         &mut manifest.bytes,
         project_name,
@@ -34,6 +45,7 @@ pub fn render_project_template(
         descriptor.engine_version_req(),
     )?;
     validate_manifest_requirements(&manifest.bytes, descriptor)?;
+    // 统一解析渲染后的清单，让返回摘要与真正写出的 manifest 字节对应。
     let summary = ProjectManifestSummary::parse_toml_bytes(&manifest.bytes)?.value;
     Ok(RenderedProjectTemplate {
         descriptor,
@@ -46,6 +58,7 @@ fn validate_manifest_requirements(
     bytes: &[u8],
     descriptor: ProjectTemplateDescriptor,
 ) -> Result<(), ProjectTemplatePackError> {
+    // 从渲染清单的 provider selections 中逐目标核对 descriptor 契约，不在此加载 provider。
     let source = std::str::from_utf8(bytes)
         .map_err(|source| ProjectTemplatePackError::ManifestUtf8 { source })?;
     let manifest = toml::from_str::<toml::Table>(source)
@@ -72,6 +85,7 @@ fn validate_manifest_requirements(
             }
         };
         for provider in requirement.required_runtime_providers() {
+            // 重复匹配也属于无效选择，不能让任一条启用项掩盖同 ID 的另一条弱化项。
             let mut matching = selections.iter().filter(|selection| {
                 selection.get("id").and_then(toml::Value::as_str) == Some(provider)
             });
@@ -130,6 +144,7 @@ fn missing_provider_requirement(
 fn render_entries(
     source: &[EmbeddedProjectTemplateEntry],
 ) -> Result<Vec<RenderedProjectTemplateEntry>, ProjectTemplatePackError> {
+    // 先逐项校验路径并拒绝重复，再检查目录前缀冲突，确保返回布局可逐文件写入。
     let mut paths = BTreeSet::new();
     let mut entries = Vec::with_capacity(source.len());
     for source_entry in source {
@@ -160,6 +175,7 @@ fn render_entries(
 fn render_entry(
     entry: &EmbeddedProjectTemplateEntry,
 ) -> Result<RenderedProjectTemplateEntry, ProjectTemplatePackError> {
+    // RelPath 只提供词法相对路径约束；创建端还要把它限制在 staging 根目录内。
     Ok(RenderedProjectTemplateEntry {
         path: RelPath::parse(entry.path)?,
         bytes: entry.bytes.to_vec(),
@@ -191,6 +207,7 @@ fn rewrite_manifest_identity(
             toml::Value::String(engine_version_req.to_string()),
         );
     }
+    // 重新编码 TOML 后字节布局可能变化；描述符摘要仍基于原始嵌入 manifest。
     *bytes = toml::to_string_pretty(&manifest)
         .map_err(|source| ProjectTemplatePackError::ManifestEncode { source })?
         .into_bytes();

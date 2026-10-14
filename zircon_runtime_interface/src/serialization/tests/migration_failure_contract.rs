@@ -1,3 +1,7 @@
+//! 验证迁移回调失败经文本旧版加载后仍保留 schema、来源版本和原始错误来源。
+//!
+//! tests/mod.rs 通过路径模块注册本契约；本文件只覆盖错误传播，不重复表完整性用例。
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

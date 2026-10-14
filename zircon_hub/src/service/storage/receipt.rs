@@ -1,9 +1,9 @@
 use crate::service::{
     error::ServiceError,
-    identity::{now_seconds, Principal},
+    identity::{Principal, now_seconds},
 };
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
-use serde::{de::DeserializeOwned, Serialize};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
 #[derive(Serialize)]

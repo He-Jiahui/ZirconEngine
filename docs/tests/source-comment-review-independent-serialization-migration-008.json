@@ -1,0 +1,566 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "reviewer": "/root",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewedAtUtc": "2026-10-14T08:51:22.468508+00:00",
+  "wholeRepositoryComplete": false,
+  "commit": {
+    "status": "pending actual scoped coordinator commit",
+    "sha": null
+  },
+  "notification": {
+    "authorized": "attached WeCom notification at actual commit",
+    "sent": false
+  },
+  "artifactLifecycle": {
+    "sourceCopies": 0,
+    "temporaryHelpers": 0,
+    "compilerProducts": 0,
+    "releasedBytes": 0,
+    "originalManifestAndCleanup": "pending original coordinator request"
+  },
+  "batchId": "serialization-migration-008",
+  "state": "partial independent review; six ready, one comment correction pending",
+  "inputEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-serialization-migration-008.json",
+    "sha256": "868aaa66bf59d11ae139b5917313388b5fa8068f9d26dac06adc6abc1cb9046f"
+  },
+  "baselineHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "reviewedFileCount": 6,
+  "pendingFileCount": 1,
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/mod.rs",
+      "initialSha256": "737666b9dad1f40d059bb288a37977c930493e8e0e84d8e086072d43312a644b",
+      "currentSha256": "39d4198effe113e67dafa7bb759aef14048170d0384b7e231ed8da1da5c8e76b",
+      "bytes": 902,
+      "lineCount": 24,
+      "insertedCommentOrBlankLines": 10,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "issueTags": [],
+      "state": "reviewed-awaiting-coordinator",
+      "reviewedSha256": "39d4198effe113e67dafa7bb759aef14048170d0384b7e231ed8da1da5c8e76b"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/chain.rs",
+      "initialSha256": "bd62c53932c045f94fe14b11ef1fa807ac072f135879355d39d55a9782b72f8f",
+      "currentSha256": "608418fd0e3c8ec20045990b8cc82f6c9b11c592d256eada5ca0693bdf7d02f9",
+      "bytes": 1558,
+      "lineCount": 37,
+      "insertedCommentOrBlankLines": 19,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "issueTags": [],
+      "state": "reviewed-awaiting-coordinator",
+      "reviewedSha256": "608418fd0e3c8ec20045990b8cc82f6c9b11c592d256eada5ca0693bdf7d02f9"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "initialSha256": "7935b23aa35623802fde67d64bf1a1f24c7791da026d76f9251a2da4e23c94b0",
+      "currentSha256": "23f94e12b773fd363f17636468308f4168d8d4ee1d6c28a89bb5d3078ee68f8f",
+      "bytes": 1639,
+      "lineCount": 38,
+      "insertedCommentOrBlankLines": 17,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "issueTags": [],
+      "state": "reviewed-awaiting-coordinator",
+      "reviewedSha256": "23f94e12b773fd363f17636468308f4168d8d4ee1d6c28a89bb5d3078ee68f8f"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "initialSha256": "81a3623b3c7eb076318e03c3f44bbafe1a7c179febb4884c6294d456ca2a0d82",
+      "currentSha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+      "bytes": 2705,
+      "lineCount": 51,
+      "insertedCommentOrBlankLines": 21,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "issueTags": [
+        {
+          "line": 7,
+          "text": "    // TODO: [CR-SERIALIZATION-0001] 确认公开迁移入口是否应自行拒绝源版本高于目标版本；现有调用方先校验，缺少直接调用该边界的契约测试；下一步补充边界测试并确定错误归属。"
+        }
+      ],
+      "state": "reviewed-awaiting-coordinator",
+      "reviewedSha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "initialSha256": "874314dc22f58dd8a6924f3b980392a02be5fb9baa0779e575d89538b71ed5ac",
+      "currentSha256": "fa122993908ff320ad19260683fe722654507e6f101efab01c706b77446cb1e1",
+      "bytes": 2408,
+      "lineCount": 57,
+      "insertedCommentOrBlankLines": 4,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "issueTags": [],
+      "state": "reviewed-awaiting-coordinator",
+      "reviewedSha256": "fa122993908ff320ad19260683fe722654507e6f101efab01c706b77446cb1e1"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "initialSha256": "ab21c53ae8681a988153d819ae42d18613c0324b79d7dd9b68455a4cea87ed09",
+      "currentSha256": "6956d37fcd9423b73ea92b6f365b1e894c27c659997a5be0bf0b1ffdf93138a0",
+      "bytes": 3252,
+      "lineCount": 80,
+      "insertedCommentOrBlankLines": 30,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "issueTags": [],
+      "state": "pending-comment-correction",
+      "reviewedSha256": null
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "initialSha256": "66d3ae69af41c79f437e6ee513b7ad6a7869da61dc96aa9ebc55e68b0d8783c0",
+      "currentSha256": "b84d67e5ab56cbf6baef0b9f9347c4c99ccd0307fd5049fbc07fc4ddaed157cd",
+      "bytes": 1545,
+      "lineCount": 46,
+      "insertedCommentOrBlankLines": 4,
+      "baselineCodeCommentsAndEolPreserved": true,
+      "issueTags": [],
+      "state": "reviewed-awaiting-coordinator",
+      "reviewedSha256": "b84d67e5ab56cbf6baef0b9f9347c4c99ccd0307fd5049fbc07fc4ddaed157cd"
+    }
+  ],
+  "objectEvidence": [
+    {
+      "id": "MIG08-R001",
+      "path": "zircon_runtime_interface/src/serialization/migration/mod.rs",
+      "object": "module docs",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R002",
+      "path": "zircon_runtime_interface/src/serialization/migration/mod.rs",
+      "object": "private module declarations/path attrs",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R003",
+      "path": "zircon_runtime_interface/src/serialization/migration/mod.rs",
+      "object": "public reexports",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R004",
+      "path": "zircon_runtime_interface/src/serialization/migration/chain.rs",
+      "object": "MigrationChain<T> and steps/marker",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R005",
+      "path": "zircon_runtime_interface/src/serialization/migration/chain.rs",
+      "object": "MigrationChain<T>::new",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R006",
+      "path": "zircon_runtime_interface/src/serialization/migration/chain.rs",
+      "object": "impl<T> MigrationChain<T> block",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R007",
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "object": "MigrationFn alias",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R008",
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "object": "MigrationStep and from_version/migrate fields",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R009",
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "object": "impl MigrationStep block",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R010",
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "object": "MigrationStep::new",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R011",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "object": "impl<T> execution block",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R012",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "object": "MigrationChain<T>::migrate_value",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R013",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "object": "target validate call",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R014",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "object": "loop/error map/final return",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R015",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "object": "preexisting CR-SERIALIZATION-0001 TODO",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R016",
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "object": "impl<T>::validate",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R017",
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "object": "required-prefix loop/branches",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R018",
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "object": "missing-step branch",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R019",
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "object": "unexpected-tail branch",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R020",
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "object": "MigrateError and InvalidPayload",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R021",
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "object": "MissingStep plus schema_id/from_version/target_version",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R022",
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "object": "DuplicateStep plus schema_id/from_version",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R023",
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "object": "OutOfOrderStep plus schema_id/expected/found",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R024",
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "object": "UnexpectedStep plus schema_id/from_version/target_version",
+      "rootDisposition": "reviewed; UnexpectedStep new summary remains pending",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R025",
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "object": "StepFailed plus schema_id/from_version/source",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R026",
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "object": "impl MigrateError::invalid_payload",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R027",
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "object": "test module",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R028",
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "object": "FailingStepDocument and VersionedSchema impl",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R029",
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "object": "FAILING_CHAIN and fail_migration",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    },
+    {
+      "id": "MIG08-R030",
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "object": "migration_step_failure_preserves_schema_version_and_source test/assertion",
+      "rootDisposition": "reviewed; current source and caller contract checked",
+      "authorDetailSection": "files[].objectEvidence"
+    }
+  ],
+  "objectEvidenceGroupCount": 30,
+  "callerEvidence": [
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "bytes": 15832,
+      "lineCount": 251,
+      "symbols": "pub mod serialization",
+      "contract": "Crate-root subsystem reachability.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "bytes": 1689,
+      "lineCount": 53,
+      "symbols": "pub use migration::{MigrateError, MigrationChain, MigrationStep};",
+      "contract": "Public migration reexports.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/versioned_schema.rs",
+      "sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+      "bytes": 1389,
+      "lineCount": 26,
+      "symbols": "VersionedSchema::migrations; SCHEMA; VERSION",
+      "contract": "Static schema metadata and chain provider.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "bytes": 11575,
+      "lineCount": 278,
+      "symbols": "validate_source_version; load_migrated_value; text/binary/legacy loaders",
+      "contract": "Source version validated before migrate_value; migrated Value deserializes to T; current reads validate the full chain.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "497341e9ea1ad82fed314704cff7ae97b982f80fefa8c1a38cc73f87adbc12a3",
+      "bytes": 2161,
+      "lineCount": 67,
+      "symbols": "path registration for migration_failure_contract",
+      "contract": "Registers in-scope test module.",
+      "editGrant": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "sha256": "6f639acc69f3e9a8bd9a638bd5ee300d3ed76be6359106512a59c5ea90c0b76a",
+      "bytes": 4362,
+      "lineCount": 155,
+      "symbols": "migration table contract cases",
+      "contract": "Held cases cover duplicate/out-of-order/missing/extra and current-version validation; no direct from_version > target test.",
+      "editGrant": false
+    }
+  ],
+  "rootSourceReadEvidence": [
+    {
+      "chunk": "b0bb30",
+      "scope": "all seven complete current source files before root link correction"
+    },
+    {
+      "chunk": "937c71",
+      "scope": "qualified link actual readback and all seven baseline/final byte proof and checks"
+    }
+  ],
+  "rootCallerContextReadEvidence": [
+    {
+      "chunk": "6be7b8",
+      "scope": "lib43-70, serialization mod53, VersionedSchema26, load149-278, tests mod1-40, held migration_contract155"
+    },
+    {
+      "chunk": "4845d1",
+      "scope": "native EOF for6be7b8"
+    },
+    {
+      "reusedProof": "docs/tests/source-comment-review-independent-binary-envelope-007.json",
+      "sha256": "e10220ae89d3d6fe22eb0e823a62fe475d1ac5ddda69569d81b31dd709da8703",
+      "scope": "matching loader/test module caller pins and previously actually read entry contexts"
+    },
+    {
+      "chunk": "fc1031",
+      "scope": "internally clipped caller/metadata output; unread spans not credited; later6be7b8 refills required boundaries"
+    }
+  ],
+  "boundaryFindings": [
+    {
+      "decision": "MigrationChain binds static steps to T without owning a T; new stores reference, validate enforces all adjacent edges0..target, including current-version reads."
+    },
+    {
+      "decision": "Required prefix mismatch precedence: lower duplicate, higher out-of-order, then missing length, then extra duplicate or UnexpectedStep. Extra source==target also reaches UnexpectedStep, as held test99-109 shows."
+    },
+    {
+      "decision": "migrate_value validates target chain, consumes/produces owned JSON values and wraps callback failures; final typed T construction belongs to loader. SchemaId is error context, not compared with T."
+    },
+    {
+      "decision": "Direct from_version>target has empty forward range and returns unchanged Value after chain validation; loader validates source<=T::VERSION first. Existing TODO retained; no BUG/reproduction asserted."
+    },
+    {
+      "decision": "Failure test covers legacy Text schema-zero callback error and nested cause, not all table errors or direct future-source behavior. No tests were executed."
+    },
+    {
+      "decision": "No runtime callback registry/FFI/custom dispatch added. Original derive/thiserror/serde arguments and program tokens preserved; new doc attributes remain compiler-observable."
+    }
+  ],
+  "metadataQualifications": [
+    {
+      "authorSummary": "36 groups",
+      "rootActual": "30 files[].objectEvidence groups; no credit invented for six extra rows"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "authorPending": "unqualified MigrationChain link",
+      "rootCurrent": "qualified super::MigrationChain link physically read back at23f94e12...",
+      "status": "resolved by normal root correction; original failed author attempts retained"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "status": "pending",
+      "reason": "new line44 wording implies strictly after target while code and held test include equality"
+    }
+  ],
+  "issueIds": [
+    "CR-SERIALIZATION-0001"
+  ],
+  "newSourceIssueTags": [],
+  "validation": {
+    "rawByteProof": {
+      "nativeChunk": "937c71",
+      "exitCode": 0,
+      "insertedCommentOrBlankLines": 105,
+      "originalCodeCommentsEolPreserved": true
+    },
+    "checks": {
+      "format": {
+        "argv": [
+          "C:/Users/HeJiahui/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin/rustfmt.exe",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "--check",
+          "zircon_runtime_interface/src/serialization/migration/mod.rs",
+          "zircon_runtime_interface/src/serialization/migration/chain.rs",
+          "zircon_runtime_interface/src/serialization/migration/step.rs",
+          "zircon_runtime_interface/src/serialization/migration/execute.rs",
+          "zircon_runtime_interface/src/serialization/migration/validate.rs",
+          "zircon_runtime_interface/src/serialization/migration/error.rs",
+          "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs"
+        ],
+        "returncode": 0,
+        "childEOF": true,
+        "stdout": "",
+        "stderr": ""
+      },
+      "diff": {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+          "--",
+          "zircon_runtime_interface/src/serialization/migration/mod.rs",
+          "zircon_runtime_interface/src/serialization/migration/chain.rs",
+          "zircon_runtime_interface/src/serialization/migration/step.rs",
+          "zircon_runtime_interface/src/serialization/migration/execute.rs",
+          "zircon_runtime_interface/src/serialization/migration/validate.rs",
+          "zircon_runtime_interface/src/serialization/migration/error.rs",
+          "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs"
+        ],
+        "returncode": 0,
+        "childEOF": true,
+        "stdout": "",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/serialization/migration/chain.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/serialization/migration/error.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/serialization/migration/execute.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/serialization/migration/mod.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/serialization/migration/step.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/serialization/migration/validate.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      "guard": {
+        "argv": [
+          ".jenkins/runtime/python/python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--repo-root",
+          "E:\\Git\\ZirconEngine",
+          "--profile",
+          "zircon-strict",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+          "--path",
+          "zircon_runtime_interface/src/serialization/migration/mod.rs",
+          "--path",
+          "zircon_runtime_interface/src/serialization/migration/chain.rs",
+          "--path",
+          "zircon_runtime_interface/src/serialization/migration/step.rs",
+          "--path",
+          "zircon_runtime_interface/src/serialization/migration/execute.rs",
+          "--path",
+          "zircon_runtime_interface/src/serialization/migration/validate.rs",
+          "--path",
+          "zircon_runtime_interface/src/serialization/migration/error.rs",
+          "--path",
+          "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs"
+        ],
+        "returncode": 0,
+        "childEOF": true,
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"50a764276e46b2a7108d25b079acdbbba08fa4da01147dd93956586e49bbf9af\",\r\n    \"base\": \"d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef\",\r\n    \"files\": [\r\n      \"zircon_runtime_interface/src/serialization/migration/chain.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/error.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/execute.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/mod.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/step.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/validate.rs\",\r\n      \"zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"zircon_runtime_interface/src/serialization/migration/mod.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/chain.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/step.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/execute.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/validate.rs\",\r\n      \"zircon_runtime_interface/src/serialization/migration/error.rs\",\r\n      \"zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n",
+        "stderr": ""
+      }
+    },
+    "formalCoordinator": {
+      "status": "pending actual original coordinator request and flow",
+      "acceptance": false
+    },
+    "cargoBuildTestsDocMacroExecution": "not run"
+  },
+  "correctionHistory": [
+    {
+      "nativeCell": "root115",
+      "exitCode": 1,
+      "elapsedSeconds": 246.6,
+      "error": "Failed to write file migration/error.rs",
+      "cause": "unknown; not classified sandbox denial",
+      "partialResult": "first step.rs qualified link succeeded; error.rs original pin6956d37... unchanged; both independently read back937c71",
+      "nextAction": "no blind retry or alternate write route; pending exact canonical correction when readiness is established"
+    }
+  ]
+}

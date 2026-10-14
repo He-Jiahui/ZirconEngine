@@ -2,6 +2,9 @@ use crate::project::RelPath;
 
 /// One project-relative file rendered from the packaged template truth.
 /// 模板渲染后交给 Editor 项目创建事务写入暂存目录的单个文件。
+///
+/// # 生命周期
+/// 路径只表示项目内的相对位置，字节由该值拥有；把条目写入文件系统的调用方须将目标约束在 staging 根目录内。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderedProjectTemplateEntry {
     /// 只保证词法上的项目相对路径；落盘调用方仍须保证目标位于暂存根内。

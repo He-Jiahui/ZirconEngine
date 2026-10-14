@@ -1,5 +1,5 @@
-use super::super::{operations::validate_id, AccountError};
-use super::manifest::{digest, Manifest};
+use super::super::{AccountError, operations::validate_id};
+use super::manifest::{Manifest, digest};
 use serde::Deserialize;
 use serde_json::Value;
 

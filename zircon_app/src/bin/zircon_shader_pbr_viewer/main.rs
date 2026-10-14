@@ -98,21 +98,27 @@ fn run_viewer(config: ViewerConfig) -> Result<u8, String> {
         }
         None => None,
     };
-    // BUG: [CR-APP-VIEWER-0002] 显式加载调试库但使用尚不存在的默认捕获目录时，启动会在设备创建前失败；证据：下方预加载调用要求模板父目录已存在。
     let renderdoc_capture_path = config
         .renderdoc_capture_path
         .as_deref()
         .unwrap_or_else(|| work_paths.renderdoc_capture_template());
-    let renderdoc_bridge = match renderdoc::preload_renderdoc_dll(
-        config.renderdoc_dll.as_deref(),
-        Some(renderdoc_capture_path),
-    ) {
+    let renderdoc_bridge_result = (|| {
+        if config.renderdoc_dll.is_some() {
+            work_paths.prepare_renderdoc_capture_template()?;
+        }
+        renderdoc::preload_renderdoc_dll(
+            config.renderdoc_dll.as_deref(),
+            Some(renderdoc_capture_path),
+        )
+        .map_err(|error| error.to_string())
+    })();
+    let renderdoc_bridge = match renderdoc_bridge_result {
         Ok(bridge) => bridge,
         Err(error) => {
             let outcome = TerminalOutcome::failure(
                 TerminalPhase::Startup,
                 TerminalErrorCategory::Startup,
-                error.to_string(),
+                error,
             )
             .with_source_chain(viewer_terminal_source_chain(&config));
             write_terminal_outcome(&terminal_outcome_path, &outcome)?;

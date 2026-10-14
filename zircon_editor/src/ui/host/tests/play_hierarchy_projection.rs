@@ -3,7 +3,7 @@ use zircon_runtime_interface::{GatewaySessionIdentity, ZrRuntimeSessionHandle};
 
 use crate::ui::workbench::snapshot::SceneInspectionHierarchyFragment;
 
-use super::PlayHierarchyProjection;
+use super::{PlayHierarchyProjection, PlayHierarchyProjectionError};
 
 fn identity(gateway_generation: u64) -> GatewaySessionIdentity {
     GatewaySessionIdentity::new(3, ZrRuntimeSessionHandle::new(5), 7, None)
@@ -234,7 +234,7 @@ pub(super) fn apply_same_topology_change(
 fn same_topology_changed_row_capacity_matches_zero_sparse_and_dense_changes() {
     const ROW_COUNT: usize = 4096;
     for changed_count in [0, 1, ROW_COUNT] {
-        let (projection, fragment) = apply_same_topology_change(ROW_COUNT, changed_count);
+        let (mut projection, fragment) = apply_same_topology_change(ROW_COUNT, changed_count);
         let capacity = projection
             .changed_row_capacity
             .as_ref()
@@ -244,6 +244,29 @@ fn same_topology_changed_row_capacity_matches_zero_sparse_and_dense_changes() {
         assert_eq!(capacity.growth_events, 0);
         if changed_count == 0 {
             assert!(fragment.is_none());
+            let advanced = projection
+                .apply(
+                    identity(1),
+                    WorldQueryResult::HierarchyRows {
+                        generation: 5,
+                        rows: (1..=ROW_COUNT as u64)
+                            .map(|entity| row(entity, None, 0, "Before"))
+                            .collect(),
+                    },
+                    Some(1),
+                    2,
+                    [1],
+                    false,
+                )
+                .unwrap()
+                .expect("an advanced generation must publish even an empty delta");
+            assert!(advanced.changed_rows().unwrap().is_empty());
+            assert_eq!(advanced.message().previous_generation(), Some(4));
+            assert_eq!(advanced.message().generation(), 5);
+            let capacity = projection.changed_row_capacity.as_ref().unwrap();
+            assert_eq!(capacity.initial_capacity, 0);
+            assert_eq!(capacity.final_capacity, 0);
+            assert_eq!(capacity.growth_events, 0);
             continue;
         }
         let fragment = fragment.expect("changed rows must publish a patch");
@@ -329,4 +352,57 @@ fn not_modified_force_reflow_updates_the_selection_delta_base() {
     assert_eq!(selection.revision(), 4);
     assert_eq!(selection.added_entities(), &[1]);
     assert_eq!(selection.removed_entities(), &[2]);
+}
+
+#[test]
+fn same_generation_mutation_rejects_before_reflow_or_empty_delta() {
+    for force_reflow in [false, true] {
+        let mut projection = PlayHierarchyProjection::default();
+        projection
+            .apply(
+                identity(1),
+                WorldQueryResult::HierarchyRows {
+                    generation: 4,
+                    rows: vec![row(1, None, 0, "Before")],
+                },
+                Some(1),
+                2,
+                [1],
+                false,
+            )
+            .unwrap();
+        assert!(matches!(
+            projection.apply(
+                identity(1),
+                WorldQueryResult::HierarchyRows {
+                    generation: 4,
+                    rows: vec![row(1, None, 0, "Changed without advancing")],
+                },
+                Some(1),
+                2,
+                [1],
+                force_reflow,
+            ),
+            Err(PlayHierarchyProjectionError::SameGenerationMutation { generation: 4 })
+        ));
+        assert_eq!(projection.row(1).unwrap().display_name, "Before");
+        let unchanged = projection
+            .apply(
+                identity(1),
+                WorldQueryResult::HierarchyRows {
+                    generation: 4,
+                    rows: vec![row(1, None, 0, "Before")],
+                },
+                Some(1),
+                2,
+                [1],
+                force_reflow,
+            )
+            .unwrap();
+        if force_reflow {
+            assert!(unchanged.unwrap().message().requires_resync());
+        } else {
+            assert!(unchanged.is_none());
+        }
+    }
 }

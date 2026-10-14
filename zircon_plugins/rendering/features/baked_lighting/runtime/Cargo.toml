@@ -6,4 +6,4 @@ license.workspace = true
 
 [dependencies]
 zircon_plugin_rendering_runtime = { path = "../../../runtime" }
-zircon_runtime = { workspace = true }
+zircon_runtime = { workspace = true, features = ["graphics"] }

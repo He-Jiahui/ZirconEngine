@@ -19,6 +19,11 @@ pub struct EditorCommandDescriptor {
     category: EditorCommandCategory,
     menu_path: Option<EditorCommandMenuPath>,
     menu_projection: EditorCommandMenuProjection,
+    #[serde(
+        default = "default_palette_visible",
+        skip_serializing_if = "palette_visible_is_default"
+    )]
+    palette_visible: bool,
     action: EditorCommandAction,
     default_chord: Option<EditorKeyChord>,
     #[serde(default)]
@@ -57,6 +62,7 @@ impl EditorCommandDescriptor {
             category,
             menu_path: None,
             menu_projection: EditorCommandMenuProjection::CommandRegistry,
+            palette_visible: true,
             action,
             default_chord: None,
             when: WhenClause::Always,
@@ -122,6 +128,12 @@ impl EditorCommandDescriptor {
 
     pub fn with_menu_projection(mut self, projection: EditorCommandMenuProjection) -> Self {
         self.menu_projection = projection;
+        self
+    }
+
+    /// Controls global palette discovery while retaining the command for contextual routes.
+    pub fn with_palette_visible(mut self, palette_visible: bool) -> Self {
+        self.palette_visible = palette_visible;
         self
     }
 
@@ -240,6 +252,10 @@ impl EditorCommandDescriptor {
         self.menu_projection
     }
 
+    pub fn palette_visible(&self) -> bool {
+        self.palette_visible
+    }
+
     pub fn action(&self) -> &EditorCommandAction {
         &self.action
     }
@@ -348,6 +364,14 @@ impl EditorCommandDescriptor {
 pub enum EditorCommandMenuProjection {
     CommandRegistry,
     ExtensionRegistry,
+}
+
+fn default_palette_visible() -> bool {
+    true
+}
+
+fn palette_visible_is_default(value: &bool) -> bool {
+    *value
 }
 
 fn default_callable_from_remote() -> bool {

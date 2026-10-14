@@ -5,8 +5,8 @@ use std::thread;
 use std::time::Duration;
 
 use zircon_runtime_interface::hub_protocol::{
-    hub_editor_focus_ack_path, HubEditorFocusAckDispositionV1, HubEditorFocusAckV1,
-    HubEditorFocusSignalV1,
+    HubEditorFocusAckDispositionV1, HubEditorFocusAckV1, HubEditorFocusSignalV1,
+    hub_editor_focus_ack_path,
 };
 
 use crate::error::HubError;

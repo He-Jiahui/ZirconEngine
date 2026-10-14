@@ -2,7 +2,7 @@ use super::support::*;
 use crate::service::{
     cloud::*,
     error::ServiceError,
-    storage::{receipt, Database},
+    storage::{Database, receipt},
 };
 use rusqlite::Connection;
 use std::{sync::Arc, time::Duration};
@@ -342,24 +342,59 @@ async fn completion_audit_and_receipt_failures_are_unknown_and_replayable() {
     ] {
         let files = Files::new();
         let (database, store) = files.database().await;
-        database.execute(move |connection| {
-            let owner = principal("owner");
-            let (org, project) = seed(connection, &owner);
-            rolling(connection, &org, &project)?;
-            upload(connection, &owner, &store, &org, &project, &digest(b"old"), b"old")?;
-            connection.execute("UPDATE cloud_upload_leases SET expires_at=0", [])?;
-            connection.execute_batch(trigger)?;
-            let request = request_maintenance();
-            assert!(matches!(maintain(connection, &owner, &store, &org, &project, request.clone()), Err(ServiceError::OutcomeUnknown)));
-            assert!(!store.root.join(digest(b"old")).exists());
-            assert!(matches!(receipt::lookup(connection, &owner, &request.operation_id)?, receipt::OperationStatus::Unknown));
-            assert_eq!(connection.query_row("SELECT COUNT(*) FROM cloud_maintenance_runs", [], |row| row.get::<_, u64>(0))?, 1);
-            connection.execute_batch("DROP TRIGGER fail_completion;")?;
-            let resumed = maintain(connection, &owner, &store, &org, &project, request.clone())?;
-            assert_eq!((resumed.collected_objects, resumed.pending_objects), (1, 0));
-            assert_eq!(maintain(connection, &owner, &store, &org, &project, request)?, resumed);
-            assert_eq!(connection.query_row("SELECT COUNT(*) FROM audit_events WHERE action LIKE 'cloud.maintenance.%'", [], |row| row.get::<_, u64>(0))?, 2);
-            Ok(())
-        }).await.unwrap();
+        database
+            .execute(move |connection| {
+                let owner = principal("owner");
+                let (org, project) = seed(connection, &owner);
+                rolling(connection, &org, &project)?;
+                upload(
+                    connection,
+                    &owner,
+                    &store,
+                    &org,
+                    &project,
+                    &digest(b"old"),
+                    b"old",
+                )?;
+                connection.execute("UPDATE cloud_upload_leases SET expires_at=0", [])?;
+                connection.execute_batch(trigger)?;
+                let request = request_maintenance();
+                assert!(matches!(
+                    maintain(connection, &owner, &store, &org, &project, request.clone()),
+                    Err(ServiceError::OutcomeUnknown)
+                ));
+                assert!(!store.root.join(digest(b"old")).exists());
+                assert!(matches!(
+                    receipt::lookup(connection, &owner, &request.operation_id)?,
+                    receipt::OperationStatus::Unknown
+                ));
+                assert_eq!(
+                    connection.query_row(
+                        "SELECT COUNT(*) FROM cloud_maintenance_runs",
+                        [],
+                        |row| row.get::<_, u64>(0)
+                    )?,
+                    1
+                );
+                connection.execute_batch("DROP TRIGGER fail_completion;")?;
+                let resumed =
+                    maintain(connection, &owner, &store, &org, &project, request.clone())?;
+                assert_eq!((resumed.collected_objects, resumed.pending_objects), (1, 0));
+                assert_eq!(
+                    maintain(connection, &owner, &store, &org, &project, request)?,
+                    resumed
+                );
+                assert_eq!(
+                    connection.query_row(
+                        "SELECT COUNT(*) FROM audit_events WHERE action LIKE 'cloud.maintenance.%'",
+                        [],
+                        |row| row.get::<_, u64>(0)
+                    )?,
+                    2
+                );
+                Ok(())
+            })
+            .await
+            .unwrap();
     }
 }

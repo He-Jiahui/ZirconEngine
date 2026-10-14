@@ -18,9 +18,9 @@ use serde::{Deserialize, Serialize};
 pub enum ProjectEngineCompatibilityDisposition {
     /// 当前引擎版本满足整个项目要求。
     Compatible,
-    /// 当前版本低于要求区间的下界，项目需要更新的引擎。
+    /// 当前引擎低于要求区间下界，或恰好等于被排除的下界，因此项目需要更新的引擎。
     ProjectRequiresNewerEngine,
-    /// 当前版本高于要求区间的上界，项目需要较旧的引擎。
+    /// 当前引擎高于要求区间上界，或恰好等于被排除的上界，因此项目需要较旧的引擎。
     ProjectRequiresOlderEngine,
     /// 要求不匹配，且无法可靠归为需要更新或更旧的引擎。
     Incompatible,

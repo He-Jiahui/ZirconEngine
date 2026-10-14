@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 use crate::error::HubError;
 use crate::projects::{
-    install_package_to_device, package_project, validate_project_root, DeviceInstallReport,
-    DeviceInstallRequest, ProjectPackageReport, ProjectPackageRequest, ProjectValidation,
-    RecentProject,
+    DeviceInstallReport, DeviceInstallRequest, ProjectPackageReport, ProjectPackageRequest,
+    ProjectValidation, RecentProject, install_package_to_device, package_project,
+    validate_project_root,
 };
 use crate::state::{
     DeliveryMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
@@ -13,8 +13,9 @@ use crate::state::{
 use crate::tauri_app::action_id::HubActionId;
 
 use super::{
+    HubRuntimeSession,
     action_tasks::{BackgroundTask, BackgroundTaskContext},
-    recent_project_display_name, HubRuntimeSession,
+    recent_project_display_name,
 };
 
 #[derive(Clone, Debug)]

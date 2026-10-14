@@ -108,10 +108,12 @@ fn discover_learn_catalog_keeps_first_source_engine_root_before_fallback_limit()
     fs::remove_dir_all(preferred_root).unwrap();
     fs::remove_dir_all(fallback_root).unwrap();
 
-    assert!(entries
-        .iter()
-        .any(|entry| entry.title == "Source Settings Refresh"
-            && entry.source == SOURCE_ENGINE_LEARN_SOURCE));
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry.title == "Source Settings Refresh"
+                && entry.source == SOURCE_ENGINE_LEARN_SOURCE)
+    );
 }
 
 #[test]

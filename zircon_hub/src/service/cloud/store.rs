@@ -1,15 +1,15 @@
-use super::{authorization::authorize, config::reject_link, manifest, quota, CloudConfig};
+use super::{CloudConfig, authorization::authorize, config::reject_link, manifest, quota};
 use crate::service::{
     config::read_bounded_regular,
     error::ServiceError,
-    identity::{now_seconds, Principal},
+    identity::{Principal, now_seconds},
     organization,
 };
 use aes_gcm::{
-    aead::{Aead, AeadCore, KeyInit, OsRng, Payload},
     Aes256Gcm, Nonce,
+    aead::{Aead, AeadCore, KeyInit, OsRng, Payload},
 };
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File, OpenOptions},

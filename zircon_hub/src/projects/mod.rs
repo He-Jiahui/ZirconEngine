@@ -26,27 +26,26 @@ mod validation;
 pub use cloud_binding::{CloudAccountScope, CloudBindingEnvironment, CloudProjectBinding};
 pub use cover::project_cover_path;
 pub use create_project_request::{
-    enabled_project_template_id, project_template_catalog, CreateProjectRequest,
-    CreateProjectRequestError, ProjectTemplateInfo,
+    CreateProjectRequest, CreateProjectRequestError, ProjectTemplateInfo,
+    enabled_project_template_id, project_template_catalog,
 };
-pub use device_install::{install_package_to_device, DeviceInstallReport, DeviceInstallRequest};
+pub use device_install::{DeviceInstallReport, DeviceInstallRequest, install_package_to_device};
 pub use install_receipt::{
     DeviceInstallFileReceipt, DeviceInstallReceipt, HubContentDownloadChunk,
     HubContentDownloadManifest,
 };
 pub use metadata::{
-    metadata_for_path, metadata_for_path_mut, normalize_project_root, project_filesystem_path_key,
-    project_metadata_key, project_paths_match, prune_empty_metadata, ProjectMetadata,
-    ProjectMetadataMap,
+    ProjectMetadata, ProjectMetadataMap, metadata_for_path, metadata_for_path_mut,
+    normalize_project_root, project_filesystem_path_key, project_metadata_key, project_paths_match,
+    prune_empty_metadata,
 };
-pub use package::{package_project, ProjectPackageReport, ProjectPackageRequest};
-pub use recent_project::{now_unix_ms, RecentProject, RECENT_PROJECT_LIMIT};
-pub use recycle_bin::{recycle_delete_project, RecycleDeleteCommand};
+pub use package::{ProjectPackageReport, ProjectPackageRequest, package_project};
+pub use recent_project::{RECENT_PROJECT_LIMIT, RecentProject, now_unix_ms};
+pub use recycle_bin::{RecycleDeleteCommand, recycle_delete_project};
 pub use shared_recent_projects::{
-    load_shared_recent_projects, load_shared_recent_projects_snapshot,
-    merge_recent_project_entries, reconcile_shared_recent_projects,
-    reconcile_shared_recent_projects_snapshot, SharedRecentProjectsError,
-    SharedRecentProjectsSnapshot,
+    SharedRecentProjectsError, SharedRecentProjectsSnapshot, load_shared_recent_projects,
+    load_shared_recent_projects_snapshot, merge_recent_project_entries,
+    reconcile_shared_recent_projects, reconcile_shared_recent_projects_snapshot,
 };
-pub use validation::{validate_project_root, ProjectValidation};
+pub use validation::{ProjectValidation, validate_project_root};
 pub use zircon_runtime_interface::project::ProjectTemplateId;

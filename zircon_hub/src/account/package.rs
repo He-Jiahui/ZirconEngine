@@ -11,10 +11,10 @@ mod tests;
 mod windows;
 
 use super::{
-    operations::{
-        validate_id, validate_revision, OperationIdentity, OperationPayload, OperationStatus,
-    },
     AccountBroker, AccountError,
+    operations::{
+        OperationIdentity, OperationPayload, OperationStatus, validate_id, validate_revision,
+    },
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

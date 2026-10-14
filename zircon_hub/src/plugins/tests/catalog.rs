@@ -118,12 +118,16 @@ capabilities = ["runtime.plugin.core"]
     let entries = discover_plugin_catalog([repo_root.clone()]).unwrap();
     fs::remove_dir_all(repo_root).unwrap();
 
-    assert!(entries
-        .iter()
-        .any(|entry| entry.id == "authoring" && entry.editor_scoped));
-    assert!(entries
-        .iter()
-        .any(|entry| entry.id == "runtime" && !entry.editor_scoped));
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry.id == "authoring" && entry.editor_scoped)
+    );
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry.id == "runtime" && !entry.editor_scoped)
+    );
 }
 
 #[test]
@@ -192,12 +196,16 @@ fn hub03_discover_plugin_catalog_reads_project_and_engine_scopes() {
     fs::remove_dir_all(project_root).unwrap();
     fs::remove_dir_all(repo_root).unwrap();
 
-    assert!(entries
-        .iter()
-        .any(|entry| entry.id == "project_runtime" && entry.scope == PROJECT_PLUGIN_SCOPE));
-    assert!(entries
-        .iter()
-        .any(|entry| entry.id == "engine_runtime" && entry.scope == ENGINE_PLUGIN_SCOPE));
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry.id == "project_runtime" && entry.scope == PROJECT_PLUGIN_SCOPE)
+    );
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry.id == "engine_runtime" && entry.scope == ENGINE_PLUGIN_SCOPE)
+    );
 }
 
 #[derive(Clone)]
@@ -244,12 +252,16 @@ fn hub03_plugin_scope_matching_release_benchmark_evidence() {
 
     let legacy_allocations = legacy[0].allocations;
     let optimized_allocations = optimized[0].allocations;
-    assert!(legacy
-        .iter()
-        .all(|sample| sample.allocations == legacy_allocations));
-    assert!(optimized
-        .iter()
-        .all(|sample| sample.allocations == optimized_allocations));
+    assert!(
+        legacy
+            .iter()
+            .all(|sample| sample.allocations == legacy_allocations)
+    );
+    assert!(
+        optimized
+            .iter()
+            .all(|sample| sample.allocations == optimized_allocations)
+    );
     assert_eq!(legacy_allocations, MANIFESTS * 10);
     assert_eq!(optimized_allocations, 0);
 

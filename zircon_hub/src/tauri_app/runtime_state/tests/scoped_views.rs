@@ -1,6 +1,6 @@
 use std::{fs, path::Path, process::Command, process::Stdio};
 
-use crate::engines::{source_engine_id, SourceEngineInstall};
+use crate::engines::{SourceEngineInstall, source_engine_id};
 use crate::projects::RecentProject;
 use crate::settings::HubConfig;
 

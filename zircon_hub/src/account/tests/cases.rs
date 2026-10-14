@@ -148,8 +148,8 @@ fn a_refresh_completed_after_logout_cannot_restore_the_old_credential() {
 #[tokio::test]
 async fn admitted_write_survives_restart_identity_change_rejection_and_receipt_reconciliation() {
     use axum::{
-        routing::{get, post},
         Json, Router,
+        routing::{get, post},
     };
     use operations::{OperationIdentity, OperationJournal, OperationStatus};
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -243,7 +243,7 @@ async fn admitted_write_survives_restart_identity_change_rejection_and_receipt_r
 
 #[tokio::test]
 async fn stale_generation_and_broken_journal_never_dispatch_or_acknowledge() {
-    use axum::{routing::post, Router};
+    use axum::{Router, routing::post};
     use std::sync::atomic::{AtomicUsize, Ordering};
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let requests = Arc::new(AtomicUsize::new(0));
@@ -306,7 +306,7 @@ async fn stale_generation_and_broken_journal_never_dispatch_or_acknowledge() {
 
 #[tokio::test]
 async fn revoked_only_credential_survives_failure_and_retries_after_broker_restart() {
-    use axum::{routing::post, Router};
+    use axum::{Router, routing::post};
     use std::sync::atomic::{AtomicUsize, Ordering};
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let issuer = format!("http://{}/realm", listener.local_addr().unwrap());
@@ -404,7 +404,7 @@ async fn logout_cancels_login_waiting_for_the_initial_state_lock() {
 
 #[tokio::test]
 async fn logout_is_not_blocked_by_a_slow_service_response_and_late_data_is_rejected() {
-    use axum::{routing::get, Json, Router};
+    use axum::{Json, Router, routing::get};
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let broker = broker(format!("http://{}", listener.local_addr().unwrap()));
     let entered = Arc::new(tokio::sync::Notify::new());

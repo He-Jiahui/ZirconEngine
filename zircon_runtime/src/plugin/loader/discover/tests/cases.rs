@@ -612,6 +612,21 @@ fn incremental_manifest_refresh_falls_back_for_symlink_to_outside_manifest() {
         .diagnostics()
         .iter()
         .any(|diagnostic| diagnostic.contains("symbolic link")));
+
+    // A later notification for the now-dangling link must keep the same root-scan
+    // boundary and preserve the safe candidate instead of reading the missing target.
+    fs::remove_file(&outside_manifest).expect("remove outside manifest target");
+    let dangling = NativePluginLoader.refresh_discovery_manifest(root.path(), &linked_manifest);
+    let dangling_metrics = super::authority::discovery_authority()
+        .metrics(root.path())
+        .expect("dangling-link fallback scan metrics");
+
+    assert_eq!(plugin_ids(&dangling), vec!["safe"]);
+    assert!(dangling_metrics.enumerated_directories > 0);
+    assert!(dangling
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.contains("symbolic link")));
 }
 
 fn plugin_ids(report: &super::super::NativePluginLoadReport) -> Vec<&str> {

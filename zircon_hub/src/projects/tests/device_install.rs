@@ -22,11 +22,13 @@ fn install_package_to_device_copies_package_folder() {
 
     assert!(report.install_dir.starts_with(&device));
     assert!(report.install_dir.join("zircon-package.toml").is_file());
-    assert!(report
-        .install_dir
-        .join("project")
-        .join("zircon-project.toml")
-        .is_file());
+    assert!(
+        report
+            .install_dir
+            .join("project")
+            .join("zircon-project.toml")
+            .is_file()
+    );
     assert_eq!(report.files_copied, 2);
     assert!(report.receipt_path.is_file());
     assert!(report.total_bytes > 0);
@@ -89,9 +91,11 @@ fn install_package_to_device_rejects_existing_install_dir_without_modifying_it()
     )
     .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("Device install already exists: "));
+    assert!(
+        error
+            .to_string()
+            .contains("Device install already exists: ")
+    );
     assert_eq!(
         fs::read_to_string(install_dir.join("keep.txt")).unwrap(),
         "keep"

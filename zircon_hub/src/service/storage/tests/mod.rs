@@ -17,9 +17,11 @@ async fn schema_and_foreign_keys_are_enabled() {
             let version: i64 =
                 connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
             assert_eq!(version, 7);
-            assert!(connection
-                .execute("INSERT INTO projects VALUES ('missing','p','project')", [])
-                .is_err());
+            assert!(
+                connection
+                    .execute("INSERT INTO projects VALUES ('missing','p','project')", [])
+                    .is_err()
+            );
             Ok(())
         })
         .await

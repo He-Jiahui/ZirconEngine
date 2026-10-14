@@ -1,11 +1,17 @@
 //! 编译期模板文件清单，同时决定发布程序的渲染内容与模板内容摘要。
 //! 增删模板文件须同步这里；运行时不会回读源码树来发现遗漏的文件。
+//!
+//! `RENDERABLE_EMPTY_ENTRIES` 是模板包的唯一静态枚举入口：渲染器读取其中的相对路径和字节，
+//! 描述符则从同一组条目派生内容摘要与文件证据。
 
 pub(super) struct EmbeddedProjectTemplateEntry {
+    /// 写入新项目时使用的模板相对路径。
     pub path: &'static str,
+    /// 由编译器从模板资源嵌入的原始字节。
     pub bytes: &'static [u8],
 }
 
+// 以 crate manifest 根定位资源，避免运行时依赖当前 checkout 的工作目录。
 macro_rules! template_bytes {
     ($path:literal) => {
         include_bytes!(concat!(

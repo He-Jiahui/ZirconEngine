@@ -1,7 +1,10 @@
+//! 直接 AST 求值的行为契约测试；不经过 Runtime 的 compiled binding program。
+
 use std::cell::Cell;
 
 use super::*;
 
+/// 参数和属性 resolver 共同提供相等比较值后，真值 `Or` 分支不得读取右侧 control 引用。
 #[test]
 fn binding_expression_evaluator_resolves_values_and_preserves_short_circuiting() {
     let expression = UiBindingExpression::And(
@@ -34,6 +37,7 @@ fn binding_expression_evaluator_resolves_values_and_preserves_short_circuiting()
     assert_eq!(control_reads.get(), 0);
 }
 
+/// 由公开 AST 变体直接构造的超深表达式必须返回深度预算错误，而不能依赖递归求值。
 #[test]
 fn binding_expression_evaluator_rejects_over_depth_programs_without_recursing() {
     let mut expression = UiBindingExpression::Literal(UiValue::Bool(true));

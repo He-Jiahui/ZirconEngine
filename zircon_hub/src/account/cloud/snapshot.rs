@@ -7,10 +7,10 @@ use std::{
 use sha2::{Digest, Sha256};
 use zircon_runtime_interface::project::{ProjectGuid, ProjectManifestSummary};
 
-use super::manifest::{valid_path, FileEntry, Manifest, MAX_BLOB_BYTES, MAX_PROJECT_BYTES};
+use super::manifest::{FileEntry, MAX_BLOB_BYTES, MAX_PROJECT_BYTES, Manifest, valid_path};
 use super::package_lock::{
-    package_lock_state, PackageLockProviderError, ProjectPackageLockContext,
-    ProjectPackageLockProvider,
+    PackageLockProviderError, ProjectPackageLockContext, ProjectPackageLockProvider,
+    package_lock_state,
 };
 
 const SNAPSHOT_SCHEMA_VERSION: u32 = 1;
@@ -83,7 +83,7 @@ pub(crate) fn capture_with_package_lock(
             digest.clone()
         }
         zircon_runtime_interface::project::ProjectPackageLockState::Unavailable { .. } => {
-            return Err("hub_cloud_sync_package_lock_unavailable")
+            return Err("hub_cloud_sync_package_lock_unavailable");
         }
     };
     let snapshot = capture_scanned(root, expected_guid, digest, Some(state))?;

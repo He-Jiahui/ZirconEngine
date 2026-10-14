@@ -112,8 +112,13 @@ def capability(repo):
     config, raw = document(capsule / "capsule.json")
     require(sha(raw) == checksum and config.get("repositoryRoot") == str(repo)
             and config.get("ordinaryEntry") == CAPABILITY, "Capsule capability or repository changed")
-    require(set(config.get("files", {})) == {"runner.py", "source_preparation.py", "zircon-management.groovy"}
+    capsule_files = set(config.get("files", {}))
+    legacy_files = {"runner.py", "source_preparation.py", "zircon-management.groovy"}
+    require(capsule_files in (legacy_files, legacy_files | {"checkout_guard.py"})
             and set(config.get("clientSources", {})) == CLIENT_SOURCES, "Capsule has an incomplete code inventory")
+    checkout_capability = {"enabled": True, "policy": "actual-checkout", "guard": "checkout_guard.py"}
+    require(config.get("checkoutValidation") == (checkout_capability if "checkout_guard.py" in capsule_files else None),
+            "Capsule checkout validation capability differs from its pinned code")
     for name, expected in config["files"].items():
         require(isinstance(expected, str) and SHA.fullmatch(expected)
                 and sha(plain(capsule / name).read_bytes()) == expected, "Pinned capsule source changed")
@@ -355,6 +360,11 @@ def input_payload(context, payload, *, identity=None, recipe=None, target_dir=No
             validator.validation_recipe()
         require(value.get("sourceView") in {"checkout", "worktree"}, "An explicit sourceView is required")
         if value["sourceView"] == "checkout":
+            require(context["config"].get("checkoutValidation") == {
+                        "enabled": True, "policy": "actual-checkout", "guard": "checkout_guard.py"}
+                    and "checkout_guard.py" in context["config"].get("files", {}),
+                    "Actual checkout validation requires its installed pinned read guard",
+                    "checkout_input_capability_pending")
             require(not value.get("worktreeId") and value.get("externalRoots") == [str(plain(context["repo"].parent / "zr_vm"))],
                     "Checkout validation needs its explicit canonical external dependency")
     require(value.get("observationOnly") in (None, False), "Use QueryOnly to observe the original input")

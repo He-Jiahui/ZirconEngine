@@ -1,5 +1,10 @@
+//! 动作载荷字段名的接口契约测试。
+//!
+//! 覆盖登记名称往返映射与未知名称拒绝；不测试 Runtime 对字段值种类的静态校验。
+
 use super::*;
 
+/// 已知 wire 名称必须映射回唯一字段，未登记拼写必须保持未知。
 #[test]
 fn action_payload_schema_names_round_trip_and_reject_unknown() {
     for field in UiActionPayloadFieldName::ALL {
@@ -15,6 +20,7 @@ fn action_payload_schema_names_round_trip_and_reject_unknown() {
     assert_eq!(UiActionPayloadFieldName::from_schema_name("unknown"), None);
 }
 
+/// 忽略的 release 基准：比较 11 组样本中线性查找与直接名称解析的 P95，并要求后者至少快 20%。
 #[test]
 #[ignore = "release-only action payload schema-name dispatch benchmark"]
 fn action_payload_schema_name_dispatch_release_benchmark() {
@@ -52,6 +58,7 @@ fn action_payload_schema_name_dispatch_release_benchmark() {
             }
             started.elapsed().as_nanos()
         };
+        // 交替测量顺序，避免两种查找路径总是固定先后运行。
         if sample % 2 == 0 {
             linear_samples.push(measure_linear());
             direct_samples.push(measure_direct());

@@ -1,6 +1,6 @@
 use super::super::{error::ServiceError, storage::Database};
 use std::{
-    future::{poll_fn, Future},
+    future::{Future, poll_fn},
     sync::{Arc, Mutex, MutexGuard},
     task::Poll,
     time::Duration,
@@ -8,7 +8,7 @@ use std::{
 use tokio::{
     sync::{oneshot, watch},
     task::JoinHandle,
-    time::{timeout_at, Instant},
+    time::{Instant, timeout_at},
 };
 
 pub(super) const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(20);

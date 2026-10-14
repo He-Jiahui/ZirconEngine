@@ -201,8 +201,75 @@ def input_changes(before, after, limit=128):
     return {"changedValueCount": count, "values": changes, "truncated": count > len(changes)}
 
 
+class CheckoutInputIncomplete(ValueError):
+    code = "checkout_input_incomplete"
+
+
+def checkout_expected_inputs_digest(inputs):
+    """Bind internally captured native-tool facts together with declared bytes."""
+    files = inputs["files"]
+    trusted = inputs.get("trustedNativeInputs", {})
+    if not isinstance(files, dict) or not isinstance(trusted, dict):
+        raise ValueError("Actual checkout inputs require exact file and native-tool maps")
+    return sha(encoded({"files": files, "trustedNativeInputs": trusted} if trusted else files))
+
+
+def checkout_trusted_native_verified(inputs, guard):
+    trusted = inputs.get("trustedNativeInputs", {})
+    return (isinstance(trusted, dict)
+            and guard.get("trustedNativeInputs", {}) == trusted
+            and (not trusted or guard.get("trustedNativeInputsDigest") == sha(encoded(trusted))))
+
+
 def validation_inputs_verified(result, request=None):
-    """Successful sealed execution does not certify a mutable foreign checkout."""
+    """Require the proof belonging to the actual execution input policy."""
+    if result.get("validationInputPolicy") == "actual-checkout":
+        required = ("capturedInputVerified", "inputsUnchanged", "originalEngineUnchanged",
+                    "dependencyCacheUnchanged", "externalInputsUnchanged", "checkoutInputsUnchanged",
+                    "sourceNoWrites", "membershipStable")
+        guard = result.get("checkoutGuard", {})
+        if (any(result.get(name) is not True for name in required)
+                or not isinstance(guard, dict)
+                or any(guard.get(name) is not True for name in
+                       ("complete", "stable", "sourceNoWrites", "membershipStable",
+                        "cancellationComplete", "waitersJoined"))
+                or guard.get("inputCopiesCreated") != 0
+                or not isinstance(result.get("sourceRoot"), str)
+                or result["sourceRoot"] != result.get("executionRoot")
+                or guard.get("sourceRoot") != result["sourceRoot"]
+                or guard.get("expectedInputsDigest") != result.get("expectedInputsDigest")
+                or any(not isinstance(result.get(name), str) or not re.fullmatch(r"[0-9a-f]{64}", result[name])
+                       for name in ("sourceDigest", "checkoutInputsDigest", "expectedInputsDigest"))):
+            return False
+        for name in ("checkoutReadRef", "checkoutGuardRef"):
+            reference = result.get(name)
+            if (not isinstance(reference, dict) or set(reference) != {"path", "sha256"}
+                    or not isinstance(reference["path"], str) or not reference["path"]
+                    or not Path(reference["path"]).is_absolute()
+                    or not isinstance(reference["sha256"], str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", reference["sha256"])):
+                return False
+        if result["checkoutGuardRef"]["sha256"] != sha(encoded(guard) + b"\n"):
+            return False
+        trusted = guard.get("trustedNativeInputs", {})
+        if (not isinstance(trusted, dict)
+                or (trusted or "trustedNativeInputsDigest" in guard)
+                and guard.get("trustedNativeInputsDigest") != sha(encoded(trusted))):
+            return False
+        if request is None:
+            return True
+        return (request.get("validationInputPolicy") == "actual-checkout"
+                and request.get("payload", {}).get("sourceView") == "checkout"
+                and request.get("capturedInputVerified") is True
+                and request.get("source", {}).get("sourceDigest") == result["sourceDigest"]
+                and all(request.get(name) == result.get(name) for name in
+                        ("sourceRoot", "executionRoot", "checkoutInputsDigest",
+                         "expectedInputsDigest", "checkoutReadRef"))
+                and isinstance(request.get("checkoutInputs"), dict)
+                and sha(encoded(request["checkoutInputs"])) == result["checkoutInputsDigest"]
+                and checkout_expected_inputs_digest(request["checkoutInputs"]) == result["expectedInputsDigest"]
+                and checkout_trusted_native_verified(request["checkoutInputs"], guard)
+                and "preparation" not in request and "sealedInputRef" not in result)
     if result.get("validationInputPolicy") is None:
         return result.get("inputsUnchanged") is True and result.get("preparedInputsUnchanged") is True
     if result.get("validationInputPolicy") != "sealed-source" or any(
@@ -365,14 +432,29 @@ def source_helper():
     return module
 
 
+def checkout_guard_helper():
+    # boot verifies this helper in the immutable management capsule.
+    path = plain(Path(__file__).with_name("checkout_guard.py"))
+    spec = importlib.util.spec_from_file_location("jenkins_management_checkout_guard", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def boot(capsule):
     capsule = plain(capsule)
     raw = (capsule / "capsule.json").read_bytes()
     config = json.loads(raw)
     if config.get("schemaVersion") != 1 or capsule.name != sha(raw):
         raise ValueError("Management capsule identity differs")
-    if set(config["files"]) != {"runner.py", "source_preparation.py", "zircon-management.groovy"}:
-        raise ValueError("Management capsule lacks its pinned source preparation helper")
+    legacy_files = {"runner.py", "source_preparation.py", "zircon-management.groovy"}
+    checkout_files = legacy_files | {"checkout_guard.py"}
+    if set(config["files"]) not in (legacy_files, checkout_files):
+        raise ValueError("Management capsule has an incomplete pinned implementation inventory")
+    checkout_policy = config.get("checkoutValidation")
+    if checkout_policy is not None and (set(config["files"]) != checkout_files or checkout_policy != {
+            "enabled": True, "policy": "actual-checkout", "guard": "checkout_guard.py"}):
+        raise ValueError("Actual checkout metadata requires its complete pinned guard inventory")
     for name, checksum in config["files"].items():
         if sha(plain(capsule / name).read_bytes()) != checksum:
             raise ValueError("Pinned management code changed")
@@ -462,13 +544,16 @@ class Management:
         self.input_digest = sha(encoded({k: v for k, v in payload.items() if k != "observationOnly"}))
 
     def git_command(self, root, *args):
-        return ["git", "-c", "core.longpaths=true", "-c", "core.hooksPath=" + str(Path(__file__).parent / "no-hooks"),
+        binding = getattr(self, "_checkout_git_binding", None)
+        program = binding["path"] if binding is not None else "git"
+        return [program, "-c", "core.longpaths=true", "-c", "core.hooksPath=" + str(Path(__file__).parent / "no-hooks"),
                 "-c", "core.autocrlf=false", "-C", str(root), *args]
 
     def git(self, root, *args, check=True):
         command = self.git_command(root, *args)
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                timeout=1800 if args[:2] == ('worktree', 'add') else 600, check=False, env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+                                timeout=1800 if args[:2] == ('worktree', 'add') else 600, check=False,
+                                env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0"})
         if check and result.returncode:
             raise ValueError(stderr_tail(result.stderr))
         return result
@@ -1285,6 +1370,7 @@ class Management:
                 or operation.get("sessionId") != self.session or result.get("status") != "passed"
                 or original.get("repositoryId") != self.repo_id or original.get("worktreeId") != worktree_id
                 or original.get("sourceView", "worktree") != "worktree"
+                or result.get("validationInputPolicy") == "actual-checkout"
                 or original.get("driverDigest") != self.config["driverDigest"]
                 or original.get("runtimeOperationId") != self.config["runtimeOperationId"]
                 or not captured or result.get("sourceDigest") != captured["payload"]["sourceDigest"]
@@ -2073,6 +2159,45 @@ class Management:
         request = read_reference(claim["request"], expected_path=report / "request.json")
         parent_request = read_reference(checkpoint["request"], expected_path=report.parent.parent / "request.json",
                                         max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        actual_checkout = parent_request.get("validationInputPolicy") == "actual-checkout"
+        if actual_checkout:
+            input_fields = ("checkoutInputsDigest", "expectedInputsDigest", "checkoutReadRef")
+            if (checkpoint.get("validationInputPolicy") != "actual-checkout"
+                    or payload.get("sourceView") != "checkout" or context is not None
+                    or request.get("validationInputPolicy") != "actual-checkout"
+                    or "preparation" in parent_request or "sealedInputRef" in request
+                    or any(request.get(name) != parent_request.get(name) for name in input_fields)
+                    or request.get("checkoutInputsDigest") != checkpoint.get("checkoutInputsDigest")
+                    or request.get("checkoutReadRef") != checkpoint.get("checkoutReadRef")
+                    or parent_request.get("sourceRoot") != parent_request.get("executionRoot")
+                    or sha(encoded(parent_request["checkoutInputs"])) != parent_request["checkoutInputsDigest"]
+                    or checkout_expected_inputs_digest(parent_request["checkoutInputs"]) != parent_request["expectedInputsDigest"]):
+                raise ValueError("Actual checkout step lost its original continuous read binding")
+            read_document = read_reference(request["checkoutReadRef"],
+                expected_path=report_root / "checkout-read.json", max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+            binding = read_document.get("binding", {})
+            if (binding.get("owner") != owner or binding.get("operationKey") != key
+                    or binding.get("inputDigest") != digest
+                    or binding.get("sourceRoot") != parent_request["sourceRoot"]
+                    or binding.get("sourceDigest") != parent_request["source"]["sourceDigest"]
+                    or binding.get("reservationKey") != checkpoint.get("reservationKey")
+                    or binding.get("preparationKey") != checkpoint.get("writer")
+                    or any(binding.get(name) != parent_request[name] for name in input_fields[:2])
+                    or read_document.get("guard", {}).get("expectedInputsDigest") != parent_request["expectedInputsDigest"]
+                    or not checkout_trusted_native_verified(parent_request["checkoutInputs"],
+                                                            read_document.get("guard", {}))):
+                raise ValueError("Actual checkout step guard identity differs from the original reservation")
+            input_binding = {"validationInputPolicy": "actual-checkout",
+                             "sourceDigest": parent_request["source"]["sourceDigest"],
+                             **{name: request[name] for name in input_fields}}
+            result_binding = dict(input_binding)
+        else:
+            if (checkpoint.get("validationInputPolicy") == "actual-checkout"
+                    or request.get("validationInputPolicy") == "actual-checkout"
+                    or request.get("sealedInputRef") != parent_request["preparation"]["sealedInputRef"]):
+                raise ValueError("A sealed checkpoint cannot be upgraded to actual checkout evidence")
+            input_binding = {"sourceDigest": request["sealedInputRef"]}
+            result_binding = {"sealedInputRef": request["sealedInputRef"]}
         if (parent_request.get("inputDigest") != digest
                 or {k: v for k, v in parent_request["payload"].items() if k != "observationOnly"}
                    != {k: v for k, v in payload.items() if k != "observationOnly"}
@@ -2085,7 +2210,6 @@ class Management:
                 or request.get("recipe") != payload["batch"]["recipes"][ordinal - 1]
                 or request.get("recipe") != parent_request["coverage"]["recipes"][ordinal - 1]
                 or request.get("timeoutSeconds") != request["recipe"]["ownedNativeTimeoutSeconds"]
-                or request.get("sealedInputRef") != parent_request["preparation"]["sealedInputRef"]
                 or request.get("environmentDigest") != parent_request["stepEnvironmentDigests"][ordinal - 1]
                 or request.get("taskScratch") != parent_request["taskScratch"]):
             raise ValueError("Step request differs from its complete original shared input")
@@ -2111,14 +2235,14 @@ class Management:
                  "commandDigest": proof["identity"]["commandDigest"], "requestId": request_id,
                  "operationId": operation_id, "taskScratch": request["taskScratch"],
                  "environmentDigest": request["environmentDigest"], "stepRequest": claim["request"],
-                 "sourceDigest": request["sealedInputRef"], "formalAcceptance": False}
+                 **input_binding, "formalAcceptance": False}
         existing = self.state.get("native_job", proof_id)
         if existing and existing["payload"] != value:
             raise ValueError("Original per-step Native record changed")
         result = self.batch_step_evidence(request["recipe"], report, native, native_ref,
                                           target=report_root.parent.parent / "pools" / checkpoint["pool"] / "target")
         result.update(request=claim["request"], started=started_ref, nativeProofRef=proof_id,
-                      inputDigest=digest, sealedInputRef=request["sealedInputRef"],
+                      inputDigest=digest, **result_binding,
                       parentRequest=checkpoint["request"], environmentDigest=request["environmentDigest"],
                       formalAcceptance=False, m8Accepted=False, performanceAccepted=False, productsAccepted=False)
         receipt_path = report / "receipt.json"
@@ -2155,6 +2279,13 @@ class Management:
         try:
             self.validation_batch()
             checkpoint = self.batch_checkpoint()
+            if self.payload.get("sourceView") == "checkout":
+                read = self.state.get("management_checkout_read", "management-" + self.key)
+                return (checkpoint.get("validationInputPolicy") == "actual-checkout"
+                        and checkpoint.get("stage") == "complete" and bool(checkpoint.get("receipt"))
+                        and bool(read) and read["payload"].get("status") == "released"
+                        and read["payload"].get("pinsReleased") is True
+                        and read["payload"].get("continuousReadProven") is True)
             if checkpoint.get("stage") == "complete":
                 return bool(checkpoint.get("receipt"))
             for claim in self.batch_claims():
@@ -2296,6 +2427,9 @@ class Management:
         return claim
 
     def batch_failure_release(self, error):
+        read = self.state.get("management_checkout_read", "management-" + self.key)
+        if read and read["payload"].get("status") in {"active", "unknown"}:
+            return None
         admission = getattr(self, "_validation_admission", None)
         if not admission:
             return None
@@ -2319,6 +2453,8 @@ class Management:
 
 
     def validate_batch(self):
+        if self.payload.get("sourceView", "worktree") == "checkout":
+            return self.validate_checkout(batch=self.validation_batch())
         from tools.jenkins.resources.capacity import Capacity, ResourceManager
         from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
         from tools.jenkins.workflow.planning import _environment_policy
@@ -2785,6 +2921,11 @@ class Management:
                            "launchClaimed": True}, expected_version=execution["version"], connection=connection)
 
     def validation_failure_release(self, error, *, single_only=False):
+        read = self.state.get("management_checkout_read", "management-" + self.key)
+        context = getattr(self, "_checkout_context", None)
+        if (read and read["payload"].get("status") in {"active", "unknown"}
+                or context is not None and context.get("readReleased") is not True):
+            return None
         if "batch" in self.payload and not single_only:
             return self.batch_failure_release(error)
         admission = getattr(self, "_validation_admission", None)
@@ -3036,6 +3177,900 @@ class Management:
             facts[name] = sha(path.read_bytes()) if path.is_file() else None
         return {"home": str(cache), "configSha256": facts}
 
+    def checkout_read_inputs(self, before, compiler, preparation, helper):
+        """Capture original checkout bytes, configuration and directory membership."""
+        import stat
+        import tomllib
+        files, folded, trees, git_roots, configuration = {}, {}, {}, [], []
+        monitors = {str(plain(before["sourceRoot"])): None}
+
+        def monitor_file(path):
+            if any(values is None and path.is_relative_to(Path(name))
+                   for name, values in monitors.items()):
+                return
+            parent = path.parent
+            while not parent.is_dir():
+                if parent == parent.parent:
+                    raise ValueError("An input has no existing physical monitor ancestor")
+                parent = parent.parent
+            parent = plain(parent)
+            key = str(parent)
+            if key not in monitors:
+                monitors[key] = []
+            if monitors[key] is not None:
+                relative = path.relative_to(parent).as_posix()
+                if relative not in monitors[key]:
+                    monitors[key].append(relative)
+
+        def add(path, checksum):
+            path = plain(path)
+            name, key = str(path), str(path).casefold()
+            prior = folded.get(key)
+            if prior is not None and files[prior] != checksum:
+                raise ValueError("Conflicting checkout input identity: " + name)
+            files[prior or name] = checksum
+            folded[key] = prior or name
+            # Full roots are added separately; narrow ancestors also observe
+            # creation of a missing configuration directory along this path.
+            monitor_file(path)
+
+        def file(path):
+            path = plain(path)
+            try:
+                checksum = helper._file_fact(path)["sha256"]
+            except FileNotFoundError:
+                checksum = None
+            add(path, checksum)
+            return checksum
+
+        def tree(path):
+            path, name = plain(path), str(plain(path))
+            if name in trees:
+                return
+            try:
+                observed = path.lstat()
+            except FileNotFoundError:
+                trees[name] = {"present": False, "files": {}, "directories": []}
+                return
+            if not stat.S_ISDIR(observed.st_mode):
+                raise ValueError("Input tree is not a physical directory: " + name)
+            manifest, directories, pending = {}, [], [path]
+            while pending:
+                directory = pending.pop()
+                directories.append(directory.relative_to(path).as_posix())
+                with os.scandir(directory) as entries:
+                    for entry in entries:
+                        child = plain(Path(entry.path))
+                        if entry.is_dir(follow_symlinks=False):
+                            pending.append(child)
+                        elif entry.is_file(follow_symlinks=False):
+                            checksum = file(child)
+                            if checksum is None:
+                                raise ValueError("Input disappeared during inventory: " + str(child))
+                            manifest[child.relative_to(path).as_posix()] = checksum
+                        else:
+                            raise ValueError("Unsupported input tree entry: " + str(child))
+            trees[name] = {"present": True, "files": dict(sorted(manifest.items())),
+                           "directories": sorted(directories)}
+
+        def config_path(value, relative_to):
+            if not isinstance(value, str) or not value or "\0" in value:
+                raise ValueError("Configuration input must name an exact file")
+            path = Path(os.path.expanduser(value))
+            if not path.is_absolute():
+                path = relative_to / path
+            return plain(path)
+
+        def rust_flags(value):
+            tokens = value.split() if isinstance(value, str) else value
+            if not isinstance(tokens, list) or any(not isinstance(item, str) or not item for item in tokens):
+                raise CheckoutInputIncomplete("Rust flags must have an exact supported argument list")
+            pure_codegen = {"opt-level", "debuginfo", "debug-assertions", "overflow-checks", "lto",
+                "panic", "codegen-units", "embed-bitcode", "force-frame-pointers", "force-unwind-tables",
+                "prefer-dynamic", "relocation-model", "code-model", "target-cpu", "target-feature",
+                "symbol-mangling-version", "split-debuginfo", "strip", "link-dead-code"}
+            offset = 0
+            while offset < len(tokens):
+                flag = tokens[offset]
+                offset += 1
+                if flag in {"-O", "-g", "--document-private-items", "--document-hidden-items", "--show-coverage"}:
+                    continue
+                if flag == "-C" or flag.startswith("-C") and len(flag) > 2:
+                    option = flag[2:]
+                    if flag == "-C":
+                        if offset == len(tokens):
+                            raise CheckoutInputIncomplete("Rust codegen option has no value")
+                        option = tokens[offset]
+                        offset += 1
+                    name, separator, argument = option.partition("=")
+                    if name not in pure_codegen or (separator and not re.fullmatch(r"[-A-Za-z0-9_+.,=]+", argument)):
+                        raise CheckoutInputIncomplete("Rust codegen option requires additional native/path inputs: " + name)
+                    continue
+                if flag in {"--cfg", "--check-cfg", "--cap-lints", "--edition", "-A", "-W", "-D", "-F"}:
+                    if offset == len(tokens):
+                        raise CheckoutInputIncomplete("Rust option has no value")
+                    option = tokens[offset]
+                    offset += 1
+                elif flag.startswith(("--cfg=", "--check-cfg=", "--cap-lints=", "--edition=")):
+                    flag, option = flag.split("=", 1)
+                elif flag.startswith(("-A", "-W", "-D", "-F")) and len(flag) > 2:
+                    flag, option = flag[:2], flag[2:]
+                else:
+                    raise CheckoutInputIncomplete("Rust flag requires an explicitly supported input closure: " + flag)
+                patterns = {"--cfg": r'[A-Za-z_][A-Za-z0-9_]*(?:="[A-Za-z0-9_. -]*")?',
+                            "--check-cfg": r'[A-Za-z0-9_"(), .-]+',
+                            "--cap-lints": r"(?:allow|warn|deny|forbid)",
+                            "--edition": r"(?:2015|2018|2021|2024)"}
+                pattern = patterns.get(flag, r"[A-Za-z_][A-Za-z0-9_:]*")
+                if not re.fullmatch(pattern, option):
+                    raise CheckoutInputIncomplete("Rust option requires additional path/native inputs: " + flag)
+
+        def cargo_config(path, active=None):
+            path = plain(path)
+            name = str(path)
+            active = set() if active is None else active
+            if name in active:
+                raise ValueError("Cargo configuration include cycle")
+            checksum = file(path)
+            if checksum is None:
+                return
+            raw = path.read_bytes()
+            if sha(raw) != checksum:
+                raise ValueError("Cargo configuration changed during discovery")
+            parsed = tomllib.loads(raw.decode("utf-8"))
+            configuration.append({"kind": "cargo", "path": name, "sha256": checksum})
+            includes = parsed.get("include", [])
+            if not isinstance(includes, list):
+                raise ValueError("Unsupported Cargo include configuration")
+            for item in includes:
+                value = item.get("path") if isinstance(item, dict) else item
+                included = config_path(value, path.parent)
+                cargo_config(included, active | {name})
+            # Overrides can introduce an otherwise uncaptured compiler, source
+            # or runner. This slice refuses them rather than certifying a gap.
+            if parsed.get("paths"):
+                raise ValueError("Cargo path overrides require explicit checkout inputs")
+            if parsed.get("env"):
+                raise CheckoutInputIncomplete("Cargo environment overrides require their actual native input closure")
+            for source_value in parsed.get("source", {}).values():
+                if isinstance(source_value, dict) and any(
+                        source_value.get(key) for key in ("directory", "local-registry", "git")):
+                    raise ValueError("Cargo source replacement requires explicit checkout inputs")
+            build = parsed.get("build", {})
+            if any(build.get(key) for key in ("rustc", "rustdoc", "rustc-wrapper", "rustc-workspace-wrapper")):
+                raise CheckoutInputIncomplete("Cargo compiler overrides require an explicit toolchain closure")
+            if build.get("target") is not None and build["target"] != compiler.get("host"):
+                raise CheckoutInputIncomplete("Cross-target Cargo configuration requires its actual sysroot closure")
+            for key in ("rustflags", "rustdocflags"):
+                if key in build:
+                    rust_flags(build[key])
+            for target in parsed.get("target", {}).values():
+                if isinstance(target, dict):
+                    if any(target.get(key) for key in ("linker", "runner")):
+                        raise CheckoutInputIncomplete("Cargo linker/runner overrides require an explicit toolchain closure")
+                    for key in ("rustflags", "rustdocflags"):
+                        if key in target:
+                            rust_flags(target[key])
+
+        def git_configuration(path):
+            raw = self.git(path, "config", "--null", "--show-origin", "--includes", "--list").stdout
+            items = raw.split(b"\0")
+            if items[-1] != b"" or (len(items) - 1) % 2:
+                raise ValueError("Git configuration origin format is incomplete")
+            for offset in range(0, len(items) - 1, 2):
+                origin = items[offset].decode("utf-8", "strict")
+                if origin.startswith("file:"):
+                    file(config_path(origin[5:], path))
+                elif origin not in {"command line:", "standard input:"}:
+                    raise ValueError("Unsupported effective Git configuration origin")
+                key, _separator, value = items[offset + 1].partition(b"\n")
+                key = key.decode("utf-8", "strict").casefold()
+                if key in {"core.excludesfile", "core.attributesfile", "include.path"} or (
+                        key.startswith("includeif.") and key.endswith(".path")):
+                    # Active include files also appear among origin records.
+                    # Relative include names use the including file's directory.
+                    if origin.startswith("file:"):
+                        including = config_path(origin[5:], path).parent
+                    else:
+                        including = path
+                    file(config_path(value.decode("utf-8", "strict"), including))
+            configuration.append({"kind": "git", "sourceRoot": str(path), "effectiveDigest": sha(raw)})
+
+        def repository(path, snapshot):
+            path = plain(path)
+            monitors[str(path)] = None
+            flattened = preparation.source_files(snapshot)
+            for relative, checksum in flattened.items():
+                add(path / relative, checksum)
+            git_dir = plain(Path(self.text(path, "rev-parse", "--absolute-git-dir")))
+            common = plain(Path(self.text(path, "rev-parse", "--path-format=absolute", "--git-common-dir")))
+            git_roots.append({"sourceRoot": str(path), "gitDir": str(git_dir), "commonDir": str(common)})
+            monitors[str(git_dir)] = monitors[str(common)] = None
+            marker = path / ".git"
+            if stat.S_ISREG(marker.lstat().st_mode):
+                file(marker)
+            for base in dict.fromkeys((git_dir, common)):
+                for name in ("HEAD", "index", "config", "config.worktree", "packed-refs", "commondir",
+                             "gitdir", "shallow", "info/exclude", "info/attributes", "info/grafts",
+                             "objects/info/alternates"):
+                    file(base / name)
+                tree(base / "refs")
+                tree(base / "reftable")
+                for shared in sorted(base.glob("sharedindex.*")):
+                    file(shared)
+            # Ignored attribute/ignore controls still influence source discovery.
+            directories = {path}
+            for relative in flattened:
+                directories.update(parent for parent in (path / relative).parents
+                                   if parent == path or parent.is_relative_to(path))
+            for directory in sorted(directories):
+                file(directory / ".gitignore")
+                file(directory / ".gitattributes")
+            git_configuration(path)
+            for relative, value in snapshot["files"].items():
+                if isinstance(value, dict):
+                    repository(path / relative, value["source"])
+
+        root = plain(before["sourceRoot"])
+        repository(root, before["source"])
+        for external in before["externalRoots"]:
+            repository(plain(external["path"]), external["source"])
+        for relative in ("docs", "templates", ".codex/skills", ".codex/audits"):
+            tree(root / relative)
+        for relative in ("rust-toolchain", "rust-toolchain.toml"):
+            file(root / relative)
+        cache = plain(before["dependencyCache"]["home"])
+        if not cache.is_dir():
+            raise ValueError("Actual checkout requires an existing physical Cargo home")
+        monitors[str(cache)] = None
+        for name, checksum in before["dependencyCache"]["configSha256"].items():
+            add(cache / name, checksum)
+        for directory in (root, *root.parents, cache):
+            for relative in (("config", "config.toml") if directory == cache else
+                             (".cargo/config", ".cargo/config.toml")):
+                cargo_config(directory / relative)
+        for relative in ("registry/src", "git/checkouts", "registry/index", "registry/cache", "git/db"):
+            tree(cache / relative)
+        bound_git = getattr(self, "_checkout_git_binding", None)
+        if not isinstance(bound_git, dict):
+            raise CheckoutInputIncomplete("Actual checkout Git has no internal installed-tool binding")
+        git_fact = checkout_guard_helper().capture_trusted_git_input()
+        if git_fact != bound_git:
+            raise CheckoutInputIncomplete("The originally bound installed Git identity changed")
+        git_executable = plain(git_fact["path"])
+        if any(git_executable == source or git_executable.is_relative_to(source)
+               for source in (root, cache, *(plain(item["path"]) for item in before["externalRoots"]))):
+            raise CheckoutInputIncomplete("Installed Git cannot be a checkout or dependency-cache input")
+        add(git_executable, git_fact["sha256"])
+        trusted_native_inputs = {str(git_executable): git_fact}
+        # Explicit default absences can become effective later; monitoring also
+        # covers parent creation. Existing effective origins are captured above.
+        user = plain(Path.home())
+        xdg = plain(Path(os.environ.get("XDG_CONFIG_HOME", str(user / ".config"))))
+        for path in (user / ".gitconfig", xdg / "git/config", xdg / "git/ignore",
+                     xdg / "git/attributes", git_executable.parent.parent / "etc/gitconfig",
+                     git_executable.parent.parent / "etc/gitattributes"):
+            file(path)
+        for key in ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"):
+            if os.environ.get(key):
+                file(config_path(os.environ[key], root))
+        for fact in compiler["plainFileFacts"].values():
+            add(Path(fact["path"]), fact["sha256"])
+            monitors[str(plain(Path(fact["path"]).parent))] = None
+        native_environment = getattr(self, "_checkout_native_environment", None)
+        if not isinstance(native_environment, dict) or not native_environment:
+            raise CheckoutInputIncomplete("The actual trusted native environment is unavailable")
+
+        def native_directories(variable, *, must_exist):
+            raw = native_environment.get(variable)
+            if not isinstance(raw, str) or not raw or any(char in raw for char in "\0\r\n"):
+                raise CheckoutInputIncomplete("Native input directory list is missing: " + variable)
+            entries = raw.split(";")
+            while entries and not entries[-1].strip():
+                entries.pop()
+            result = []
+            for value in entries:
+                value = value.strip()
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1]
+                if (not value or '"' in value or not re.match(r"^[A-Za-z]:[\\/]", value)
+                        or not Path(value).is_absolute()):
+                    raise CheckoutInputIncomplete("Native inputs require literal absolute directories: " + variable)
+                try:
+                    directory = plain(value)
+                    if directory == directory.parent:
+                        raise ValueError("A native input cannot use an entire volume")
+                    if directory.exists() and not directory.is_dir():
+                        raise ValueError("Native input is not a directory")
+                    if must_exist and not directory.is_dir():
+                        raise ValueError("Required native input directory does not exist")
+                except (ValueError, OSError) as error:
+                    raise CheckoutInputIncomplete(variable + ": " + str(error)) from error
+                if directory not in result:
+                    result.append(directory)
+            if not result:
+                raise CheckoutInputIncomplete("Native input directory list is empty: " + variable)
+            return result
+
+        def native_tree(directory):
+            try:
+                tree(directory)
+            except (ValueError, OSError) as error:
+                raise CheckoutInputIncomplete("Cannot capture native input directory: " + str(directory)) from error
+
+        native_inputs = {"environmentDigest": sha(encoded(native_environment)),
+                         "headerLibraryDirectories": {}, "tools": {}, "toolDirectories": []}
+        for variable in ("INCLUDE", "LIB", "LIBPATH"):
+            directories = native_directories(variable, must_exist=True)
+            native_inputs["headerLibraryDirectories"][variable] = [str(path) for path in directories]
+            for directory in directories:
+                monitors[str(directory)] = None
+                native_tree(directory)
+        search_directories = native_directories("PATH", must_exist=False)
+        native_inputs["pathDirectories"] = [str(path) for path in search_directories]
+
+        def native_tool(name, *, required):
+            candidates, selected = [], None
+            for directory in search_directories:
+                path = directory / name
+                try:
+                    checksum = file(path)
+                except (ValueError, OSError) as error:
+                    raise CheckoutInputIncomplete("Cannot capture native executable: " + str(path)) from error
+                candidates.append({"path": str(path), "sha256": checksum})
+                if checksum is not None:
+                    selected = path
+                    break
+            native_inputs["tools"][name] = {"search": candidates,
+                                           "selected": str(selected) if selected is not None else None}
+            if selected is None:
+                if required:
+                    raise CheckoutInputIncomplete("Trusted PATH has no required native tool: " + name)
+                return
+            directory = selected.parent
+            if directory == directory.parent:
+                raise CheckoutInputIncomplete("Native tool directory cannot be an entire volume")
+            monitors[str(directory)] = None
+            # Pin the selected installation directory, including adjacent DLLs,
+            # localized resources and helper executables the tool may invoke.
+            # Its SDK/VS installation ancestors are never scanned.
+            native_tree(directory)
+            if str(directory) not in native_inputs["toolDirectories"]:
+                native_inputs["toolDirectories"].append(str(directory))
+
+        for name in ("cl.exe", "link.exe", "lib.exe", "rc.exe", "mt.exe"):
+            native_tool(name, required=True)
+        for name in ("cmake.exe", "ninja.exe", "clang.exe", "clang-cl.exe",
+                     "lld-link.exe", "llvm-lib.exe", "ml64.exe", "cvtres.exe"):
+            native_tool(name, required=False)
+        for variable, value in native_environment.items():
+            if (variable in {"CC", "CXX", "AR", "RC", "CMAKE", "RUSTC_LINKER"}
+                    or variable.startswith(("CC_", "CXX_", "AR_"))
+                    or variable.startswith("CARGO_TARGET_") and variable.endswith("_LINKER")) and value:
+                # Native override strings may contain an executable plus argv,
+                # so the PATH-only closure cannot certify them implicitly.
+                raise CheckoutInputIncomplete("Explicit native compiler override is not captured: " + variable)
+        native_inputs["toolDirectories"].sort()
+        policy_file = getattr(self, "_checkout_policy_file", None)
+        if policy_file is not None:
+            file(policy_file)
+        if "batch" in self.payload:
+            contract = self.payload["batch"]["contractRef"]
+            if file(contract["path"]) != contract["sha256"]:
+                raise ValueError("Original batch contract bytes changed")
+        # Full source/Git/cache/toolchain roots already cover their children.
+        # Keep only the narrow ancestor monitors needed for explicit absences.
+        monitors = {name: values for name, values in monitors.items()
+                    if values is None or not any(other != name and coverage is None
+                        and Path(name).is_relative_to(Path(other))
+                        for other, coverage in monitors.items())}
+        roots = sorted(monitors)
+        interests = {name: sorted(values) for name, values in monitors.items() if values is not None}
+        value = {"files": dict(sorted(files.items())), "treeFacts": dict(sorted(trees.items())),
+                 "gitRoots": sorted(git_roots, key=lambda item: item["sourceRoot"].casefold()),
+                 "configuration": sorted(configuration, key=lambda item: encoded(item)),
+                 "compiler": compiler, "nativeToolchain": native_inputs,
+                 "trustedNativeInputs": trusted_native_inputs,
+                 "watchRoots": roots, "watchInterests": interests}
+        return value, roots
+
+    @staticmethod
+    def checkout_read_ignored(before, checkout_inputs, *, outputs=None):
+        """Propagate exact noninput bookkeeping/output paths to every watcher."""
+        root = plain(before["sourceRoot"])
+        cache = plain(before["dependencyCache"]["home"])
+        candidates = [root / relative for relative in (
+            ".jenkins/state", ".jenkins/agent", ".jenkins/runtime", ".jenkins/logs",
+            ".jenkins/cache", ".jenkins/tmp", ".jenkins/builds", ".jenkins/records",
+            ".jenkins/jenkins_home", ".jenkins/worktrees",
+            # These narrow paths remain safe when state/runtime contains an input.
+            ".jenkins/state/coordination.sqlite3", ".jenkins/state/coordination.sqlite3-wal",
+            ".jenkins/state/coordination.sqlite3-shm", ".jenkins/state/coordination.sqlite3-journal",
+            ".jenkins/state/locks")]
+        candidates.extend(cache / relative for relative in (
+            ".package-cache", ".package-cache-mutate", ".global-cache",
+            ".global-cache-wal", ".global-cache-shm", ".global-cache-journal", "registry/CACHEDIR.TAG"))
+        candidates.extend(plain(value) for name, value in (outputs or {}).items()
+                          if name in {"build", "reports", "tmp"})
+        inputs = [plain(name) for name in checkout_inputs["files"]]
+        safe = [plain(path) for path in candidates
+                if not any(value == path or value.is_relative_to(path) for value in inputs)]
+        result = {}
+        for name in checkout_inputs["watchRoots"]:
+            watch_root = plain(name)
+            result[name] = sorted({path.relative_to(watch_root).as_posix() for path in safe
+                                   if path != watch_root and path.is_relative_to(watch_root)})
+        return result
+
+    def checkout_git_read_conflict(self, *, connection=None, unknown_only=False):
+        """Durable unknown readers survive the death of their live guard."""
+        for row in self.state.list("management_checkout_read", connection=connection):
+            value = row["payload"]
+            if (value.get("repositoryId") == self.repo_id
+                    and value.get("status") in ({"unknown"} if unknown_only else {"active", "unknown"})):
+                return row
+        return None
+
+    def acquire_checkout_guard(self, before, checkout_inputs):
+        module = checkout_guard_helper()
+        return module.CheckoutReadGuard(
+            plain(before["sourceRoot"]), files=checkout_inputs["files"],
+            watch_roots=checkout_inputs["watchRoots"],
+            watch_interests=checkout_inputs["watchInterests"],
+            trusted_native_inputs=checkout_inputs["trustedNativeInputs"],
+            ignored_activity=self.checkout_read_ignored(
+                before, checkout_inputs, outputs=getattr(self, "_checkout_outputs", None))).acquire()
+
+    def checkout_unknown(self, reason, *, message=None):
+        """Retain the original read, writer and resource; never replay a claim."""
+        context = self._checkout_context
+        owner = context["owner"]
+        read = self.state.get("management_checkout_read", owner)
+        if read:
+            self.state.put("management_checkout_read", owner, {
+                **read["payload"], "status": "unknown", "continuousReadProven": False,
+                "reasonCode": reason, "message": message, "unknownAt": time.time()},
+                expected_version=read["version"])
+        for domain in ("execution", "execution_launch"):
+            row = self.state.get(domain, owner)
+            if row:
+                self.state.put(domain, owner, {**row["payload"], "status": "unknown",
+                    "reasonCode": reason}, expected_version=row["version"])
+        # No finish/close: an unproven native tree may still read these inputs.
+        # The durable unknown row also blocks managed Git after this process dies.
+        return {"status": "unknown", "reasonCode": reason, "message": message,
+                "validationInputPolicy": "actual-checkout", "sourceRoot": str(context["root"]),
+                "executionRoot": str(context["root"]), "sourceDigest": context["before"]["sourceDigest"],
+                "checkoutInputsDigest": context["inputsDigest"], "checkoutReadRef": context.get("readRef"),
+                "originalReservationRetained": True, "originalWriterRetained": True,
+                "continuousReadProven": False, "formalAcceptance": False, "m8Accepted": False}
+
+    def checkout_final_inputs(self):
+        """Observe every original input before ending the continuous read interval."""
+        context = self._checkout_context
+        root, before, guard = context["root"], context["before"], context["guard"]
+        after, inputs_after, capture_error = None, None, None
+        observation = {"complete": False, "inputsUnchanged": False, "originalEngineUnchanged": False,
+                       "dependencyCacheUnchanged": False, "externalInputsUnchanged": False}
+        try:
+            observed_root, after, observation = self.validation_observation(before)
+            if observed_root != root:
+                raise ValueError("Actual checkout source root changed")
+            compiler = context["helper"]._toolchain_facts(root)
+            inputs_after, _roots = self.checkout_read_inputs(
+                after, compiler, context["preparation"], context["helper"])
+        except Exception as error:
+            capture_error = str(error)
+        stability_error = None
+        try:
+            guard.assert_stable()
+        except Exception as error:
+            stability_error = str(error)
+        finished = guard.finish()
+        guard_ref = write_json(context["report"] / "checkout-guard.json", finished)
+        exact = before == after and context["inputs"] == inputs_after
+        proof = {"validationInputPolicy": "actual-checkout", "capturedInputVerified": True,
+                 "inputsUnchanged": before == after, "checkoutInputsUnchanged": context["inputs"] == inputs_after,
+                 "originalEngineUnchanged": observation.get("originalEngineUnchanged") is True,
+                 "externalInputsUnchanged": observation.get("externalInputsUnchanged") is True,
+                 # This includes actual dependency bytes, beyond legacy config facts.
+                 "dependencyCacheUnchanged": observation.get("dependencyCacheUnchanged") is True and exact,
+                 "sourceNoWrites": finished.get("sourceNoWrites") is True,
+                 "membershipStable": finished.get("membershipStable") is True,
+                 "sourceRoot": str(root), "executionRoot": str(root), "sourceDigest": before["sourceDigest"],
+                 "checkoutInputsDigest": context["inputsDigest"],
+                 "expectedInputsDigest": context["guardFacts"]["expectedInputsDigest"],
+                 "checkoutReadRef": context["readRef"], "checkoutGuardRef": guard_ref,
+                 "checkoutGuard": finished}
+        final = {"after": after, "checkoutInputsAfter": inputs_after, "observation": observation,
+                 "inputError": capture_error, "guardError": stability_error, "proof": proof}
+        final_ref = write_json(context["report"] / "input-final.json", final)
+        context.update(final=final, finalRef=final_ref, proof=proof)
+        if (not validation_inputs_verified(proof, context["requestDocument"])
+                or capture_error or stability_error):
+            return False
+        read = self.state.get("management_checkout_read", context["owner"])
+        if (not read or read["payload"].get("checkoutReadRef") != context["readRef"]
+                or read["payload"].get("status") != "active"):
+            raise ValueError("Original checkout read reservation changed")
+        guard.close()
+        self.state.put("management_checkout_read", context["owner"], {
+            **read["payload"], "status": "released", "pinsReleased": True,
+            "continuousReadProven": True, "checkoutGuardRef": guard_ref, "finalObservation": final_ref,
+            "nativeProofRefs": list(context["nativeProofRefs"]), "releasedAt": time.time()},
+            expected_version=read["version"])
+        context["readReleased"] = True
+        return True
+
+    def checkout_batch_reconcile(self, checkpoint, resources, report):
+        """Only already closed original batches may reconcile without a live guard."""
+        owner = "management-" + self.key
+        read = self.state.get("management_checkout_read", owner)
+        if (checkpoint.get("validationInputPolicy") != "actual-checkout" or checkpoint.get("stage") != "complete"
+                or not read or read["payload"].get("status") != "released"
+                or read["payload"].get("pinsReleased") is not True
+                or read["payload"].get("continuousReadProven") is not True):
+            return {"status": "unknown", "reasonCode": "checkout_guard_continuity_unproven",
+                    "validationInputPolicy": "actual-checkout", "originalReservationRetained": True,
+                    "formalAcceptance": False}
+        result = read_reference(checkpoint["receipt"], expected_path=report / "receipt.json",
+                                max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        request = read_reference(checkpoint["request"], expected_path=report / "request.json",
+                                 max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        guard = read_reference(result["checkoutGuardRef"], expected_path=report / "checkout-guard.json",
+                               max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        if (result.get("checkoutGuard") != guard or not validation_inputs_verified(result, request)
+                or read["payload"].get("checkoutGuardRef") != result["checkoutGuardRef"]
+                or read["payload"].get("checkoutInputsDigest") != result["checkoutInputsDigest"]):
+            raise ValueError("Original completed checkout batch proof changed")
+        claims = self.batch_claims()
+        if (len(claims) != len(self.payload["batch"]["recipes"])
+                or any(claim["status"] != "complete" for claim in claims)):
+            raise ValueError("Original completed checkout batch has a missing native step")
+        proofs = [self.batch_step_proof(claim) for claim in claims]
+        if [item[3] for item in proofs] != result["nativeProofRefs"]:
+            raise ValueError("Original batch Native proof bindings changed")
+        reservation = self.state.get("resource_reservation", checkpoint["reservationKey"])
+        if reservation and reservation["payload"].get("status") == "active":
+            resources.release(checkpoint["reservationKey"], writer_key=checkpoint["writer"],
+                              native_proof_ref=proofs[-1][3])
+        return result
+
+
+    def validate_checkout(self, *, batch=None):
+        """Run real checkout Cargo with no sealed input or materialized source."""
+        from tools.jenkins.resources.capacity import Capacity, ResourceManager
+        from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
+        from tools.jenkins.workflow.planning import _environment_policy
+        from tools.jenkins.workflow import pools
+        from tools.jenkins.state.locks import process_lock
+        from tools.jenkins.contracts import JenkinsError
+        if self.payload.get("sourceView") != "checkout" or self.payload.get("worktreeId"):
+            raise ValueError("Actual checkout execution requires its canonical validation-only root")
+        guard_checksum = self.config.get("files", {}).get("checkout_guard.py")
+        if (not isinstance(guard_checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", guard_checksum)
+                or sha(plain(Path(__file__).with_name("checkout_guard.py")).read_bytes()) != guard_checksum):
+            raise ValueError("Actual checkout requires its capsule's hash-verified continuous read guard")
+        root, owner = self.validation_root(), "management-" + self.key
+        if root != plain(self.repo):
+            raise ValueError("Actual checkout differs from the canonical repository")
+        recipes = batch["recipes"] if batch is not None else [self.validation_recipe()]
+        if batch is not None and batch["reuseValidation"] is not None:
+            raise ValueError("Sealed worktree donor cannot become an actual checkout input")
+        coverage = batch["coverage"] if batch is not None else {
+            name: value for name, value in recipes[0].items() if name != "command"}
+        build_root, output = self.build_root(), self.outputs()
+        approved = canonical_build_root(build_root)
+        report = plain(output / "reports" / self.key)
+        policy = self.state.get("resource_policy", "default")["payload"]
+        resources = ResourceManager(self.state, Capacity(
+            policy["cpuBudget"], policy["memoryBudget"], policy["diskBudget"]))
+        checkpoint = self.batch_checkpoint() if batch is not None else {}
+        if checkpoint.get("stage") == "complete":
+            return self.checkout_batch_reconcile(checkpoint, resources, report)
+        old_read = self.state.get("management_checkout_read", owner)
+        if (old_read or self.state.get("execution", owner) or self.state.get("execution_launch", owner)
+                or report.exists() or checkpoint.get("sealed") or checkpoint.get("prepared")
+                or checkpoint.get("request")):
+            return {"status": "unknown", "reasonCode": "checkout_guard_continuity_unproven",
+                    "validationInputPolicy": "actual-checkout", "originalReservationRetained": True,
+                    "originalWriterRetained": True, "formalAcceptance": False}
+        environment, trusted, policy_file = _environment_policy(self.state, self.repo)
+        self._checkout_policy_file = policy_file
+        self._checkout_native_environment = dict(environment)
+        preparation = source_helper()
+        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        spec = importlib.util.spec_from_file_location("jenkins_managed_checkout_cargo", helper_path)
+        helper = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helper)
+        parallelism = max(max(recipe["jobs"], recipe["testThreads"] if recipe["verb"] == "test"
+                              and not recipe["noRun"] else 1) for recipe in recipes)
+        amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
+        guard, admitted = None, None
+        try:
+            # This same mutex serializes admission with every managed Git write.
+            with process_lock(self.repo / ".jenkins/state/locks/management-git.lock",
+                              reason="management_git_busy", timeout=0):
+                conflict = self.checkout_git_read_conflict(unknown_only=True)
+                if conflict:
+                    return {"status": "waiting", "reasonCode": "checkout_source_busy",
+                            "blockingReadOwner": conflict["key"], "formalAcceptance": False}
+                self._checkout_git_binding = checkout_guard_helper().capture_trusted_git_input()
+                try:
+                    root, before = self.validation_with_cache()
+                except SourceInputMismatch as error:
+                    return {"status": "conflict", "reasonCode": "preparation-conflict", "message": str(error),
+                            "preparationStarted": False, "compileStarted": False, "formalAcceptance": False,
+                            **error.diagnostics}
+                captured = self.state.get("management_source", self.key)
+                if captured and captured["payload"] != before:
+                    raise ValueError("Original queued checkout source changed")
+                compiler = helper._toolchain_facts(root)
+                for tool in ("cargo", "rustc"):
+                    if (compiler["binaries"][tool]["path"] != trusted[tool + "Path"]
+                            or compiler["binaries"][tool]["sha256"] != trusted[tool + "Sha256"]):
+                        raise ValueError("Actual compiler differs from the trusted installed toolchain")
+                cache = plain(before["dependencyCache"]["home"])
+                if batch is not None:
+                    pool, _configuration = self.batch_pool(
+                        recipes, preparation, trusted, environment, root, before["dependencyCache"])
+                else:
+                    recipe = recipes[0]
+                    compatibility = {**environment,
+                        **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
+                        "sourceCargoConfiguration": {
+                            name: value for name, value in before["source"]["files"].items()
+                            if name.casefold() in {".cargo/config", ".cargo/config.toml"}}}
+                    pool = preparation.preparation_key(self.repo_id, trusted, compatibility,
+                        recipe["packages"], recipe["features"], recipe["profile"],
+                        recipe["noDefaultFeatures"], before["dependencyCache"],
+                        ["zr_vm"] if before["externalRoots"] else [])
+                writer = "management-pool-" + pool
+                target = physical_path_under(approved, output / "pools" / pool / "target")
+                scratch = plain(report / "tmp")
+                self._checkout_outputs = {"build": target.parent, "cache": cache, "reports": report, "tmp": scratch}
+                inputs, _watch_roots = self.checkout_read_inputs(before, compiler, preparation, helper)
+                inputs_digest = sha(encoded(inputs))
+                guard = self.acquire_checkout_guard(before, inputs)
+                # Capture names/HEAD/index and every byte again after all native
+                # pins and monitors have been acquired, before any process claim.
+                current_root, current, initial_observation = self.validation_observation(before)
+                current_inputs, _ = self.checkout_read_inputs(
+                    current, helper._toolchain_facts(root), preparation, helper)
+                guard.assert_stable()
+                if current_root != root or current != before or current_inputs != inputs:
+                    raise ValueError("Checkout inputs changed during native read admission")
+                guard_facts = guard.facts()
+                self.begin_validation_intent(resources, owner, writer, root, report)
+                resources.queue(owner, request_id=owner, amount=amount, build_root=build_root,
+                                heavy_writer=True, writer_key=writer)
+                if helper.free_bytes(approved.path) < policy.get("diskReserveBytes", 35 * 1024**3) + amount.disk_bytes:
+                    guard.close()
+                    return {"status": "waiting", "reasonCode": "resource_capacity", "sourceDigest": before["sourceDigest"],
+                            "formalAcceptance": False}
+                _inventory, generation = resources.scan_inventory(build_root)
+                try:
+                    admitted = resources.admit(owner, amount, inventory_generation=generation, writer_key=writer,
+                                              request_id=owner, build_root=build_root, heavy_writer=True)
+                except JenkinsError as error:
+                    if error.retryable or error.code in {"pool_writer_active", "pool_cache_maintenance_active"}:
+                        guard.close()
+                        return {"status": "waiting", "reasonCode": error.code,
+                                "sourceDigest": before["sourceDigest"], "formalAcceptance": False}
+                    raise
+                if admitted is None:
+                    guard.close()
+                    return {"status": "waiting", "reasonCode": "resource_capacity",
+                            "sourceDigest": before["sourceDigest"], "formalAcceptance": False}
+                self._checkout_context = {"owner": owner, "writer": writer, "resources": resources,
+                    "reservationKey": admitted["key"], "root": root, "report": report, "target": target,
+                    "before": before, "inputs": inputs, "inputsDigest": inputs_digest, "guard": guard,
+                    "guardFacts": guard_facts, "helper": helper, "preparation": preparation,
+                    "nativeProofRefs": [], "launched": False, "readReleased": False}
+                if admitted["key"] != owner + ":" + owner:
+                    raise ValueError("Original checkout reservation identity changed")
+                # Register artifact ownership before creating compiler/TEMP outputs.
+                self.artifact_manifest(root, self._checkout_outputs)
+                if not captured:
+                    self.state.put("management_source", self.key, before, expected_version=0)
+                binding = {"schemaVersion": 1, "validationInputPolicy": "actual-checkout",
+                    "owner": owner, "operationKey": self.key, "repositoryId": self.repo_id,
+                    "sessionId": self.session, "requestId": self.request, "operationId": self.operation,
+                    "driverDigest": self.config["driverDigest"], "runtimeOperationId": self.config["runtimeOperationId"],
+                    "inputDigest": self.input_digest, "sourceRoot": str(root), "sourceDigest": before["sourceDigest"],
+                    "checkoutInputsDigest": inputs_digest, "expectedInputsDigest": guard_facts["expectedInputsDigest"],
+                    "fileIdentityDigest": guard_facts["fileIdentityDigest"],
+                    "reservationKey": admitted["key"], "preparationKey": writer, "watchRoots": inputs["watchRoots"],
+                    "watchInterests": inputs["watchInterests"], "inputCopiesCreated": 0}
+                read_ref = write_json(report / "checkout-read.json", {"binding": binding, "guard": guard_facts})
+                self._checkout_context["readRef"] = read_ref
+                self.state.put("management_checkout_read", owner, {
+                    **binding, "status": "active", "pinsReleased": False, "continuousReadProven": False,
+                    "checkoutReadRef": read_ref, "guardFacts": guard_facts, "acquiredAt": time.time()}, expected_version=0)
+                if batch is not None:
+                    self.batch_checkpoint(pool=pool, writer=writer, reservationKey=admitted["key"],
+                        validationInputPolicy="actual-checkout", sourceRoot=str(root), executionRoot=str(root),
+                        report=str(report), buildRoot=build_root, capturedSourceDigest=before["sourceDigest"],
+                        checkoutInputsDigest=inputs_digest, checkoutReadRef=read_ref,
+                        coverageDigest=sha(encoded(coverage)), stage="guarded")
+            environment.setdefault("SYSTEMROOT", os.environ.get("SYSTEMROOT", r"C:\Windows"))
+            environment.update({"CARGO_TARGET_DIR": str(target), "CARGO_BUILD_BUILD_DIR": str(target.parent / "build"),
+                "CARGO_HOME": str(cache), "TEMP": str(scratch), "TMP": str(scratch), "TMPDIR": str(scratch),
+                "RUSTC": trusted["rustcPath"], "RUSTDOC": compiler["binaries"]["rustdoc"]["path"],
+                "RUSTC_WRAPPER": "", "RUSTC_WORKSPACE_WRAPPER": "", "PYTHONDONTWRITEBYTECODE": "1",
+                "CARGO_ENCODED_RUSTFLAGS": "", "RUSTFLAGS": "", "RUSTDOCFLAGS": ""})
+            commands, environments = [], []
+            for ordinal, recipe in enumerate(recipes):
+                if batch is None:
+                    raw = list(recipe["command"])
+                else:
+                    raw = list(self.payload["batch"]["recipes"][ordinal]["cargoArguments"])
+                    separator = raw.index("--") if "--" in raw else len(raw)
+                    controls = ["--message-format=json"]
+                    if not any(value == "--jobs" or value.startswith("--jobs=") or value.startswith("-j")
+                               for value in raw[:separator]):
+                        controls += ["--jobs", str(recipe["jobs"])]
+                    raw = [*raw[:separator], *controls, *raw[separator:]]
+                command = helper.prepare_command(raw, target, locked=recipe["locked"])
+                command[0] = trusted["cargoPath"]
+                commands.append(command)
+                environments.append({**environment, "CARGO_NET_OFFLINE": "true" if recipe["offline"] else "false",
+                                     **(batch["stepEnvironments"][ordinal] if batch is not None else {})})
+            environment_digests = [sha(encoded(value)) for value in environments]
+            for path in (target, target.parent / "build"):
+                path.mkdir(parents=True, exist_ok=True)
+            task_scratch = self.task_tmp(environment=environments[0])
+            execution_identity = sha(encoded({"validationInputPolicy": "actual-checkout",
+                "sourceDigest": before["sourceDigest"], "checkoutInputsDigest": inputs_digest,
+                "commands": commands, "cwd": str(root), "environmentDigests": environment_digests,
+                "coverage": coverage, "driverDigest": self.config["driverDigest"],
+                "runtimeOperationId": self.config["runtimeOperationId"]}))
+            execution = {**binding, "executionId": owner, "kind": "management_owned_cargo", "status": "preparing",
+                "command": commands[0], "environmentDigest": environment_digests[0], "sourceRoot": str(root),
+                "executionRoot": str(root), "checkoutReadRef": read_ref, "batch": batch is not None,
+                "executionIdentity": execution_identity, "formalAcceptance": False}
+            self.state.put("execution", owner, execution, expected_version=0)
+            pools._hold(self.state, owner, writer)
+            self.artifact_manifest(root, self._checkout_outputs, task_scratch=task_scratch)
+            request_document = {"payload": self.payload, "inputDigest": self.input_digest, "source": before,
+                "sourceRoot": str(root), "executionRoot": str(root), "command": commands[0], "commands": commands,
+                "target": str(target), "resource": amount.__dict__, "coverage": coverage,
+                "validationInputPolicy": "actual-checkout", "capturedInputVerified": True,
+                "checkoutInputs": inputs, "checkoutInputsDigest": inputs_digest,
+                "expectedInputsDigest": guard_facts["expectedInputsDigest"], "checkoutReadRef": read_ref,
+                "inputObservation": initial_observation, "executionIdentity": execution_identity,
+                "taskScratch": task_scratch, "environmentDigest": environment_digests[0],
+                "stepEnvironmentDigests": environment_digests,
+                "temporaryEnvironment": {key: environment[key] for key in ("TEMP", "TMP", "TMPDIR")}}
+            request_ref = write_json(report / "request.json", request_document)
+            context = self._checkout_context
+            context.update(requestDocument=request_document, requestRef=request_ref)
+            if batch is not None:
+                self.batch_checkpoint(request=request_ref, stage="prepared")
+            completed, native, native_ref, proof_id = [], None, None, None
+            for ordinal, command in enumerate(commands, 1):
+                guard.assert_stable()
+                pools._hold(self.state, owner, writer)
+                read = self.state.get("management_checkout_read", owner)
+                if not read or read["payload"].get("status") != "active" or read["payload"].get("checkoutReadRef") != read_ref:
+                    raise ValueError("Actual native launch lost its original read reservation")
+                if batch is not None:
+                    original = self.payload["batch"]["recipes"][ordinal - 1]
+                    step_report = report / "steps" / ("%04d" % ordinal)
+                    step_request = {"parentRequest": request_ref, "inputDigest": self.input_digest,
+                        "ordinal": ordinal, "recipe": original, "command": command, "cwd": str(root),
+                        "timeoutSeconds": original["ownedNativeTimeoutSeconds"], "taskScratch": task_scratch,
+                        "validationInputPolicy": "actual-checkout", "checkoutInputsDigest": inputs_digest,
+                        "expectedInputsDigest": guard_facts["expectedInputsDigest"], "checkoutReadRef": read_ref,
+                        "environmentDigest": environment_digests[ordinal - 1],
+                        "temporaryEnvironment": request_document["temporaryEnvironment"]}
+                    step_ref = write_json(step_report / "request.json", step_request)
+                    claim = self.claim_batch_step(ordinal, command, root, step_ref)
+                    timeout = original["ownedNativeTimeoutSeconds"]
+                else:
+                    step_report, timeout = report, 21600
+                    self.claim_validation_launch(owner, command, root, request_ref)
+                context["launched"] = True
+                native = helper._run_owned_command(command, root, environments[ordinal - 1], step_report, timeout)
+                native_ref = write_json(step_report / "native-terminal.json", native)
+                terminal_proof = native_terminal_proof(native, native_ref)
+                if native["command"] != command or native["cwd"] != str(root) or terminal_proof["complete"] is not True:
+                    return self.checkout_unknown("checkout_native_termination_unproven")
+                if batch is not None:
+                    step, native, native_ref, proof_id = self.batch_step_proof(claim, persist=True)
+                    completed.append(step)
+                else:
+                    proof_id = owner + "-native"
+                    self.state.put("native_job", proof_id, {
+                        "owner": owner, "executionId": owner, "role": "management_owned_cargo", "status": "terminal",
+                        "terminalProof": terminal_proof, "completeProof": terminal_proof,
+                        "nativeEvidence": native, "pid": native["pid"], "creationTime": native["creationTime"],
+                        "birthToken": native["creationTime"], "executable": terminal_proof["identity"]["executable"],
+                        "commandDigest": terminal_proof["identity"]["commandDigest"], "requestId": self.request,
+                        "operationId": self.operation, "taskScratch": task_scratch,
+                        "environmentDigest": environment_digests[0], "validationInputPolicy": "actual-checkout",
+                        "sourceDigest": before["sourceDigest"], "checkoutInputsDigest": inputs_digest,
+                        "checkoutReadRef": read_ref, "formalAcceptance": False}, expected_version=0)
+                context["nativeProofRefs"].append(proof_id)
+                guard.assert_stable()
+            if not self.checkout_final_inputs():
+                return self.checkout_unknown("checkout_input_stability_unproven",
+                    message=context["final"].get("inputError") or context["final"].get("guardError"))
+            proof = context["proof"]
+            if batch is not None:
+                self.batch_checkpoint(finalObservation=context["finalRef"], checkoutGuardRef=proof["checkoutGuardRef"],
+                                      stage="closed", allRecipesExecuted=True)
+            task_cache = self.task_tmp(native=native, native_ref=native_ref, proof_id=proof_id)
+            status = ("passed" if (all(step["status"] == "passed" for step in completed)
+                        if batch is not None else native["rootExitCode"] == 0) else "failed")
+            result = {"status": status, "request": request_ref, "nativeTerminal": native_ref,
+                "nativeProofRef": proof_id, **proof, "executionIdentity": execution_identity,
+                "inputObservations": {"afterPreparation": initial_observation,
+                                     "afterExecution": context["final"]["observation"]},
+                "inputError": context["final"]["inputError"], "target": str(target),
+                "requestedTargetDir": self.payload.get("requestedTargetDir"), "actualTargetDir": str(target),
+                "targetPolicy": "managed-compatibility-pool", "taskScratch": task_scratch, "postTaskCache": task_cache,
+                "sourceCopiesCreated": 0, "formalAcceptance": False, "m8Accepted": False}
+            if batch is not None:
+                result.update(batch=True, steps=completed, recipeCount=len(recipes), completedRecipeCount=len(completed),
+                              coverage=coverage, nativeProofRefs=list(context["nativeProofRefs"]),
+                              performanceAccepted=False, productsAccepted=False)
+            else:
+                artifacts, fresh = [], 0
+                for line in (report / "stdout.bin").read_text(encoding="utf-8", errors="replace").splitlines():
+                    try:
+                        event = json.loads(line)
+                    except ValueError:
+                        continue
+                    if event.get("reason") == "compiler-artifact":
+                        fresh += int(event.get("fresh") is True)
+                        for name in event.get("filenames", []):
+                            path = plain(name)
+                            if not (path.is_relative_to(target) or path.is_relative_to(target.parent / "build")):
+                                raise ValueError("Compiler artifact escaped the approved pool")
+                            if path.is_file():
+                                artifacts.append({"path": str(path), "sha256": sha(path.read_bytes())})
+                result.update(recipe=coverage, artifactFacts=artifacts, cargoFreshArtifactCount=fresh)
+            result["artifactManifest"] = self.artifact_manifest(
+                root, self._checkout_outputs, native=native, task_scratch=task_scratch, task_cache=task_cache)
+            receipt_ref = write_json(report / "receipt.json", result)
+            execution, launch = self.state.get("execution", owner), self.state.get("execution_launch", owner)
+            self.state.put("execution", owner, {**execution["payload"], "status": status, **proof,
+                "nativeProofRef": proof_id, "nativeTerminal": native_ref, "receipt": receipt_ref,
+                **({"batchReceipt": receipt_ref} if batch is not None else {})}, expected_version=execution["version"])
+            self.state.put("execution_launch", owner, {**launch["payload"], "status": "terminal",
+                "nativeProofRef": proof_id, **({"allRecipesExecuted": True} if batch is not None else {})},
+                expected_version=launch["version"])
+            if batch is not None:
+                self.batch_checkpoint(stage="complete", receipt=receipt_ref, allRecipesExecuted=True)
+            resources.release(admitted["key"], writer_key=writer, native_proof_ref=proof_id)
+            return result
+        except Exception as error:
+            if guard is not None and admitted is None:
+                guard.close()
+            if getattr(error, "code", None) == "checkout_input_incomplete" and admitted is None:
+                return {"status": "waiting", "reasonCode": "checkout_input_incomplete", "message": str(error),
+                        "inputsComplete": False, "compileStarted": False,
+                        "formalAcceptance": False, "m8Accepted": False}
+            if getattr(error, "code", None) in {"checkout_source_busy", "management_git_busy"} and admitted is None:
+                return {"status": "waiting", "reasonCode": getattr(error, "code"), "message": str(error),
+                        "formalAcceptance": False}
+            context = getattr(self, "_checkout_context", None)
+            if context is not None:
+                if context["launched"] or self.state.get("execution_launch", owner):
+                    return self.checkout_unknown("checkout_execution_interrupted", message=str(error))
+                # No native claim has occurred. Join monitoring and close pins
+                # before using the existing durable-unlaunched failure release.
+                guard.close()
+                read = self.state.get("management_checkout_read", owner)
+                if read:
+                    self.state.put("management_checkout_read", owner, {
+                        **read["payload"], "status": "released", "pinsReleased": True,
+                        "durableUnlaunched": True, "releasedAt": time.time()},
+                        expected_version=read["version"])
+                context["readReleased"] = True
+            raise
+
     def validation_with_cache(self, *, payload=None):
         root, source = self.validation_source(payload=payload)
         value = {**{k: v for k, v in source.items() if k != "sourceDigest"},
@@ -3082,6 +4117,8 @@ class Management:
         return root, after, observation
 
     def validate_prepared(self):
+        if self.payload.get("sourceView", "worktree") == "checkout":
+            return self.validate_checkout()
         from tools.jenkins.resources.capacity import Capacity, ResourceManager
         from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
         from tools.jenkins.workflow.planning import _environment_policy
@@ -3360,7 +4397,12 @@ class Management:
             try:
                 if self.action in GIT_ACTIONS:
                     with process_lock(self.repo / ".jenkins/state/locks/management-git.lock", reason="management_git_busy", timeout=0):
-                        result = self.dispatch()
+                        read = self.checkout_git_read_conflict()
+                        if read:
+                            result = {"status": "waiting", "reasonCode": "checkout_source_busy",
+                                      "blockingReadOwner": read["key"], "formalAcceptance": False}
+                        else:
+                            result = self.dispatch()
                 else:
                     result = self.dispatch()
             except BaseException as error:

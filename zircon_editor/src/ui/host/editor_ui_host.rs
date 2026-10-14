@@ -611,6 +611,36 @@ impl EditorUiHost {
         Ok(self.dirty_documents.snapshot(document)?.is_dirty())
     }
 
+    pub(super) fn clear_clean_ui_source_effect(
+        &self,
+        instance_id: &ViewInstanceId,
+        expected_source_revision: u64,
+    ) -> Result<(), EditorError> {
+        let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
+        let Some(document) = self.document_toolkits.document_for_instance(&toolkit_instance) else {
+            return Ok(());
+        };
+        let effect = DirtyExternalEffectId::ui_source_buffer();
+        let snapshot = self.dirty_documents.snapshot(document)?;
+        let Some(expected_effect_revision) = snapshot.external_revision(&effect) else {
+            return Ok(());
+        };
+        let _edit = self.begin_document_edit(instance_id)?;
+        let mut sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        // Hold the source owner stable through the revision-CAS clear. Dirty
+        // projection runs after this lock is released and retains every other owner.
+        if entry.session.source_revision() == expected_source_revision
+            && !entry.session.source_buffer().is_dirty()
+            && self.dirty_documents.clear_external_effect(document, &effect, expected_effect_revision)?
+        {
+            entry.reported_dirty_source_revision = None;
+        }
+        Ok(())
+    }
+
     pub(super) fn document_dirty_if_registered(
         &self,
         instance_id: &ViewInstanceId,

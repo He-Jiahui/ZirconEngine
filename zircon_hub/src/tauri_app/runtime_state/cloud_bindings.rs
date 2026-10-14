@@ -3,8 +3,8 @@ use zircon_runtime_interface::project::ProjectGuid;
 
 use crate::error::HubError;
 use crate::projects::{
-    project_filesystem_path_key, project_paths_match, CloudAccountScope, CloudProjectBinding,
-    RecentProject,
+    CloudAccountScope, CloudProjectBinding, RecentProject, project_filesystem_path_key,
+    project_paths_match,
 };
 
 use super::HubRuntimeSession;

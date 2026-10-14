@@ -184,9 +184,11 @@ fn parses_task_bound_background_cancellation_target() {
     }
     .parse()
     .expect_err("symbolic task targets must not cancel an arbitrary worker");
-    assert!(error
-        .to_string()
-        .contains("Task id must be an unsigned integer"));
+    assert!(
+        error
+            .to_string()
+            .contains("Task id must be an unsigned integer")
+    );
 }
 
 #[test]
@@ -265,9 +267,11 @@ fn open_output_folder_requires_one_selector() {
     .parse()
     .expect_err("an output action must carry a receipt or capability");
 
-    assert!(error
-        .to_string()
-        .contains("provide exactly one Hub receiptId or capability"));
+    assert!(
+        error
+            .to_string()
+            .contains("provide exactly one Hub receiptId or capability")
+    );
 }
 
 #[test]
@@ -280,9 +284,11 @@ fn open_output_folder_rejects_target_id_selector_at_ipc_boundary() {
     .parse()
     .expect_err("targetId must not be treated as an output receipt");
 
-    assert!(error
-        .to_string()
-        .contains("targetId is not accepted; use receiptId or capability"));
+    assert!(
+        error
+            .to_string()
+            .contains("targetId is not accepted; use receiptId or capability")
+    );
 }
 
 #[test]
@@ -405,9 +411,11 @@ fn project_target_envelope_payload_is_rejected_after_hard_cutover() {
     .parse()
     .expect_err("project target envelopes should be removed after hard cutover");
 
-    assert!(error
-        .to_string()
-        .contains("Invalid payload for Hub action package-project"));
+    assert!(
+        error
+            .to_string()
+            .contains("Invalid payload for Hub action package-project")
+    );
 }
 
 #[test]
@@ -438,9 +446,11 @@ fn settings_payload_requires_settings_wrapper() {
     .parse()
     .expect_err("settings actions should require a settings wrapper");
 
-    assert!(error
-        .to_string()
-        .contains("Invalid payload for Hub action update-settings-draft"));
+    assert!(
+        error
+            .to_string()
+            .contains("Invalid payload for Hub action update-settings-draft")
+    );
 }
 
 #[test]

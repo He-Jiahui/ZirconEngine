@@ -1,8 +1,9 @@
-use super::{callback, config::AccountConfig, credential::SavedSession, AccountError};
+use super::{AccountError, callback, config::AccountConfig, credential::SavedSession};
 use openidconnect::{
+    AccessTokenHash, ClientId, CsrfToken, IssuerUrl, Nonce, NonceVerifier, OAuth2TokenResponse,
+    PkceCodeChallenge, RedirectUrl, RefreshToken, Scope, TokenResponse,
     core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreTokenResponse},
-    reqwest, AccessTokenHash, ClientId, CsrfToken, IssuerUrl, Nonce, NonceVerifier,
-    OAuth2TokenResponse, PkceCodeChallenge, RedirectUrl, RefreshToken, Scope, TokenResponse,
+    reqwest,
 };
 
 pub struct Authenticated {

@@ -1,4 +1,4 @@
-//! 汇总视口场景内容与辅助 pass 的准备、录制接口，供直接场景路径与 compiled graph 共用。
+// 汇总视口场景内容与辅助 pass 的准备、录制接口，供直接场景路径与 compiled graph 共用。
 #[path = "icon_source/mod.rs"]
 mod icon_source;
 #[path = "icons/mod.rs"]

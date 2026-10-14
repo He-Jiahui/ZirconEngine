@@ -5,7 +5,7 @@ use std::{
 
 use crate::engines::SourceEngineInstall;
 use crate::process::editor_child_receipt::{EditorChildDisposition, EditorChildTerminalReceipt};
-use crate::projects::{metadata_for_path, project_metadata_key, ProjectMetadata, RecentProject};
+use crate::projects::{ProjectMetadata, RecentProject, metadata_for_path, project_metadata_key};
 use crate::settings::{HubConfig, HubLanguage};
 use crate::state::{HubActionKind, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId};
 use zircon_runtime_interface::hub_protocol::{
@@ -14,7 +14,7 @@ use zircon_runtime_interface::hub_protocol::{
 
 use super::super::{HubActionRequest, HubRuntimeSession};
 use super::{
-    validate_project_editor_handshake, EditorLaunchOutcome, EditorLaunchReport, PendingEditorLaunch,
+    EditorLaunchOutcome, EditorLaunchReport, PendingEditorLaunch, validate_project_editor_handshake,
 };
 
 #[test]
@@ -41,9 +41,11 @@ fn editor_handshake_accepts_a_ready_receipt_bound_to_the_supervised_child() {
         ),
     )
     .expect_err("a different child process must not be reported ready");
-    assert!(mismatch
-        .to_string()
-        .contains("not bound to the Hub-supervised child"));
+    assert!(
+        mismatch
+            .to_string()
+            .contains("not bound to the Hub-supervised child")
+    );
 }
 
 #[test]
@@ -222,9 +224,11 @@ fn project_creation_rejects_a_tampered_staged_editor_before_spawn() {
         session.config.action_history[0].status,
         HubActionStatus::Failed
     );
-    assert!(session.config.action_history[0]
-        .detail
-        .contains("does not match its staged SHA-256"));
+    assert!(
+        session.config.action_history[0]
+            .detail
+            .contains("does not match its staged SHA-256")
+    );
 
     fs::remove_dir_all(temp).unwrap();
 }
@@ -276,10 +280,12 @@ fn project_creation_is_registered_only_after_editor_ready_completion() {
     assert_eq!(record.action, HubActionKind::CreateProject);
     assert_eq!(record.status, HubActionStatus::Success);
     assert_eq!(record.process_id, Some(42));
-    assert!(record
-        .command_line
-        .iter()
-        .any(|arg| arg == "--project-launch-intent"));
+    assert!(
+        record
+            .command_line
+            .iter()
+            .any(|arg| arg == "--project-launch-intent")
+    );
     assert_eq!(session.task_status.label, "Project created");
 
     fs::remove_dir_all(temp).unwrap();
@@ -328,9 +334,11 @@ fn editor_exit_before_launch_completion_is_published_after_ready_once() {
     let project = create_project_root(&temp, "Game");
     let mut session = session_with_project(&temp, "Game", &project);
     let receipt = failed_editor_receipt(41, 913);
-    assert!(!session
-        .observe_editor_child_terminal(receipt.clone())
-        .expect("early exit is buffered"));
+    assert!(
+        !session
+            .observe_editor_child_terminal(receipt.clone())
+            .expect("early exit is buffered")
+    );
 
     session
         .complete_background_editor_launch(
@@ -355,9 +363,11 @@ fn editor_exit_before_launch_completion_is_published_after_ready_once() {
     );
     assert_eq!(session.task_status.task_id, 41);
     assert_eq!(session.task_status.label, "Open Editor failed");
-    assert!(!session
-        .observe_editor_child_terminal(receipt)
-        .expect("duplicate exit is ignored"));
+    assert!(
+        !session
+            .observe_editor_child_terminal(receipt)
+            .expect("duplicate exit is ignored")
+    );
     assert_eq!(session.config.action_history.len(), 2);
 
     fs::remove_dir_all(temp).unwrap();
@@ -377,11 +387,13 @@ fn pre_ready_cancel_records_a_pid_bound_terminal_without_launch_success() {
         .unwrap();
     session.finish_background_task(1);
 
-    assert!(session
-        .observe_editor_child_terminal(EditorChildTerminalReceipt::stopped_before_ready(
-            1, 913, None,
-        ))
-        .expect("publish pre-Ready reap receipt"));
+    assert!(
+        session
+            .observe_editor_child_terminal(EditorChildTerminalReceipt::stopped_before_ready(
+                1, 913, None,
+            ))
+            .expect("publish pre-Ready reap receipt")
+    );
 
     assert_eq!(session.config.action_history.len(), 1);
     assert_eq!(
@@ -416,9 +428,11 @@ fn late_editor_exit_does_not_replace_newer_task_status() {
     )
     .with_task_id(42);
 
-    assert!(session
-        .observe_editor_child_terminal(failed_editor_receipt(41, 913))
-        .expect("late exit is recorded"));
+    assert!(
+        session
+            .observe_editor_child_terminal(failed_editor_receipt(41, 913))
+            .expect("late exit is recorded")
+    );
     assert_eq!(
         session.config.action_history[0].status,
         HubActionStatus::Failed
@@ -450,14 +464,18 @@ fn terminal_history_retries_durable_save_without_duplicate_record() {
     session.config_path = blocked_parent.join("hub.toml");
     let receipt = failed_editor_receipt(41, 913);
 
-    assert!(session
-        .observe_editor_child_terminal(receipt.clone())
-        .is_err());
+    assert!(
+        session
+            .observe_editor_child_terminal(receipt.clone())
+            .is_err()
+    );
     assert_eq!(session.config.action_history.len(), 2);
     session.config_path = config_path.clone();
-    assert!(session
-        .observe_editor_child_terminal(receipt)
-        .expect("retry terminal save after config path recovers"));
+    assert!(
+        session
+            .observe_editor_child_terminal(receipt)
+            .expect("retry terminal save after config path recovers")
+    );
 
     let persisted = HubConfig::load(&config_path).unwrap();
     assert_eq!(persisted.action_history.len(), 2);
@@ -485,31 +503,39 @@ fn failed_terminal_save_survives_action_history_churn_before_retry() {
     let blocked_parent = temp.join("blocked-parent");
     fs::write(&blocked_parent, b"not a directory").unwrap();
     session.config_path = blocked_parent.join("hub.toml");
-    assert!(session
-        .observe_editor_child_terminal(failed_editor_receipt(41, 913))
-        .is_err());
+    assert!(
+        session
+            .observe_editor_child_terminal(failed_editor_receipt(41, 913))
+            .is_err()
+    );
     let mut churn_record = session.config.action_history[1].clone();
     churn_record.finished_unix_ms = session.config.action_history[0].finished_unix_ms + 1;
     churn_record.process_id = None;
     churn_record.detail = HubMessage::raw_text("unrelated action history");
     for _ in 0..=crate::state::ACTION_HISTORY_LIMIT {
-        assert!(session
-            .record_action_and_persist(churn_record.clone())
-            .is_err());
+        assert!(
+            session
+                .record_action_and_persist(churn_record.clone())
+                .is_err()
+        );
     }
-    assert!(session
-        .config
-        .action_history
-        .iter()
-        .all(|record| record.process_id != Some(913)));
+    assert!(
+        session
+            .config
+            .action_history
+            .iter()
+            .all(|record| record.process_id != Some(913))
+    );
 
     session.config_path = config_path.clone();
     session
         .record_action_and_persist(churn_record.clone())
         .expect("newer unrelated action can persist before terminal retry");
-    assert!(session
-        .retry_pending_editor_terminal_persistence()
-        .expect("recover terminal history after action churn"));
+    assert!(
+        session
+            .retry_pending_editor_terminal_persistence()
+            .expect("recover terminal history after action churn")
+    );
     let persisted = HubConfig::load(&config_path).unwrap();
     assert_eq!(persisted.action_history[0].detail, churn_record.detail);
     assert!(persisted.action_history.iter().any(|record| {
@@ -535,18 +561,24 @@ fn failed_terminal_saves_retry_in_delivery_order_with_reused_pid() {
     let blocked_parent = temp.join("blocked-parent");
     fs::write(&blocked_parent, b"not a directory").unwrap();
     session.config_path = blocked_parent.join("hub.toml");
-    assert!(session
-        .observe_editor_child_terminal(failed_editor_receipt(41, 913))
-        .is_err());
-    assert!(session
-        .observe_editor_child_terminal(failed_editor_receipt(42, 913))
-        .is_err());
+    assert!(
+        session
+            .observe_editor_child_terminal(failed_editor_receipt(41, 913))
+            .is_err()
+    );
+    assert!(
+        session
+            .observe_editor_child_terminal(failed_editor_receipt(42, 913))
+            .is_err()
+    );
     session.config.action_history.clear();
 
     session.config_path = config_path.clone();
-    assert!(session
-        .retry_pending_editor_terminal_persistence()
-        .expect("retry two terminal records"));
+    assert!(
+        session
+            .retry_pending_editor_terminal_persistence()
+            .expect("retry two terminal records")
+    );
     let persisted = HubConfig::load(&config_path).unwrap();
     assert_eq!(persisted.action_history[0].process_id, Some(913));
     assert_eq!(persisted.action_history[1].process_id, Some(913));

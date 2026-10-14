@@ -8,15 +8,23 @@ from __future__ import annotations
 
 import ast
 from copy import deepcopy
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 
 REPO = Path(__file__).resolve().parents[3]
 LAUNCHER_PATH = REPO / "tools/dev/jenkins_desktop_tray.py"
+
+
+def _json_digest(document):
+    encoded = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def _load_launcher():
@@ -178,6 +186,190 @@ class DesktopTrayLauncherContractTests(unittest.TestCase):
                 expected = ("release_configuration" if boundary in {"matching", "matching-committed"} else
                             "release_digest_mismatch" if boundary == "changed-plan" else "release_kind")
                 self.assertEqual(error.exception.code, expected)
+
+    def _selector_release_fixture(self):
+        fresh_release = {
+            "path": str(REPO / ".jenkins/state/deployment/fresh-recovery.json"),
+            "sha256": "a" * 64,
+        }
+        predecessor_release = {
+            "path": str(REPO / ".jenkins/state/deployment/previous-recovery.json"),
+            "sha256": "b" * 64,
+        }
+        driver_state = {
+            "driverDigest": "d" * 64,
+            "root": str(REPO / ".jenkins/runtime/drivers" / ("d" * 64)),
+            "launcher": str(REPO / "tools/dev/jenkins_desktop_tray.py"),
+            "manifestSha256": "1" * 64,
+            "stepsSha256": "2" * 64,
+            "state": "selected-for-runtime-start",
+            "runtimeOperationId": "start-new-owner",
+            "recoveryRelease": predecessor_release,
+            "runtimeAcceptance": False,
+            "cargoAcceptance": False,
+        }
+        previous_selector = deepcopy(driver_state)
+        previous_selector.update(state="running", runtimeOperationId="start-old-owner")
+
+        plan_path = REPO / ".jenkins/state/migration-baseline/lost-runtime-plan.json"
+        interruption_path = REPO / ".jenkins/state/recovery-lifecycle/history/interruption.json"
+        selector_archive_path = REPO / ".jenkins/state/recovery-lifecycle/history/previous-selector.json"
+        previous_selector_ref = {
+            "path": str(REPO / ".jenkins/state/deployment/driver.json"),
+            "sha256": _json_digest(previous_selector),
+        }
+        selector_archive_ref = {
+            "path": str(selector_archive_path),
+            "sha256": previous_selector_ref["sha256"],
+        }
+        plan = {
+            "recoveryVariant": "departed-committed-recovery-runtime",
+            "originalCommandStatus": "committed",
+            "operationId": "start-old-owner",
+            "bootFileTime": "134362647749767738",
+            "previousSelector": previous_selector_ref,
+        }
+        plan_digest = _json_digest(plan)
+        plan_ref = {"path": str(plan_path), "sha256": plan_digest}
+        keeper_identity = {"pid": 2468, "operationId": "start-new-owner"}
+        interruption = {
+            "kind": "formal-lost-recovery-runtime-interruption",
+            "release": deepcopy(fresh_release),
+            "keeper": deepcopy(keeper_identity),
+            "reviewedPlan": deepcopy(plan_ref),
+            "recoveryDigest": plan_digest,
+            "operationId": plan["operationId"],
+            "originalCommandStatus": plan["originalCommandStatus"],
+            "bootFileTime": plan["bootFileTime"],
+            "outcome": "interrupted",
+            "originalArtifacts": {
+                "previousSelector": {
+                    "original": deepcopy(previous_selector_ref),
+                    "archive": deepcopy(selector_archive_ref),
+                }
+            },
+        }
+        interruption_ref = {"path": str(interruption_path), "sha256": _json_digest(interruption)}
+        keeper = {
+            "keeper": keeper_identity,
+            "release": fresh_release,
+            "runtime": {"selected": deepcopy(driver_state)},
+            "lostRecoveryRuntimeInterruption": interruption_ref,
+            "recoveryDigest": plan_digest,
+            "bootFileTime": plan["bootFileTime"],
+        }
+        payload = {
+            "lostRecoveryRuntime": {
+                "plan": plan_ref,
+                "originalCommand": {
+                    "path": str(REPO / ".jenkins/state/recovery-lifecycle/command.json"),
+                    "sha256": "8" * 64,
+                },
+                "originalDescriptor": {
+                    "path": str(REPO / ".jenkins/state/formal-lifecycle/recovery-keeper.json"),
+                    "sha256": "9" * 64,
+                },
+            },
+            "expectedPreviousOwner": {"operation": {"operationId": "start-old-owner"}},
+        }
+        documents = {
+            str(plan_path): plan,
+            str(interruption_path): interruption,
+            str(selector_archive_path): previous_selector,
+        }
+        digests = {
+            str(plan_path): _json_digest(plan),
+            str(interruption_path): interruption_ref["sha256"],
+            str(selector_archive_path): _json_digest(previous_selector),
+        }
+        return {
+            "pin": SimpleNamespace(
+                repo=REPO,
+                release_path=Path(fresh_release["path"]),
+                release_sha256=fresh_release["sha256"],
+            ),
+            "payload": payload,
+            "driver_state": driver_state,
+            "keeper": keeper,
+            "documents": documents,
+            "digests": digests,
+            "interruption_path": str(interruption_path),
+            "selector_archive_path": str(selector_archive_path),
+        }
+
+    def _verify_selector_release_in_memory(self, fixture):
+        def canonical_file(value, *, label, root):
+            candidate = Path(value)
+            self.assertTrue(candidate.is_relative_to(Path(root)), label)
+            return candidate
+
+        def read_json(path, *, label):
+            return deepcopy(fixture["documents"][str(Path(path))])
+
+        def sha256(path):
+            return fixture["digests"][str(Path(path))]
+
+        with patch.object(self.launcher, "_canonical_file", side_effect=canonical_file), \
+                patch.object(self.launcher, "_read_json", side_effect=read_json), \
+                patch.object(self.launcher, "_sha256", side_effect=sha256):
+            return self.launcher._verify_selector_release(
+                fixture["pin"], fixture["payload"], fixture["driver_state"], fixture["keeper"]
+            )
+
+    def test_selector_release_accepts_fresh_direct_binding_without_history(self):
+        fixture = self._selector_release_fixture()
+        fresh = {"path": str(fixture["pin"].release_path), "sha256": fixture["pin"].release_sha256}
+        fixture["driver_state"]["recoveryRelease"] = fresh
+        fixture["keeper"]["runtime"]["selected"] = deepcopy(fixture["driver_state"])
+        with patch.object(self.launcher, "_canonical_file") as canonical_file, \
+                patch.object(self.launcher, "_read_json") as read_json, \
+                patch.object(self.launcher, "_sha256") as sha256:
+            self.launcher._verify_selector_release(
+                fixture["pin"], fixture["payload"], fixture["driver_state"], fixture["keeper"]
+            )
+        canonical_file.assert_not_called()
+        read_json.assert_not_called()
+        sha256.assert_not_called()
+
+    def test_selector_release_accepts_exact_archived_predecessor_for_reused_driver(self):
+        fixture = self._selector_release_fixture()
+        self.assertIsNone(self._verify_selector_release_in_memory(fixture))
+
+    def test_selector_release_rejects_bad_archive_binding_hash_keeper_and_old_pin(self):
+        cases = ("bad-archive-hash", "changed-archive-binding", "wrong-keeper", "changed-old-pin")
+        for boundary in cases:
+            with self.subTest(boundary=boundary):
+                fixture = self._selector_release_fixture()
+                interruption = fixture["documents"][fixture["interruption_path"]]
+                if boundary == "bad-archive-hash":
+                    fixture["digests"][fixture["selector_archive_path"]] = "0" * 64
+                    expected_code = "release_digest_mismatch"
+                elif boundary == "changed-archive-binding":
+                    interruption["originalArtifacts"]["previousSelector"]["original"]["sha256"] = "0" * 64
+                    refreshed = _json_digest(interruption)
+                    fixture["digests"][fixture["interruption_path"]] = refreshed
+                    fixture["keeper"]["lostRecoveryRuntimeInterruption"]["sha256"] = refreshed
+                    expected_code = "runtime_selection_mismatch"
+                elif boundary == "wrong-keeper":
+                    interruption["keeper"] = {"pid": 9999, "operationId": "other-owner"}
+                    refreshed = _json_digest(interruption)
+                    fixture["digests"][fixture["interruption_path"]] = refreshed
+                    fixture["keeper"]["lostRecoveryRuntimeInterruption"]["sha256"] = refreshed
+                    expected_code = "runtime_selection_mismatch"
+                else:
+                    fixture["payload"]["expectedPreviousOwner"]["operation"]["operationId"] = "start-unreviewed-owner"
+                    expected_code = "driver_selection_mismatch"
+                with self.assertRaises(self.launcher.LauncherError) as error:
+                    self._verify_selector_release_in_memory(fixture)
+                self.assertEqual(error.exception.code, expected_code)
+
+    def test_selector_release_rejects_unreviewed_selection_field_change(self):
+        fixture = self._selector_release_fixture()
+        fixture["driver_state"]["futureCapability"] = {"enabled": True}
+        fixture["keeper"]["runtime"]["selected"] = deepcopy(fixture["driver_state"])
+        with self.assertRaises(self.launcher.LauncherError) as error:
+            self._verify_selector_release_in_memory(fixture)
+        self.assertEqual(error.exception.code, "driver_selection_mismatch")
 
     def test_launcher_has_no_service_or_startup_side_effects(self):
         for forbidden in (

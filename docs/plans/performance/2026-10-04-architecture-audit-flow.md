@@ -831,7 +831,7 @@ TaskGraph的owner-lifetime候选缩小到accepted work/runner的共同submission
 
 ### 7.45 磁盘与阅读状态已通过records补充，最新provider实现待核（2026-10-13 UTC）
 
-[R4补充消息](../../../.jenkins/records/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.md)在artifact manifest revision7预登记后创建，Root读回SHA256 `3ebaf4b7d7c0a6a60d0fd8fabaacf2c7909b0cc59478ff30b437bbe945fc6d4f`／5507 B；六个App/Input当前叶再次逐项匹配R2。消息创建时E盘约168.887 GiB可用，35 GiB门槛满足；保留原a1 compile/cleanup及receiver build31引用，没有新job、请求ID或private Cargo。当前R4关联回复尚待观察，文件落地不等于直接chat送达或native接纳。manifest本次读回`69283a7e...`／56468 B，传递状态`2577509c...`／18192 B；原R2/R3及两回复原字节保留。
+[R4补充消息](../../../.jenkins/state/records-queue/archive/3c138524391989e2a185645aa4d28a0ba18011be88cf7b1e8bb7c64e59387863/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.md)在artifact manifest revision7预登记后创建，Root读回SHA256 `3ebaf4b7d7c0a6a60d0fd8fabaacf2c7909b0cc59478ff30b437bbe945fc6d4f`／5507 B；六个App/Input当前叶再次逐项匹配R2。消息创建时E盘约168.887 GiB可用，35 GiB门槛满足；保留原a1 compile/cleanup及receiver build31引用，没有新job、请求ID或private Cargo。当前R4关联回复尚待观察，文件落地不等于直接chat送达或native接纳。manifest本次读回`69283a7e...`／56468 B，传递状态`2577509c...`／18192 B；原R2/R3及两回复原字节保留。
 
 最新installed指针为`3fc149fbb3e4b5497154dbdc910bfbc6b0786e5a27af9d282e7e816c1e26990e`／515 B，选择`84d4483275346a28ce92551b07101a3b51373720ae03afa6b62f6c1d88471f15`胶囊，formal acceptance仍false。7.43/7.44的7936实现与缺口仅绑定当时版本；Sol正在只读新selected的single/batch执行路径，当前不能断言它支持或不支持实际checkout。三迁移scope、合法identity、完整input seal、无写入时段、真实target/temp与原runtime正常恢复继续由对应owner对账，不因安装指针变化自动通过。
 
@@ -841,7 +841,7 @@ M1已核已安装RenderDoc 1.44、WPR/WPA文件；仓库config前后pin为`b3149
 
 ### 7.46 R4监视器回复、79-pin静态复核与公开执行入口边界（2026-10-13 UTC）
 
-[R4监视器回复](../../../.jenkins/records/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.monitor-response-20261013T102109Z.json)已按task、message ID及R4的SHA/字节数关联，回复SHA256 `ad9467da675cdcf6232c8d554cb1a73020a3ebc71f0a28ce2ff0b3b9aa59d898`／10102 B。状态为`prepared-not-submitted-public-entry-pin-changed`；intake、native、formal及product均false，没有新请求或Cargo终态。这是records监视器回复，尚无指定Jenkins聊天的ACK或直接送达证据。7.45的“尚待观察”只记录R4创建时切片；原消息字节与原a1请求、attempt及receiver历史保持不变。
+[R4监视器回复](../../../.jenkins/state/records-queue/archive/3c138524391989e2a185645aa4d28a0ba18011be88cf7b1e8bb7c64e59387863/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.monitor-response-20261013T102109Z.json)已按task、message ID及R4的SHA/字节数关联，回复SHA256 `ad9467da675cdcf6232c8d554cb1a73020a3ebc71f0a28ce2ff0b3b9aa59d898`／10102 B。状态为`prepared-not-submitted-public-entry-pin-changed`；intake、native、formal及product均false，没有新请求或Cargo终态。这是records监视器回复，尚无指定Jenkins聊天的ACK或直接送达证据。7.45的“尚待观察”只记录R4创建时切片；原消息字节与原a1请求、attempt及receiver历史保持不变。
 
 Sol已读取84d44832胶囊的single与batch正文：二者都固定`execution_root=target.parent/inputs/source`，分别在runner 3135及2481/2487–2488用该准备区作native cwd；553–560的sourceView=checkout仅选择输入。materialize 283–412仍委派准备manifest/更新，底层copy/link callee未读；未运行这条路径或创建源码副本。runner pin `2dd91b66...`／232228 B/3331行，source preparation `42f8c8cd...`／27188 B/435行，与回复中的selected版本一致。此次回复另记录公共entry期望`81e20810...`而实际`f706924d...`，因此原请求仍未提交；正常tool owner需对账入口、driver/runtime和live job，Root没有repin、重装、重启、私有grant或新job。
 
@@ -850,3 +850,45 @@ Sol已读取84d44832胶囊的single与batch正文：二者都固定`execution_ro
 [当前关闭阅读](2026-10-13-shutdown-ownership-current-audit.md)的282行正文切片`a66f69fb...`／42394 B已由三Luna按App、资产/Core、Graph/fixture范围独立复核，无阻断；Root逐项metadata核对79个唯一source pin（80表行），累积68生产全文/14238行、7部分/969唯一正文行、4测试全文/1037行。图收窄App RuntimeSession/Library owner，已读gateway范围及真实PAM安装/partial-startup验收前提的文字切片`9e30646a...`／42905 B也经三Luna聚焦复核无阻断；最终`2ddad7fb...`／43064 B仅登记这一复核终态，生产正文与计数不变。真实watcher、active Graph Drop、App退出与真DLL行为继续待证；后续正文补读另记范围，当前无生产修复、测试执行或动态验收增量。
 
 artifact registry revision8已关联外部monitor回复及84d实现证据，保留历史7936与R4创建切片；没有指定recipient ACK或native接纳。35 GiB磁盘门槛在R4创建时满足，执行前仍需新观察和物理输出核验。原scope三迁移路径、完整compiler seal、无source写入时段及原请求正常恢复仍开放。10个pending归档href已核实；25个缺失历史绝对产物链接仍开放，未删除或重建。当前native/产品/性能/模块验收不增；Root删除/释放0 B，自有本轮读取/整合命令已terminal，供给/必要失败/共享/未知产物保留，goal与清理active。
+
+### 7.47 当前HEAD、Win32 handler撤销与R5补交
+
+本轮继续MVP 00/F0的只读归属审查；没有新增生产代码修改，既有App/Input六叶仍待native。[当前源码记录](2026-10-13-shutdown-ownership-current-audit.md)的93a59041b29fa8a0bee0f34fc9e36b009bf0c0f2dd277d4d5de49eaf7efe5c6f／58272 B/363行切片增量已由三路Luna独立复核；当前文件e06e0ba1a560373917d6aa733d75a1dc87dfe04894e13f5513bfb0d67c131523／58343 B/363行仅更新两句复核/投递状态。引擎84生产全文/17477行、5部分/488唯一正文行、4测试全文/1037行、93唯一pin/96表行；外部3部分叶pin/774正文行单列。Root复用cell92的93engine+2external核对并核新增runner14b元数据；新增147行由Sol和Anchors独立同范围阅读，不重复计数。
+
+- 共享main HEAD已从5a547d4e2727d27ddf99578f548efb7e6d19d915移动至1de7f1af1f86b124645acdb2743bfe9064f6da8b；1041个提交差异路径与93个引擎阅读文件交集0，原六叶native交接pin重核匹配。其余源码/config/compiler input closure仍需真实封存；原R4及旧cut保留创建时HEAD。
+- Win32正常退出先loop_destroyed/reset_runner清借用handler，guard析构置None，facade随后drop(App)，排除正常返回后残留handler候选。callback panic、guard前二次注册的合法可达性、catch_unwind/move_state_to/take_panic_error下游未闭；不推worker join、全部callback或DLL卸载，具体回归未运行。
+- Jenkins pointer现选0f4040edb188cda357a93bcff32345b0533a29eb2645552ad155f8517f757277；其runner2dd91…和source_preparation42f8…字节与已读84d相同。Sol核manifest并复用普通single/batch精确callee，Cargo cwd仍prepared pool inputs/source，actual-checkout执行缺口未修；最低owner是正常provider。完整capsule、底层复制/链接、物理输出与原入口/grant/input seal门槛仍开放，公开独立local-cargo路线仍不可用。
+- R4原md与monitor-response原records路径均直接读取FileNotFound；历史创建/匹配回复不消失，也不作当前ACK。限定records/outbox名字搜索无候选；Luna44更广的.jenkins文件名查找遇拒绝访问目录、exit2/汇总exit1，没有可判定候选，归档位置/原因继续开放。保留此前25项历史缺失链接及本次两项records证据缺口，不声明全执行流链接通过。
+
+[R5当前状态消息](../../../.jenkins/state/records-queue/archive/2c3d031f0dab2f0667a1f3f29c821f77bb8ccec311762440859afe5af6ef262c/engine-audit-20261009-01a12097-current-state-r5-to-jenkins-01a0f6e1.md)已按用户指定records路径创建并hash读回：b4cb3ec933af53ce77bded0386b1d003bcad248be371633656dc3e84583f1072／6723 B/42行。消息请求正常provider owner在既有授权内沿用原App A1/cleanup identity、receiver31及attempts2/8/14/23/26补齐当前输入/消费者归属，核actual-checkout路线和真实输入封存；没有创建新native job或扩展Root权限。R5创建切片E空闲158.795 GiB，仅该时点满足35 GiB门槛，执行前重核。文件创建不等于指定聊天ACK、回复、提交或执行；这些状态均仍开放。
+
+Root native编译/测试、产品和性能样本仍0，模块/00/F0/里程碑验收不增；review.md未动。Root删除/释放0 B，必要失败、供给、共享及未知产物保留。原请求、goal和清理继续active/pending；后续从正常actual-checkout执行与尚未读的失败callee继续，不调用私人fallback。
+
+
+### 7.48 R5受管归档与原执行请求的输入契约
+
+[源码阅读记录第11–12节](2026-10-13-shutdown-ownership-current-audit.md)保留各切片指纹：第11节f0898b4e／64779 B/400行已由三路Luna限定复核，无阻断；95引擎pin，85生产全文/17534行、5部分/488行、5测试全文/1317行，外部3pin/889行单列。本轮只增加归档和工具契约证据，不扩大引擎源码覆盖或已验收账本。
+
+- R4 md及正确带R4前缀的monitor已按State精确键定位到archive/3c138524，实际SHA和bytes分别匹配3ebaf4b7／5507及ad9467da／10102；原路径当前不存在。早期shortened monitor basename是错误候选，此次核对不能反向把那次负结果变成正确原路径证据。
+- R5 md在archive/2c3d031f，b4cb3ec9／6723 B/42行与原消息一致。R5状态回应55f8ea9a／19586 B保留自身intakeAccepted=false；单独queue receipt78d266c8／19915 B及followup State version2记录intakeAccepted=true、formalAcceptance=false、newNativeRequest=false并关联followup29。指定聊天ACK、原native执行与独立cleanup receipt均未证；原task version35仍waiting/done=false。
+- 当前原formalRequests只App测试hash过期（f263bc47→0fd942d2）；三个consumer内容hash相同而路径从src/tests/runtime_absorption迁移到src/tests/contracts。新路径scope与完整compiler/external zr_vm HEAD/index seal待合法provider按原会话协调，不能把本次六叶核对说成输入闭包已接受。
+- Core对selected formal driver13个pin的741行窄读确认：seal/Cargo metadata会复制源码，planner固定prepared cwd，execution host139–140以recipe_cwd_unsealed明确拒绝实际repositoryRoot。因此当前formal route也不满足实际checkout编译边界；最小修复须贯通source preparation、metadata、planner/pools及host的源码/产物路径契约，单改cwd或关闭gate不充分。原32位repository ID按实际公式完全匹配，不能另造ID或新g1替代原操作。
+- 新main d588b90c的父提交1de7f1af仅改Jenkins frontend测试；R6当前六个checkout pin再次匹配，原formal DTO的差异仍保持待协调。selector b9a72d6f仍指driver1dfff656、runtimeOperationId已为start-1791949844649660400；这是指针观察，非runtime/native验收。
+
+R6按registry revision14登记为原任务的具体输入/执行契约补充。原compile A1、cleanup A1、session、receiver31及历史attempts2/8/14/23/26和失败回执保持；先当前App lib test --no-run成功，再执行三个runtime_session_create_cleanup、受影响Runtime消费者与23个Input行为。真实产品启动/退出、DLL、编辑/持久化和性能仍有独立门槛。Luna45DTO已限定复核本节3ffe1b95切片，R6由Luna45DTO及Luna45Reply复核，无阻断；本次仅更新措辞和复核状态，旧指纹保留；Root本批次native、产品、性能样本与释放空间均0，已验收账本不增，goal和清理active。已验证的三种原消息链接只迁到准确归档地址；此前25个历史缺失href保持其原时点，不宣称整份执行流通过。
+
+### 7.49 R6补充已受理，当前ordinary与formal路线分开
+
+见[源码记录12.4](2026-10-13-shutdown-ownership-current-audit.md)。R6已按精确State键归档至archive/5979d0fc，3c071557／7936 B/51行与原字节一致；实际followup36回执de99b643／14768 B核对原task、identity、receiver31及messageId，intake=true、formal/native=false、actualFlowSubmitted=false、newNativeRequest=false。原task version36仍waiting/done=false，两个原DTO的App hash与三个迁移路径未协调，A1 receipt继续formal_input_pending；原退出/EOF、产品与性能验收均未供给。保留此前row=null且原路径存在的复核时点，不重建已归档消息。
+
+回执说明新ordinary management capsule b48ac30b提供checkout continuous-read路线，与selected formal driver1dfff656的prepared-source拒绝分开；当前installed pointer6bc951a6和public entry f13dfc57仅metadata已核，Core限定实现复核仍进行。旧ordinary结论绑定当时runner pin；不概括所有当前management路线。原请求身份与scope、完整compiler/external输入seal和兼容产物均须正规owner协调，补充受理不替代实际native与独立cleanup evidence。
+
+registry15已预登记World/render/Gateway新文档与只读任务；三路Luna按真实叶读正文、Sol独立复核候选根因和路线决策。未执行新native request、源码副本或构建；Root释放0 B，既有供给/失败/共享/未知项保留，goal和清理active。
+
+### 7.50 World、渲染与Gateway的当前源码阅读
+
+[新限定架构记录](2026-10-14-world-render-gateway-current-audit.md)在registry15预登记后创建，6ab8fc1e／25889 B/179行：31生产pin、6273去重正文行（30全文、render/mod.rs141/568行部分）；6测试pin、353正文行（4全文、2部分），测试未运行。World8叶2057行、render9叶1800行、Gateway14叶2416行，Root入口先读与Luna阅读取并集；Sol World/identity353重复正文只作独立复核，测试107另计。Root37表pin与41个本文件本地链接、结构和scoped diff已核；不把metadata算新body或把本文件链接通过扩大到历史执行流全部链接。
+
+World发布校epoch/generation，records可能commit后target-changed Err；prepared frame extract未见World clone，兼容入口仍clone，增量journal/projector恢复全量的频率与成本待采样。Gateway专用operation route固定origin，撤回初步产品P1定级，只留消费者合同待核。World重复entities到dense-row assert panic经Sol独立确认静态路径，但未动态复现、产品load可达性未读；EA46-WORLD-001保持P2待验收，先修最低F0 owner，不提前F3实施。
+
+Core当前ordinary b48路径把physical repo root交native helper并要求回执cwd一致，guard持读pin/monitors；helper、完整final reconcile和动态证明未读。它与canonical formal1dfff prepared-source拒checkout分开，原A1、scope、external/compiler输入seal与真实执行门槛仍pending。新架构文档6ab8fc1e切片经三路限定独立复核通过，之后仅更新复核状态句；本节816bf741切片经Luna45Archive限定复核通过，本次仅更新此行政状态，整个World/render/Gateway模块、MVP与产品/perf均未验收；无Rust实施/native/性能样本、Root释放0 B，goal和清理active。

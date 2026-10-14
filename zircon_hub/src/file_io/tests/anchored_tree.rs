@@ -86,15 +86,17 @@ fn bounded_preflight_preserves_tree_when_limits_are_exceeded() {
     let payload = nested.join("payload");
     fs::write(&payload, b"keep").unwrap();
     let anchor = AnchoredDirectory::open(&uploads).unwrap();
-    assert!(anchor
-        .remove_tree(
-            OsStr::new(operation),
-            TreeRemovalLimits {
-                entries: 1,
-                directories: 1,
-            },
-        )
-        .is_err());
+    assert!(
+        anchor
+            .remove_tree(
+                OsStr::new(operation),
+                TreeRemovalLimits {
+                    entries: 1,
+                    directories: 1,
+                },
+            )
+            .is_err()
+    );
     assert_eq!(fs::read(payload).unwrap(), b"keep");
     drop(anchor);
     fs::remove_dir_all(root).unwrap();
@@ -111,14 +113,16 @@ fn marker_identity_is_rechecked_through_the_anchored_operation_handle() {
     fs::write(directory.join("payload"), b"preserve on mismatch").unwrap();
     let anchor = AnchoredDirectory::open(&uploads).unwrap();
 
-    assert!(anchor
-        .remove_tree_preserving_marker(
-            OsStr::new(operation),
-            OsStr::new("marker.json"),
-            Some(b"different operation"),
-            LIMITS,
-        )
-        .is_err());
+    assert!(
+        anchor
+            .remove_tree_preserving_marker(
+                OsStr::new(operation),
+                OsStr::new("marker.json"),
+                Some(b"different operation"),
+                LIMITS,
+            )
+            .is_err()
+    );
     assert_eq!(
         fs::read(directory.join("payload")).unwrap(),
         b"preserve on mismatch"
@@ -140,9 +144,11 @@ fn empty_directory_probe_keeps_a_directory_with_multiple_entries() {
     fs::write(directory.join("second"), b"keep second").unwrap();
     let anchor = AnchoredDirectory::open(&uploads).unwrap();
 
-    assert!(!anchor
-        .remove_empty_directory_if_empty(OsStr::new(operation))
-        .unwrap());
+    assert!(
+        !anchor
+            .remove_empty_directory_if_empty(OsStr::new(operation))
+            .unwrap()
+    );
     assert_eq!(fs::read(directory.join("first")).unwrap(), b"keep first");
     assert_eq!(fs::read(directory.join("second")).unwrap(), b"keep second");
 
@@ -207,14 +213,16 @@ fn identity_bound_cleanup_does_not_accept_a_missing_marker_with_contents() {
     fs::write(&payload, b"preserve").unwrap();
     let anchor = AnchoredDirectory::open(&uploads).unwrap();
 
-    assert!(anchor
-        .remove_tree_preserving_marker(
-            OsStr::new(operation),
-            OsStr::new("marker.json"),
-            Some(b"validated identity"),
-            LIMITS,
-        )
-        .is_err());
+    assert!(
+        anchor
+            .remove_tree_preserving_marker(
+                OsStr::new(operation),
+                OsStr::new("marker.json"),
+                Some(b"validated identity"),
+                LIMITS,
+            )
+            .is_err()
+    );
     assert_eq!(fs::read(payload).unwrap(), b"preserve");
 
     drop(anchor);

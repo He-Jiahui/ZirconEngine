@@ -1,5 +1,6 @@
 use super::*;
 
+// 两种既有整数布局都用历史字节固定下来，并交叉验证向量、writer 与 reader 入口。
 #[test]
 fn positional_formats_preserve_historical_v1_integer_and_string_bytes() {
     let value = (true, 251_u32, -3_i32, "ok".to_owned());
@@ -35,6 +36,7 @@ fn positional_formats_preserve_historical_v1_integer_and_string_bytes() {
     }
 }
 
+// 完整解码必须拒绝尾随数据，前缀解码则返回偏移供封套继续解析。
 #[test]
 fn positional_caps_and_trailing_bytes_are_enforced() {
     let codec = PositionalEncoding::VariableLittleEndian;
@@ -56,6 +58,7 @@ fn positional_caps_and_trailing_bytes_are_enforced() {
     );
 }
 
+// 变长整数的 wire 字节可能短于 decoder 按原生整数宽度登记的 claim。
 #[test]
 fn positional_variable_integer_budget_uses_wire_size_for_small_wide_values() {
     let codec = PositionalEncoding::VariableLittleEndian;
@@ -74,6 +77,7 @@ fn positional_variable_integer_budget_uses_wire_size_for_small_wide_values() {
     );
 }
 
+// 恶意字符串长度必须在尝试分配其声明长度之前被拒绝。
 #[test]
 fn positional_untrusted_string_lengths_do_not_allocate_unbounded_memory() {
     let declared = u64::MAX.to_le_bytes();
@@ -82,6 +86,7 @@ fn positional_untrusted_string_lengths_do_not_allocate_unbounded_memory() {
     assert!(codec.decode_from::<String>(declared.as_slice(), 8).is_err());
 }
 
+// 保留历史可接受的大 cooked-artifact 声明；输入不完整时应报 EOF，而非更小的共享截断。
 #[test]
 fn positional_decoder_keeps_the_existing_large_artifact_size_range() {
     // An incomplete payload must fail on input length, rather than rejecting
@@ -96,8 +101,10 @@ fn positional_decoder_keeps_the_existing_large_artifact_size_range() {
     ));
 }
 
+// 头部长度已读完后，任何 payload 读取都会触发断言，以证明容器申领先于读取被拒绝。
 #[test]
 fn positional_stream_budget_rejects_container_claims_before_reading_payload() {
+    // 只允许 decoder 读取八字节的声明长度，不提供可被误读为 payload 的数据。
     struct HeaderOnly(std::io::Cursor<[u8; 8]>);
     impl Read for HeaderOnly {
         fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
@@ -124,6 +131,7 @@ fn positional_stream_budget_rejects_container_claims_before_reading_payload() {
     ));
 }
 
+// 变长编码下，字符串的长度前缀也不能绕过剩余 wire 预算直接申请缓冲区。
 #[test]
 fn positional_variable_stream_rejects_oversized_byte_buffers_before_reading() {
     let codec = PositionalEncoding::VariableLittleEndian;

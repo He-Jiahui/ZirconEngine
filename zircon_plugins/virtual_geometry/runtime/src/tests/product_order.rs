@@ -19,7 +19,7 @@ use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
     RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderSubmissionConfig, RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
     RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderWorldSnapshotHandle,
     RendererCommon, ViewportCameraSnapshot,
 };
@@ -88,6 +88,39 @@ fn public_wgpu_submission_records_follow_visible_entity_order() {
     assert_eq!(entities, vec![2, 3]);
     assert_eq!(result.debug.submission_records.len(), entities.len());
     assert!(!result.rgba.is_empty());
+}
+
+#[test]
+fn public_wgpu_selected_replay_args_preserve_first_instance_indices() {
+    let assets = basic_assets();
+    let extract = dual_extract();
+    let framework = pluginized_wgpu_render_framework_with_asset_manager(Arc::clone(&assets));
+    framework
+        .set_submission_config(
+            RenderSubmissionConfig::synchronous().with_hzb_diagnostics_readback(),
+        )
+        .unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(VIEWPORT_SIZE))
+        .unwrap();
+    framework
+        .set_quality_profile(viewport, virtual_geometry_only_quality_profile())
+        .unwrap();
+    framework.submit_frame_extract(viewport, extract.clone()).unwrap();
+    framework.submit_frame_extract(viewport, extract).unwrap();
+
+    let stats = framework.query_stats().unwrap();
+    assert!(stats.last_hzb_occlusion_indirect_args_readback_available);
+    assert!(!stats.last_hzb_occlusion_first_instances_truncated);
+    let first_instance_count = usize::from(stats.last_hzb_occlusion_first_instance_count);
+    let first_instances = &stats.last_hzb_occlusion_first_instances[..first_instance_count];
+    assert!(first_instances.len() >= 2, "{first_instances:?}");
+    assert_eq!(first_instances.len() % 2, 0, "{first_instances:?}");
+    for phase_args in first_instances.chunks_exact(2) {
+        assert_eq!(phase_args, [0, 1]);
+    }
+
+    framework.destroy_viewport(viewport).unwrap();
 }
 
 #[test]
@@ -199,6 +232,29 @@ fn public_wgpu_multi_primitive_draws_have_distinct_submission_tokens() {
     );
     assert_eq!(result.debug.submission_records.len(), 4);
     assert!(result.stats.last_virtual_geometry_indirect_draw_count > 0);
+    let mut records_by_submission = result.debug.submission_records.iter().collect::<Vec<_>>();
+    records_by_submission.sort_by_key(|record| record.submission_index);
+    assert_eq!(
+        records_by_submission
+            .iter()
+            .map(|record| (record.submission_index, record.draw_ref_index))
+            .collect::<Vec<_>>(),
+        vec![(0, Some(0)), (1, Some(1)), (2, Some(2)), (3, Some(3))],
+        "multi-primitive draws must retain distinct compacted draw-ref indices in submission order"
+    );
+    let mut segments_by_submission = result.debug.execution_segments.iter().collect::<Vec<_>>();
+    segments_by_submission.sort_by_key(|segment| segment.submission_index);
+    assert_eq!(
+        segments_by_submission
+            .iter()
+            .map(|segment| (segment.submission_index, segment.draw_ref_index))
+            .collect::<Vec<_>>(),
+        records_by_submission
+            .iter()
+            .map(|record| (Some(record.submission_index), record.draw_ref_index.unwrap()))
+            .collect::<Vec<_>>(),
+        "execution segments must carry the same GPU-authoritative compacted draw-ref indices as submission records"
+    );
     for entity in [2, 3] {
         let mut records = result
             .debug

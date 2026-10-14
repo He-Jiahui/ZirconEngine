@@ -1,10 +1,10 @@
 use super::{
-    apply_recovery, ensure_epoch, finish_account_action, AccountActionRequest, AccountCommandError,
-    AccountCommandState, AccountError, AccountSnapshot, AccountView, HubCommandState,
-    ServiceRequest, ServiceResponseContext, Value,
+    AccountActionRequest, AccountCommandError, AccountCommandState, AccountError, AccountSnapshot,
+    AccountView, HubCommandState, ServiceRequest, ServiceResponseContext, Value, apply_recovery,
+    ensure_epoch, finish_account_action,
 };
 use crate::projects::{
-    project_filesystem_path_key, CloudAccountScope, CloudBindingEnvironment, CloudProjectBinding,
+    CloudAccountScope, CloudBindingEnvironment, CloudProjectBinding, project_filesystem_path_key,
 };
 
 pub(super) fn binding_account_scope(

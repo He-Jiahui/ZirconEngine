@@ -52,6 +52,13 @@ pub enum UiBindingExpression {
 impl UiBindingExpression {
     /// 解析绑定表达式子集：`param`、`prop`、`control.X.prop.Y`、类型化字面量，以及逻辑非、与/或和相等/不等运算。
     /// 开头的 `=` 是资产表达式标记；源码字节、token、节点和嵌套深度均受预算限制。
+    ///
+    /// # 参数
+    /// `input` 是资产中的表达式文本；前后空白与单个前导 `=` 按输入规范处理。
+    ///
+    /// # 返回值
+    /// 返回供 Runtime binding compiler 继续编译的 AST；词法、语法、类型化字面量或预算错误均以 [`UiBindingExpressionParseError`] 返回。
+    /// 返回 AST 只保证属于本解析器支持的语法，不会在解析阶段解析控件目标或读取运行时值。
     pub fn parse(input: &str) -> Result<Self, UiBindingExpressionParseError> {
         Parser::new(input)?.parse()
     }
@@ -60,25 +67,45 @@ impl UiBindingExpression {
     ///
     /// This intentionally tokenizes without requiring the whole expression dialect to parse, so
     /// editor-only functions can be preserved while quoted text such as `"param.title"` is ignored.
-    /// 只要 token 流出现独立 `param.<name>` 路径便返回 true；token 化失败时保守返回 false。
+    /// 只探测 token 流中的独立 `param.<name>` 根，不要求整条表达式可解析；token 化失败时返回 false，且不证明参数已声明。
     pub fn contains_param_reference(input: &str) -> bool {
         Self::probe_param_reference(input).unwrap_or(false)
     }
 
     /// 只探测 token 中独立的 `param.<name>` 路径根；保留 token 化错误供验证器生成诊断。
+    /// 探测不完整解析整条表达式，也不查询参数声明。
+    ///
+    /// # 参数
+    /// `input` 是资产表达式文本；探测会按 parser 共享的规则移除首尾空白和可选前导 `=`。
+    ///
+    /// # 返回值
+    /// `Ok(true/false)` 表示 token 流中是否找到该路径根；词法或源码/token 预算错误以 [`UiBindingExpressionParseError`] 返回。
+    /// Runtime `binding_param_resolver::probe_param_reference` 将结果用于预筛，完整语法和参数解析仍由后续 binding compiler 处理。
     pub fn probe_param_reference(input: &str) -> Result<bool, UiBindingExpressionParseError> {
         probe_path_root(input, "param", 1)
     }
 
     /// Reports whether the token stream contains a real `control.X.prop.Y` reference.
     /// Quoted preview text is ignored even when the full editor expression dialect is unsupported.
-    /// 只探测 control 路径，不要求整个编辑器表达式都属于 Runtime 支持的语法。
+    /// 只按词法路径根作布尔探测，不完整解析编辑器表达式；token 化失败时返回 false，不能据此证明目标属性存在。
     pub fn contains_control_reference(input: &str) -> bool {
         Self::probe_control_reference(input).unwrap_or(false)
     }
 
     /// 只探测形如 `control.<id>.prop.<name>` 的路径，不要求编辑器预览表达式整体可被运行时语法解析。
+    ///
+    /// # 实现边界
+    /// 当前预筛只检查根后三个 `.标识符` 段，不校验中间段为 `prop`、控件是否存在或字段是否有效；契约确认事项见 `ZCA-TPL05-TODO-001`。
+    /// 编辑器预览可含 Runtime 不支持的其他语法；返回 `Ok(true)` 只表示发现词法模式，完整合法性由后续解析和控件契约检查决定。
+    ///
+    /// # 参数
+    /// `input` 是资产或编辑器预览表达式文本；探测遵守 parser 的源码字节和 token 预算。
+    ///
+    /// # 返回值
+    /// `Ok(true/false)` 表示是否发现上述词法模式；token 化或预算错误以 [`UiBindingExpressionParseError`] 返回。
+    /// Runtime `control_scope::probe_control_reference` 用命中结果预筛，之后仍须完整解析并按组件 scope 限定引用。
     pub fn probe_control_reference(input: &str) -> Result<bool, UiBindingExpressionParseError> {
+        // TODO: [ZCA-TPL05-TODO-001] 确认预筛是否有意接受 `control.a.foo.b`：这里只检查根后 3 个 Dot+Ident，不要求中间段为 `prop`；scope 调用端会完整解析命中项。先核对契约并验证该路径、`control.a.prop.b` 与带引号文本，再决定是否收窄。
         probe_path_root(input, "control", 3)
     }
 }
@@ -306,7 +333,6 @@ impl Parser {
         }
     }
 
-    /// 消费路径分隔符；缺失时报告语法位置上的意外 token。
     fn expect_dot(&mut self) -> Result<(), UiBindingExpressionParseError> {
         if self.consume(|token| matches!(token, Token::Dot)) {
             Ok(())
@@ -361,7 +387,6 @@ impl Parser {
     }
 
     // vec2/vec3/vec4 的长度由构造子固定；直接写入定长数组，避免临时堆分配后再转数组。
-    /// 读取构造器要求的 N 个数值和逗号，结果直接写入定长数组。
     fn expect_float_arguments<const N: usize>(
         &mut self,
         constructor: &str,
@@ -462,7 +487,6 @@ impl Parser {
         }
     }
 
-    /// 消费路径段标识符；EOF 或其他 token 都转换为解析错误。
     fn expect_ident(&mut self) -> Result<String, UiBindingExpressionParseError> {
         match self.next() {
             Some(Token::Ident(value)) => Ok(value),
@@ -473,7 +497,6 @@ impl Parser {
         }
     }
 
-    /// 仅在当前 token 满足一次性谓词时推进游标。
     fn consume(&mut self, matches: impl FnOnce(&Token) -> bool) -> bool {
         if self.peek().is_some_and(matches) {
             self.index += 1;
@@ -483,13 +506,11 @@ impl Parser {
         }
     }
 
-    /// 借用查看下一个未消费 token，不改变解析状态。
     fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.index)
     }
 
     // token 内可能持有长字符串；推进索引后移出旧值，避免克隆，再用 sentinel 占住已消费槽位。
-    /// 移出当前 token 并推进游标；替换哨兵避免克隆可能较长的字符串。
     fn next(&mut self) -> Option<Token> {
         let token = self.tokens.get_mut(self.index)?;
         self.index += 1;
@@ -518,7 +539,6 @@ fn ensure_expression_depth(depth: usize) -> Result<(), UiBindingExpressionParseE
 }
 
 // 迭代遍历同时限制总节点数和树深；平坦布尔链可能很浅但节点很多，不能只依赖递归深度检查。
-/// 在解析成功后独立遍历 AST；深度限制无法替代对平坦运算链的节点数限制。
 fn validate_expression_budget(
     root: &UiBindingExpression,
 ) -> Result<(), UiBindingExpressionParseError> {

@@ -8,9 +8,80 @@
     "project-compatibility-005": "ZCA-PROJ05",
     "serialization-005": "ZCA-SER05",
     "ui-template-005": "ZCA-TPL05",
-    "plugin-core-005": "ZCA-PLUG05"
+    "plugin-core-005": "ZCA-PLUG05",
+    "manifest-summary-006": "ZCA-MAN06"
   },
-  "issues": [],
+  "issues": [
+    {
+      "id": "ZCA-TPL05-TODO-001",
+      "kind": "TODO",
+      "batchId": "ui-template-005",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "symbol": "probe_control_reference",
+      "state": "root-approved uncertainty; exact source/tag physically present, whole batch evidence correction pending",
+      "trigger": "control.a.foo.b satisfies the root plus three Dot/Ident segments used by probe_path_root(input, control, 3)",
+      "observableBehavior": "probe may return true for a non-prop middle segment; full parse_primary rejects foo. Existing Runtime callers use probe as prefilter then parse. This is not a proven runtime defect.",
+      "proof": "Root actual complete expression source read and control_scope.rs:70-108,186-197; probe_path_root checks segment count but not prop segment. Existing readonly tests cover root/quoted strings/budgets, not this middle-segment intent.",
+      "evidence": [
+        {
+          "path": "zircon_runtime/src/ui/template/asset/compiler/control_scope.rs",
+          "sha256": "cf6958d78a2a4ca466f254f27905ef6a35c94bd5a62c04437541e281e6e9b408"
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/expression.rs",
+          "sha256": "071e96e4b606b885f5aa6223e7bfd2d7e402cd193d73c69b190a5b655ec0150d",
+          "attribution": "preexisting source changes; readonly",
+          "previousMisrecordedPath": "zircon_runtime_interface/src/ui/template/binding/tests/expression.rs"
+        }
+      ],
+      "evidenceGap": "Contract does not establish whether future/other middle segments should be accepted by this prefilter.",
+      "nextAction": "Confirm intended probe grammar with control.a.foo.b, control.a.prop.b and quoted-string cases; then decide whether probe should narrow. No behavior or test change in this task.",
+      "sourceMarkerExpected": "TODO: [ZCA-TPL05-TODO-001]",
+      "finalSourceSha256": "c59dc1e83f2d146f2926be71e97eb8d3512cd2a1ac09669a66241b59b78a39b3",
+      "pathCorrection": {
+        "previousPath": "zircon_runtime_interface/src/ui/template/binding/expression.rs",
+        "reason": "root corrected missing asset segment from actual definition; previous spelling never verified as valid source path",
+        "observedAtUtc": "2026-10-14T03:39:49.481920+00:00"
+      },
+      "sourceMarkerLine": 108,
+      "sourceMarkerText": "// TODO: [ZCA-TPL05-TODO-001] 确认预筛是否有意接受 `control.a.foo.b`：这里只检查根后 3 个 Dot+Ident，不要求中间段为 `prop`；scope 调用端会完整解析命中项。先核对契约并验证该路径、`control.a.prop.b` 与带引号文本，再决定是否收窄。"
+    },
+    {
+      "id": "CR-PROJECT-0003",
+      "kind": "TODO",
+      "batchId": "manifest-summary-006",
+      "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+      "symbol": "load_project_manifest_value_from_toml_str",
+      "state": "pre-existing unresolved TODO independently revalidated at final content",
+      "sourceMarkerLine": 23,
+      "sourceMarkerExpected": "TODO: [CR-PROJECT-0003]",
+      "finalSourceSha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "trigger": "New callers may directly invoke public raw TOML loader without the MAX_PROJECT_MANIFEST_BYTES guard currently applied by summary/Runtime wrappers.",
+      "observableBehavior": "Direct entry parses supplied TOML before any shared raw-byte ceiling; not promoted to BUG because the desired public boundary is unresolved.",
+      "proof": "Root read all migration.rs and summary parser plus actual Runtime load.rs 14-32; wrapper byte guards precede loader invocation.",
+      "independentEvidence": {
+        "path": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "evidenceGap": "Public-loader byte-limit responsibility and direct-call contract are not established.",
+      "nextAction": "Interface owner confirms whether to move the shared byte limit into direct public entry and supplies boundary validation; this task changes comments only."
+    },
+    {
+      "id": "CR-R02-public_ui_templates-0001",
+      "kind": "TODO",
+      "batchId": "ui-template-005",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "symbol": "UiStyleScope",
+      "state": "pre-existing TODO current source and uncertainty independently read; whole batch evidence correction pending",
+      "sourceMarkerLine": 224,
+      "sourceMarkerExpected": "TODO: [CR-R02-public_ui_templates-0001]",
+      "finalSourceSha256": "b21845024c31e941e424579c6fcab84169b4cb38154dc78a9c80a60a1f034210",
+      "trigger": "Open/Closed component style_scope is stored in source/prototype; the intended external selector isolation behavior is unresolved.",
+      "proof": "Root actual document.rs enum contains only Open/Closed and existing TODO at224; related Runtime tree/selector validators use public-part contracts. Agent claims of global/component/widget scope or scope-driven rule selection were rejected during root evidence review.",
+      "evidenceGap": "No Open/Closed cross-component selector behavior test establishes the intended isolation boundary.",
+      "nextAction": "Confirm isolation contract and separately exercise external selectors against private parts for both values; do not treat this audit as a behavior fix."
+    }
+  ],
   "historicalLedgerObservations": [
     {
       "kind": "caller-evidence-drift",
@@ -19,7 +90,13 @@
       "historicalSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
       "observedSha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
       "evidence": "/root/core_review independently checked all 37 session caller pins: 36 matched; this one differed. Nine frozen source pins still matched. Historical evidence is retained, not promoted to current formal acceptance.",
-      "nextAction": "Obtain original owner handoff and reread actual event contract before original session batch validation or stage commit."
+      "nextAction": "Registered coordinator validation and precise commit remain pending; old native lifecycle gaps are preserved.",
+      "currentContinuationResolution": {
+        "status": "current caller/body drift independently reconciled, old frozen evidence unchanged",
+        "evidence": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      }
     },
     {
       "kind": "historical-source-tag-status-drift",

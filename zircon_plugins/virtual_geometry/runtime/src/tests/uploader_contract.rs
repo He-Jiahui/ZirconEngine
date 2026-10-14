@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::math::UVec2;
-use crate::scene::world::World;
+use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::core::math::UVec2;
+use zircon_runtime::scene::world::World;
 use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
-use crate::{
-    types::{
+use crate::virtual_geometry::{
         ViewportRenderFrame, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
         VirtualGeometryPrepareRequest,
-    },
-    RenderFeatureCapabilityRequirement, RenderPipelineAsset, RenderPipelineCompileOptions,
-    SceneRenderer,
+};
+use zircon_runtime::graphics::{
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderSceneSnapshot, RenderVirtualGeometryExtract,
@@ -19,21 +19,21 @@ use zircon_runtime::core::framework::render::{
 
 fn compile_virtual_geometry_pipeline(
     extract: &RenderFrameExtract,
-) -> crate::CompiledRenderPipeline {
+) -> CompiledRenderPipeline {
     RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features([virtual_geometry_render_feature_descriptor()])
         .compile_with_options(
             extract,
             &RenderPipelineCompileOptions::default()
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
-                .with_feature_disabled(crate::BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(crate::BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(crate::BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(crate::BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(crate::BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(crate::BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(crate::BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(crate::BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
                 .with_async_compute(false),
         )
         .unwrap()

@@ -10,8 +10,29 @@ use super::{gc_deadline::GcFrameDeadline, HotReloadCoordinator, PluginSlot};
 impl HotReloadCoordinator {
     /// Steps eligible cooperative collectors in stable slot order until the frame budget is spent.
     pub fn gc_step(&self, budget: VmGcBudget) -> Result<VmGcStepReport, VmError> {
+        self.gc_step_with_deadline(budget, || {
+            GcFrameDeadline::start(budget.max_micros_per_frame)
+        })
+    }
+
+    #[cfg(test)]
+    pub(super) fn gc_step_with_test_clock(
+        &self,
+        budget: VmGcBudget,
+        step_elapsed_micros: u64,
+    ) -> Result<VmGcStepReport, VmError> {
+        self.gc_step_with_deadline(budget, || {
+            GcFrameDeadline::start_with_test_clock(budget.max_micros_per_frame, step_elapsed_micros)
+        })
+    }
+
+    fn gc_step_with_deadline(
+        &self,
+        budget: VmGcBudget,
+        start_deadline: impl FnOnce() -> GcFrameDeadline,
+    ) -> Result<VmGcStepReport, VmError> {
         let _gc_step_guard = self.lock_gc_step_guard();
-        let deadline = GcFrameDeadline::start(budget.max_micros_per_frame);
+        let deadline = start_deadline();
         let frame_index = self
             .next_gc_frame
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |frame| {

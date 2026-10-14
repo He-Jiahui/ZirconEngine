@@ -538,12 +538,15 @@ impl HzbOcclusionCuller {
         let pending = pending.pop_front()?;
         for readback in pending.readbacks {
             let snapshot = readback.collect()?;
-            summary.add_assign(HzbOcclusionIndirectArgsReadbackSummary::new(
+            let mut phase_summary = HzbOcclusionIndirectArgsReadbackSummary::new(
                 snapshot.args_count(),
                 snapshot.compacted_draw_count(),
                 snapshot.zero_instance_arg_count(),
                 snapshot.remaining_instance_count(),
-            ));
+            );
+            #[cfg(feature = "test-support")]
+            phase_summary.record_first_instances(&snapshot.first_instances());
+            summary.add_assign(phase_summary);
         }
         Some((pending.source_frame_index, summary))
     }

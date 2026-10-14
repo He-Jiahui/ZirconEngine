@@ -294,6 +294,59 @@ def _verify_driver_manifest(pin: ReleasePin) -> None:
             _fail("driver_manifest_mismatch", f"selected driver file changed: {relative}")
 
 
+
+def _bound_history(reference, *, repo, label):
+    if not isinstance(reference, dict) or set(reference) != {"path", "sha256"}:
+        _fail("runtime_selection_mismatch", f"{label} reference is incomplete")
+    path = _canonical_file(reference["path"], label=label, root=repo / ".jenkins/state/recovery-lifecycle/history")
+    if _sha256(path) != _expected_digest(reference["sha256"], label=label + " digest"):
+        _fail("release_digest_mismatch", f"{label} changed")
+    return _read_json(path, label=label)
+
+
+def _verify_selector_release(pin, payload, driver_state, keeper):
+    """Keep a reused driver's historical pin bound to the fresh recovery."""
+    expected = {"path": str(pin.release_path), "sha256": pin.release_sha256}
+    if keeper.get("release") != expected or keeper.get("runtime", {}).get("selected") != driver_state:
+        _fail("runtime_selection_mismatch", "Recovery owner and exact selected runtime differ")
+    if driver_state.get("recoveryRelease") == expected:
+        return
+    marker = payload.get("lostRecoveryRuntime")
+    if not isinstance(marker, dict):
+        _fail("driver_selection_mismatch", "Driver release differs without a lost-runtime recovery")
+    plan_path = _canonical_file(marker["plan"]["path"], label="lost recovery runtime plan",
+                               root=pin.repo / ".jenkins/state/migration-baseline")
+    if _sha256(plan_path) != marker["plan"]["sha256"]:
+        _fail("release_digest_mismatch", "Lost recovery runtime plan changed")
+    plan = _read_json(plan_path, label="lost recovery runtime plan")
+    interruption = _bound_history(keeper.get("lostRecoveryRuntimeInterruption"),
+                                  repo=pin.repo, label="lost runtime interruption")
+    plan_digest = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":"),
+                                           ensure_ascii=False, allow_nan=False).encode("utf-8")).hexdigest()
+    if (interruption.get("kind") != "formal-lost-recovery-runtime-interruption"
+            or interruption.get("release") != expected
+            or interruption.get("keeper") != keeper.get("keeper")
+            or interruption.get("reviewedPlan") != marker["plan"]
+            or interruption.get("recoveryDigest") != keeper.get("recoveryDigest")
+            or keeper.get("recoveryDigest") != plan_digest
+            or interruption.get("operationId") != plan.get("operationId")
+            or interruption.get("originalCommandStatus") != plan.get("originalCommandStatus")
+            or interruption.get("bootFileTime") != keeper.get("bootFileTime")
+            or interruption.get("bootFileTime") != plan.get("bootFileTime")
+            or interruption.get("outcome") != "interrupted"):
+        _fail("runtime_selection_mismatch", "Fresh recovery lacks its exact predecessor interruption")
+    binding = interruption.get("originalArtifacts", {}).get("previousSelector", {})
+    if (binding.get("original") != plan.get("previousSelector")
+            or not isinstance(binding.get("archive"), dict)
+            or binding["archive"].get("sha256") != plan.get("previousSelector", {}).get("sha256")):
+        _fail("runtime_selection_mismatch", "Predecessor selector archive differs from its reviewed identity")
+    previous = _bound_history(binding["archive"], repo=pin.repo, label="predecessor selector")
+    if (previous.get("runtimeOperationId") != payload.get("expectedPreviousOwner", {}).get("operation", {}).get("operationId")
+            or {k: v for k, v in previous.items() if k not in {"state", "runtimeOperationId"}}
+            != {k: v for k, v in driver_state.items() if k not in {"state", "runtimeOperationId"}}):
+        _fail("driver_selection_mismatch", "A reused selector differs from its exact archived predecessor")
+
+
 def verify_release(release_path: Path | str, release_sha256: str, *, repo: Path = REPO_ROOT) -> ReleasePin:
     """Verify every immutable pin needed before importing the formal tray."""
 
@@ -423,8 +476,6 @@ def verify_release(release_path: Path | str, release_sha256: str, *, repo: Path 
             or _norm(Path(str(driver_state.get("steps", "")))) != _norm(driver_steps)):
         _fail("driver_selection_mismatch", "driver.json entry points differ from the release")
     recovery = driver_state.get("recoveryRelease")
-    if not isinstance(recovery, dict) or _norm(Path(str(recovery.get("path", "")))) != _norm(release) or recovery.get("sha256") != expected_release_digest:
-        _fail("driver_selection_mismatch", "driver.json recovery release pin differs")
     runtime_id = driver_state.get("runtimeOperationId")
     if not isinstance(runtime_id, str) or not runtime_id:
         _fail("driver_selection_mismatch", "selected driver has no runtime operation id")
@@ -448,8 +499,8 @@ def verify_release(release_path: Path | str, release_sha256: str, *, repo: Path 
         if selected.get(key) != driver_state.get(key):
             _fail("runtime_selection_mismatch", f"recovery keeper selected {key} differs")
     descriptor_release = keeper.get("release")
-    if descriptor_release != recovery:
-        _fail("runtime_selection_mismatch", "recovery keeper release differs from selected driver")
+    if descriptor_release != {"path": str(release), "sha256": expected_release_digest}:
+        _fail("runtime_selection_mismatch", "recovery keeper release differs from the reviewed current recovery")
     descriptor_operation = runtime.get("operation")
     descriptor_host = runtime.get("host")
     if descriptor_operation != operation or descriptor_host != host:
@@ -457,6 +508,7 @@ def verify_release(release_path: Path | str, release_sha256: str, *, repo: Path 
     keeper_identity = keeper.get("keeper")
     if not isinstance(keeper_identity, dict) or not all(keeper_identity.get(key) for key in ("pid", "creationTime", "executable", "commandDigest")):
         _fail("runtime_selection_mismatch", "recovery keeper identity is incomplete")
+    _verify_selector_release(pin, payload, driver_state, keeper)
     return pin
 
 

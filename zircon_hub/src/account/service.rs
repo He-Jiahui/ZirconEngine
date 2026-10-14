@@ -1,9 +1,8 @@
 use super::{
-    cloud, oidc,
-    operations::{validate_id, Mutation, OperationIdentity, OperationPayload, OperationStatus},
-    AccountBroker, AccountError,
+    AccountBroker, AccountError, cloud, oidc,
+    operations::{Mutation, OperationIdentity, OperationPayload, OperationStatus, validate_id},
 };
-use openidconnect::{reqwest, OAuth2TokenResponse};
+use openidconnect::{OAuth2TokenResponse, reqwest};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -601,7 +600,7 @@ pub(super) fn project_mutation_result(payload: &OperationPayload, result: &Value
     }
     Some(match payload {
         OperationPayload::InstallPackage { request, .. } => {
-            return super::package::project_receipt(request, result)
+            return super::package::project_receipt(request, result);
         }
         OperationPayload::CatalogLicense { .. } => {
             serde_json::json!({"packageId":result["packageId"],"revision":result["revision"]})

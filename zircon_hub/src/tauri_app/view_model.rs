@@ -3,7 +3,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use crate::engines::SourceEngineInstall;
-use crate::projects::{metadata_for_path, now_unix_ms, project_paths_match, RecentProject};
+use crate::projects::{RecentProject, metadata_for_path, now_unix_ms, project_paths_match};
 use crate::settings::HubLanguage;
 use crate::state::{HubSnapshot, ProjectAvailabilitySnapshot, TaskSeverity, TaskStatus};
 use crate::team::{TeamMemberEntry, TeamOverview};
@@ -31,20 +31,20 @@ mod source_engines;
 #[path = "view_model/ui_text.rs"]
 mod ui_text;
 
-use action_history::{action_history_rows, HubActionHistoryItem};
+use action_history::{HubActionHistoryItem, action_history_rows};
 use catalog::{asset_rows, learn_rows, plugin_rows};
-use coming_soon::{coming_soon_entries, HubComingSoonEntry};
+use coming_soon::{HubComingSoonEntry, coming_soon_entries};
 use display::{path_text, path_text_en, relative_time};
 pub(crate) use localized::HubTextBundle;
-use new_project::{new_project_draft, HubNewProjectDraft};
-use project_templates::{project_template_label, project_template_rows, HubProjectTemplate};
+use new_project::{HubNewProjectDraft, new_project_draft};
+use project_templates::{HubProjectTemplate, project_template_label, project_template_rows};
 use quick_actions::quick_actions;
-use settings_dto::{settings_summary, HubSettingsSummary};
 pub(crate) use settings_dto::{
-    validate_settings_for_save, HubSettingsActionPayload, HubSettingsPayload,
+    HubSettingsActionPayload, HubSettingsPayload, validate_settings_for_save,
 };
+use settings_dto::{HubSettingsSummary, settings_summary};
 use source_engines::source_build_history_rows;
-use ui_text::{ui_text, HubUiText};
+use ui_text::{HubUiText, ui_text};
 
 const PROJECT_CARD_LIMIT: usize = 12;
 const RECENT_ROW_LIMIT: usize = 8;

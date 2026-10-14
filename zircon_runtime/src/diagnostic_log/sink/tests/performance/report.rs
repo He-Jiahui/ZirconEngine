@@ -94,7 +94,9 @@ pub(super) fn assert_case(
     output: &OutputSnapshot,
     rss: RssSnapshot,
 ) {
-    assert_eq!(formatted, attempted);
+    // A full queue skips best-effort formatting; a concurrent admission can also win after it.
+    assert!(sink.written_records <= formatted as u64);
+    assert!(formatted <= attempted);
     assert_caller_latency(caller_p95);
     assert!(load_elapsed >= Duration::from_secs(1));
     assert!(load_elapsed <= Duration::from_millis(1_250));

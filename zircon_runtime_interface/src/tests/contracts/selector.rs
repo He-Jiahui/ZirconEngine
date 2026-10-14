@@ -1,8 +1,13 @@
+//! 面向 `ui::template` 公共选择器 API 的契约测试。
+//!
+//! 此处验证解析、Serde 往返、非法尾随组合器和 specificity；不执行 Runtime 节点匹配或样式级联。
+
 use crate::ui::template::{
     UiAssetError, UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorSpecificity,
     UiSelectorToken,
 };
 
+/// 解析后的段/token 结构应可序列化往返，且尾随子组合器必须被拒绝。
 #[test]
 fn ui_selector_contracts_parse_reject_trailing_child_and_serialize() {
     let selector = UiSelector::parse("Button.primary > Label:part(text)").unwrap();
@@ -34,6 +39,7 @@ fn ui_selector_contracts_parse_reject_trailing_child_and_serialize() {
     ));
 }
 
+/// specificity 作为公开三元组比较，ID 优先级高于任意数量的 class-like token，并检查旧显示分值。
 #[test]
 fn ui_selector_specificity_contract_uses_public_template_api() {
     let selector = UiSelector::parse("Button.primary#confirm:part(label) > Label").unwrap();

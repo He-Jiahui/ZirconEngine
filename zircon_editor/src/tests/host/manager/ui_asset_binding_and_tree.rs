@@ -639,3 +639,76 @@ fn editor_manager_restores_ui_asset_tree_selection_across_undo_and_redo() {
     let _ = fs::remove_file(path);
     let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
 }
+
+
+#[test]
+fn editor_manager_canonical_save_preserves_undo_redo_and_clears_source_owner() {
+    let _guard = env_lock().lock().unwrap();
+    let config = unique_temp_path("zircon_editor_source_checkpoint");
+    let project_root = unique_temp_dir("zircon_editor_source_checkpoint_project");
+    create_project_with_default_world(&project_root);
+    let source_path = project_root.join("assets/ui/layouts/checkpoint.zui");
+    fs::create_dir_all(source_path.parent().unwrap()).unwrap();
+    write_ui_asset(&source_path, SIMPLE_UI_LAYOUT_ASSET);
+    let initial = format!(
+        "# authored 注释🙂 {}\n{}",
+        "x".repeat(4096), fs::read_to_string(&source_path).unwrap(),
+    );
+    fs::write(&source_path, &initial).unwrap();
+    let runtime = editor_runtime_with_config_path(&config);
+    let handle = runtime.resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME).unwrap();
+    let manager = handle.enter().unwrap();
+    manager.open_project(&project_root).unwrap();
+    let instance = manager.open_ui_asset_editor_by_id("res://ui/layouts/checkpoint.zui", None).unwrap();
+    manager.update_ui_asset_editor_source(&instance, initial.replace("Test UI Asset", "保存🙂")).unwrap();
+    assert!(manager.ui_asset_editor_pane_presentation(&instance).unwrap().source_dirty);
+    drop(manager);
+    EditorManager::save_ui_asset_editor(handle.clone(), &instance).unwrap();
+    let canonical = fs::read_to_string(&source_path).unwrap();
+    assert!(!canonical.contains("# authored"));
+    let manager = handle.enter().unwrap();
+    assert!(!manager.ui_asset_editor_pane_presentation(&instance).unwrap().source_dirty);
+    assert!(manager.undo_ui_asset_editor(&instance).unwrap());
+    assert_eq!(manager.ui_asset_editor_pane_presentation(&instance).unwrap().source_text, initial);
+    assert!(manager.current_view_instances().iter().find(|view| view.instance_id == instance).unwrap().dirty);
+    assert!(manager.redo_ui_asset_editor(&instance).unwrap());
+    let pane = manager.ui_asset_editor_pane_presentation(&instance).unwrap();
+    assert_eq!(pane.source_text, canonical);
+    assert!(!pane.source_dirty);
+    assert!(!manager.current_view_instances().iter().find(|view| view.instance_id == instance).unwrap().dirty);
+    assert!(!manager.dirty_document_toolkits().unwrap().iter().any(|view| view.instance_id == instance));
+    assert_eq!(fs::read_to_string(&source_path).unwrap(), canonical, "history navigation does not rewrite disk");
+    drop(manager);
+    drop(handle);
+    drop(runtime);
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(config);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn editor_manager_source_checkpoint_keeps_other_dirty_owners() {
+    use crate::core::asset::DirtyExternalEffectId;
+    let _guard = env_lock().lock().unwrap();
+    let config = unique_temp_path("zircon_editor_source_owner_dirty");
+    let directory = unique_temp_dir("zircon_editor_source_owner_dirty_file");
+    let source_path = directory.join("editor.zui");
+    fs::create_dir_all(&directory).unwrap();
+    write_ui_asset(&source_path, SIMPLE_UI_LAYOUT_ASSET);
+    let initial = fs::read_to_string(&source_path).unwrap();
+    let runtime = editor_runtime_with_config_path(&config);
+    let manager = runtime.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME).unwrap();
+    let instance = manager.open_ui_asset_editor(&source_path, None).unwrap();
+    manager.update_ui_asset_editor_source(&instance, initial.replace("Test UI Asset", "Changed")).unwrap();
+    manager.mark_document_external_effect(&instance, DirtyExternalEffectId::parse("test.other_owner").unwrap()).unwrap();
+    assert!(manager.undo_ui_asset_editor(&instance).unwrap());
+    let pane = manager.ui_asset_editor_pane_presentation(&instance).unwrap();
+    assert_eq!(pane.source_text, initial);
+    assert!(!pane.source_dirty);
+    assert!(manager.current_view_instances().iter().find(|view| view.instance_id == instance).unwrap().dirty);
+    assert!(manager.dirty_document_toolkits().unwrap().iter().any(|view| view.instance_id == instance));
+    assert!(matches!(manager.close_view(&instance), Err(crate::ui::host::EditorError::DocumentCloseNeedsDecision { .. })));
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(config);
+    let _ = fs::remove_dir_all(directory);
+}

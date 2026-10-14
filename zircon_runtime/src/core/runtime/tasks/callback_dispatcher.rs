@@ -153,6 +153,7 @@ impl TaskCallbackDispatcher {
             // A terminal observer may be registered after the owning worker
             // set has joined. The callback is already admitted by JobHandle,
             // so deliver it synchronously instead of escaping to another owner.
+            self.release_runner_reservation();
             self.drain_inline_without_executor();
             return;
         };
@@ -174,7 +175,6 @@ impl TaskCallbackDispatcher {
             self.record_run(callbacks_run);
             let mut state = self.lock_state();
             if state.envelopes.is_empty() {
-                state.active_runners = 0;
                 state.inline_draining = false;
                 return;
             }
@@ -226,6 +226,16 @@ impl TaskCallbackDispatcher {
         for _ in 0..runners_to_schedule {
             self.schedule_runner();
         }
+    }
+
+    // A failed executor submission owns only the reservation assigned to that
+    // attempt. Other reservations may already be running and must stay counted.
+    fn release_runner_reservation(&self) {
+        let mut state = self.lock_state();
+        state.active_runners = state
+            .active_runners
+            .checked_sub(1)
+            .expect("every rejected dispatcher runner must hold a reservation");
     }
 
     fn reserve_runners(&self, state: &mut TaskCallbackDispatcherState) -> usize {

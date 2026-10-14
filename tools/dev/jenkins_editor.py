@@ -6,6 +6,7 @@ materialization, compilation and product publication.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import math
@@ -47,6 +48,47 @@ def _file_reference(value):
 
 def _protocol_implementation():
     return _file_reference(Path(protocol.__code__.co_filename).absolute())["sha256"]
+
+def _require_source_root_capability(driver):
+    driver_root = Path(driver["launcher"]).parent
+    manifest_path = driver_root / "driver-manifest.json"
+    plain_path(manifest_path)
+    try:
+        manifest = read_json(manifest_path, "selected driver manifest")
+    except EntryError as error:
+        raise EntryError("driver_integrity_failed", "Selected driver manifest cannot be verified") from error
+    files = manifest.get("files") if isinstance(manifest, dict) else None
+    checksum = driver.get("digest")
+    if (not isinstance(files, dict) or type(manifest.get("schemaVersion")) is not int
+            or manifest["schemaVersion"] != 1 or manifest.get("driverDigest") != checksum
+            or digest({"schemaVersion": 1, "files": files}) != checksum):
+        raise EntryError("driver_integrity_failed", "Selected driver manifest identity differs")
+    relative = "tools/jenkins/current_source.py"
+    entry = files.get(relative)
+    if not isinstance(entry, dict):
+        raise EntryError("source_root_unsupported", "Selected driver does not declare the current-source implementation")
+    source = driver_root / "tools" / "jenkins" / "current_source.py"
+    plain_path(source)
+    data = source.read_bytes()
+    if (type(entry.get("bytes")) is not int or entry["bytes"] != len(data)
+            or entry.get("sha256") != hashlib.sha256(data).hexdigest()):
+        raise EntryError("driver_integrity_failed", "Selected current-source implementation differs from its manifest")
+    try:
+        module = ast.parse(data.decode("utf-8"), filename=relative)
+    except (SyntaxError, UnicodeError, ValueError) as error:
+        raise EntryError("driver_integrity_failed", "Selected current-source implementation cannot be parsed") from error
+    assignments = [
+        node for node in module.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "SOURCE_ROOT_CAPABILITY"
+                for target in node.targets)
+    ]
+    if (len(assignments) != 1 or len(assignments[0].targets) != 1
+            or not isinstance(assignments[0].targets[0], ast.Name)
+            or not isinstance(assignments[0].value, ast.Constant)
+            or type(assignments[0].value.value) is not str
+            or assignments[0].value.value != "same-repository-worktree-v1"):
+        raise EntryError("source_root_unsupported", "Selected driver does not support same-repository worktree inputs")
 
 
 def _terminal_registration(args, folder, prior, intent):
@@ -135,6 +177,18 @@ def _paths(root, values, name):
     return sorted(paths)
 
 
+def _source_root_value(value, root):
+    if value is None:
+        return None
+    if not value:
+        raise EntryError("source_root_invalid", "--source-root must name a directory")
+    path = Path(value)
+    if not path.is_absolute():
+        path = root / path
+    source = path.absolute()
+    return None if source == root else str(source)
+
+
 def _path_input(args, root, name):
     repeated = getattr(args, name + "_path")
     filename = getattr(args, name + "_paths")
@@ -214,7 +268,7 @@ def intent_payload(args, root, identity):
     if (not tests or len(tests) != len(set(tests)) or
             any(not isinstance(test, str) or not _TEST_ID.fullmatch(test) for test in tests)):
         raise EntryError("product_test_scope_invalid", "Provide unique exact Cargo test IDs")
-    return {
+    payload = {
         "identity": identity, "baseHead": args.base_head,
         "buildRoot": build_root(root, args.build_root),
         "ownedPaths": owned, "currentHashes": dict(sorted(hashes.items())),
@@ -223,6 +277,10 @@ def intent_payload(args, root, identity):
         "coverage": {"template": "editor_product_" + (args.profile or "development"),
                      "requiredTests": sorted(tests), "noDefaultFeatures": True},
     }
+    source_root = _source_root_value(args.source_root, root)
+    if source_root is not None:
+        payload["sourceRoot"] = source_root
+    return payload
 
 
 def _query(root, driver, folder, saved, args, call):
@@ -256,6 +314,14 @@ def _execute_locked(args, root, driver, identity, folder, *, call):
             raise EntryError("source_build_root_mismatch", "Retain the saved physical build root")
         if args.action == "resume-registration":
             return _resume_registration(args, root, driver, folder, prior, call=call)
+        if args.source_root is not None:
+            intent_path = folder / "intent.json"
+            if not intent_path.is_file():
+                raise EntryError("source_root_binding_unknown", "Saved request intent is required to compare source-root binding")
+            saved_intent = read_json(intent_path, "saved editor intent")
+            requested_root = _source_root_value(args.source_root, root)
+            if not isinstance(saved_intent, dict) or saved_intent.get("sourceRoot") != requested_root:
+                raise EntryError("source_root_binding_conflict", "A replay cannot change the saved source-root binding")
         if args.current_hashes:
             save_json(folder / "intent.json", intent_payload(args, root, identity), immutable=True)
         # Replays observe the same request. They never perform a second admission.
@@ -263,6 +329,8 @@ def _execute_locked(args, root, driver, identity, folder, *, call):
     if args.action == "resume-registration":
         raise EntryError("registration_recovery_missing", "Recovery requires the existing original lifecycle and intent")
     if args.action == "query":
+        if args.source_root is not None:
+            raise EntryError("source_root_action_conflict", "--source-root is a registration input and cannot be used by query")
         saved = {"identity": identity, "buildRoot": build_root(root, args.build_root),
                  "runtimeOperationId": driver["runtimeOperationId"]}
         query_path = folder / "current-source-query.json"
@@ -281,6 +349,8 @@ def _execute_locked(args, root, driver, identity, folder, *, call):
                 raise EntryError("query_binding_conflict", "Existing query does not match the requested binding")
         return _query(root, driver, folder, saved, args, call)
     payload = intent_payload(args, root, identity)
+    if payload.get("sourceRoot") is not None:
+        _require_source_root_capability(driver)
     save_json(folder / "intent.json", payload, immutable=True)
     saved = {"identity": identity, "buildRoot": payload["buildRoot"],
              "runtimeOperationId": driver["runtimeOperationId"], "phase": "registering",
@@ -331,7 +401,8 @@ def _submit_registered(args, root, driver, folder, saved, payload, ref, *, call)
 
 def _resume_registration(args, root, driver, folder, prior, *, call):
     if (args.current_hashes or args.base_head or args.profile or args.required_test or args.owned_path
-            or args.untracked_path or args.owned_paths or args.untracked_paths or args.external_inputs or args.current_source_ref):
+            or args.untracked_path or args.owned_paths or args.untracked_paths or args.external_inputs
+            or args.current_source_ref or args.source_root is not None):
         raise EntryError("registration_recovery_input_conflict", "Recovery uses only the saved immutable intent; source, coverage and reference replacements are forbidden")
     if prior.get("phase") != "registration_unknown" or prior.get("reasonCode") not in _UNKNOWN:
         raise EntryError("registration_recovery_phase", "Only a reconciled unknown registration can be resumed")
@@ -339,6 +410,8 @@ def _resume_registration(args, root, driver, folder, prior, *, call):
     intent = read_json(folder / "intent.json", "original immutable intent")
     if not isinstance(intent, dict) or intent.get("identity") != prior["identity"] or intent.get("buildRoot") != prior["buildRoot"]:
         raise EntryError("registration_recovery_input_conflict", "Saved intent and lifecycle identity differ")
+    if intent.get("sourceRoot") not in (None, ""):
+        _require_source_root_capability(driver)
     terminal = _terminal_registration(args, folder, prior, intent)
     recovery_id = uuid.uuid4().hex
     evidence = _recovery_event(folder, recovery_id, "terminal", previousLifecycle=prior,
@@ -417,6 +490,7 @@ def parser():
     result.add_argument("--profile", choices=("development", "shipping"))
     result.add_argument("--required-test", action="append", default=[])
     result.add_argument("--build-root")
+    result.add_argument("--source-root", help="Separate same-repository worktree supplying current source bytes; defaults to the canonical checkout")
     result.add_argument("--current-source-ref")
     result.add_argument("--timeout", type=float, default=60)
     result.add_argument("--registration-timeout", type=float, help="Separate bounded registration budget, at most 900 seconds; defaults to --timeout")

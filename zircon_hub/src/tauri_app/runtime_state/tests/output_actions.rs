@@ -259,10 +259,12 @@ fn open_output_folder_rejects_a_target_only_history_selector() {
         .expect("a target-only request should be recorded as a recoverable rejection");
 
     assert_eq!(view_model.task_summary.label, "Action failed");
-    assert!(view_model
-        .task_summary
-        .detail
-        .contains("targetId is not accepted"));
+    assert!(
+        view_model
+            .task_summary
+            .detail
+            .contains("targetId is not accepted")
+    );
     fs::remove_dir_all(temp).unwrap();
 }
 

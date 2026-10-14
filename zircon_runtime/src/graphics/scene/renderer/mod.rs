@@ -24,6 +24,7 @@ pub(crate) mod material;
 mod mesh;
 #[path = "mip_gen/mod.rs"]
 pub(in crate::graphics::scene) mod mip_gen;
+/// 汇总视口场景内容与辅助 pass 的准备、录制接口，供直接场景路径与 compiled graph 共用。
 #[path = "overlay/mod.rs"]
 mod overlay;
 #[path = "particle/mod.rs"]

@@ -1,0 +1,963 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "project-identity-008",
+  "reviewer": "/root",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewedAtUtc": "2026-10-14 07:32:09 UTC",
+  "state": "local independent review passed; formal coordinator pending",
+  "wholeRepositoryComplete": false,
+  "inputEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-project-identity-008.json",
+    "sha256": "4f43f2f68348ecd45bf7143f8123777afbdf19c481a76c406e5afe364a8d0d35",
+    "status": "frozen; root qualifications below override overbroad statements"
+  },
+  "baselineHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "observedHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "initialSha256": "3440dd6b130e2988bbf7e86465a39b3e5cc0a6c3d4e2eb1dfbbb6edffad9a433",
+      "currentSha256": "7c2be44e09b58510285ca2931fd7af73b6bb274ab219b0dabedc85b1b2b0788c",
+      "bytes": 2208,
+      "lf": 66,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 10,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "7c2be44e09b58510285ca2931fd7af73b6bb274ab219b0dabedc85b1b2b0788c",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "initialSha256": "884c98390b6388f8e8545db6263c69a5b8c083fb6fe36365780cbec4a60b03f3",
+      "currentSha256": "884c98390b6388f8e8545db6263c69a5b8c083fb6fe36365780cbec4a60b03f3",
+      "bytes": 541,
+      "lf": 15,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 0,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "884c98390b6388f8e8545db6263c69a5b8c083fb6fe36365780cbec4a60b03f3",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "initialSha256": "038f2bdb02d158e1588634006244399795e9658d66b6303db0e792b2a5d6cf4b",
+      "currentSha256": "8805b0bf4db0b53d245729e9318a4c2086e741bc866fed25da358f81c203c4c8",
+      "bytes": 3423,
+      "lf": 102,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 12,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "8805b0bf4db0b53d245729e9318a4c2086e741bc866fed25da358f81c203c4c8",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "initialSha256": "e75bd88f59d4bc02acb03e84fe0d5d221ef91764318f676808f8b0bf9b8fb4dd",
+      "currentSha256": "695658fca7a6b6221d6b2001867a4094d9d17042f3a58ebcaea518a3eb888576",
+      "bytes": 770,
+      "lf": 22,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 2,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "695658fca7a6b6221d6b2001867a4094d9d17042f3a58ebcaea518a3eb888576",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "initialSha256": "220e40b5f7570aca1bd836f9993519670499553bfe739f7ae46aa4d3eab5cdc5",
+      "currentSha256": "97ee494d03c700277f55b5a955e76e4613cab0eafb9303ba23472cd0cdb856c5",
+      "bytes": 1897,
+      "lf": 49,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 10,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "97ee494d03c700277f55b5a955e76e4613cab0eafb9303ba23472cd0cdb856c5",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "initialSha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+      "currentSha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+      "bytes": 2344,
+      "lf": 79,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 0,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "initialSha256": "1910d528f946feeefae8377cf2ebd8d1ba56e8e55fafec4f5ed8ba06a15733f9",
+      "currentSha256": "1910d528f946feeefae8377cf2ebd8d1ba56e8e55fafec4f5ed8ba06a15733f9",
+      "bytes": 1117,
+      "lf": 31,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 0,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "1910d528f946feeefae8377cf2ebd8d1ba56e8e55fafec4f5ed8ba06a15733f9",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "initialSha256": "421b649dc51543f4527cfb388a9277cad0312e4bed3cd662eb835e030a65adcc",
+      "currentSha256": "421b649dc51543f4527cfb388a9277cad0312e4bed3cd662eb835e030a65adcc",
+      "bytes": 3185,
+      "lf": 84,
+      "crlf": 0,
+      "insertedCommentOrBlankLines": 0,
+      "baselineCodeCommentsEolPreserved": true,
+      "reviewedSha256": "421b649dc51543f4527cfb388a9277cad0312e4bed3cd662eb835e030a65adcc",
+      "state": "reviewed-awaiting-coordinator",
+      "issueTags": []
+    }
+  ],
+  "reviewedFileCount": 8,
+  "pendingFileCount": 0,
+  "objectEvidence": [
+    {
+      "symbol": "ProjectGuid(Uuid)",
+      "kind": "public transparent tuple struct",
+      "docAction": "added type-level boundary",
+      "entry": "A UUID enters through construction, parsing, or deserialization.",
+      "state": "Stores the UUID in a private tuple field; Serialize remains transparent.",
+      "effect": "The wrapper rejects nil at checked entry points but does not validate UUID version/variant or search for duplicate projects.",
+      "id": "PID08-1-1",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "impl ProjectGuid",
+      "kind": "inherent implementation block",
+      "docAction": "reviewed; behavior unchanged",
+      "entry": "Callers provide a UUID or request a generated identifier.",
+      "state": "Methods either wrap a validated UUID, generate a UUID v4, or copy the inner UUID.",
+      "effect": "No external project registry or filesystem is consulted.",
+      "id": "PID08-1-2",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectGuid::new",
+      "kind": "public function",
+      "docAction": "added",
+      "entry": "No caller value.",
+      "state": "Calls Uuid::new_v4 and stores its result.",
+      "effect": "Returns a generated v4 identifier; it does not look up existing project identifiers.",
+      "id": "PID08-1-3",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectGuid::try_from_uuid",
+      "kind": "public function",
+      "docAction": "added with Errors section",
+      "entry": "Caller supplies a Uuid.",
+      "state": "Returns Nil only when Uuid::is_nil; otherwise stores the value.",
+      "effect": "The caller remains responsible for any version, variant, or uniqueness policy.",
+      "id": "PID08-1-4",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectGuid::as_uuid",
+      "kind": "public accessor",
+      "docAction": "no addition needed",
+      "entry": "A ProjectGuid value is supplied.",
+      "state": "Copies its Copy UUID payload.",
+      "effect": "Returns the UUID without mutation or validation.",
+      "id": "PID08-1-5",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "Display::fmt",
+      "kind": "trait implementation",
+      "docAction": "no addition needed",
+      "entry": "A formatter receives a ProjectGuid.",
+      "state": "Delegates formatting to the wrapped Uuid.",
+      "effect": "Produces the UUID textual representation.",
+      "id": "PID08-1-6",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "FromStr::Err",
+      "kind": "associated type",
+      "docAction": "no addition needed",
+      "entry": "FromStr is selected by the caller.",
+      "state": "Uses ProjectGuidParseError.",
+      "effect": "Malformed UUID text and nil UUID share the public parse error type.",
+      "id": "PID08-1-7",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "FromStr::from_str",
+      "kind": "trait implementation",
+      "docAction": "added with Errors section",
+      "entry": "Caller supplies text.",
+      "state": "Runs Uuid::parse_str, maps its syntax error, then calls try_from_uuid.",
+      "effect": "Only parser-supported UUID text with a non-nil value succeeds.",
+      "id": "PID08-1-8",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "Deserialize::deserialize",
+      "kind": "manual trait implementation",
+      "docAction": "baseline ordinary comment preserved; no duplicate doc added",
+      "entry": "Serde deserializes the transparent UUID representation.",
+      "state": "Deserializes Uuid and routes through try_from_uuid, converting failure to the deserializer error.",
+      "effect": "The nil rule is the same as the constructor; no UUID version or global uniqueness check is added.",
+      "id": "PID08-1-9",
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectGuidParseError",
+      "kind": "public error enum",
+      "docAction": "no addition needed; existing bilingual documentation retained",
+      "entry": "An invalid UUID string or a nil UUID reaches the conversion boundary.",
+      "state": "The enum distinguishes InvalidUuid with a source error from Nil.",
+      "effect": "The existing English non-unique wording is explicitly qualified by its Chinese note as nil-only; no cross-project collision claim is made.",
+      "id": "PID08-2-1",
+      "path": "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectGuidParseError::InvalidUuid { source }",
+      "kind": "error variant and source field",
+      "docAction": "no addition needed",
+      "entry": "Uuid::parse_str rejects text.",
+      "state": "Wraps uuid::Error through thiserror source chaining.",
+      "effect": "Preserves the underlying parse cause.",
+      "id": "PID08-2-2",
+      "path": "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectGuidParseError::Nil",
+      "kind": "error variant",
+      "docAction": "no addition needed",
+      "entry": "A parsed or supplied UUID is nil.",
+      "state": "Represents the single rejected UUID value.",
+      "effect": "Allows callers to distinguish nil from malformed text.",
+      "id": "PID08-2-3",
+      "path": "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "thiserror Error derive",
+      "kind": "derive macro",
+      "docAction": "no addition needed",
+      "entry": "The enum is compiled with the derive.",
+      "state": "Generates display/source plumbing from existing attributes.",
+      "effect": "No derive input or error behavior changed.",
+      "id": "PID08-2-4",
+      "path": "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigest([u8; 32])",
+      "kind": "public fixed-size digest wrapper",
+      "docAction": "added type-level boundary after the existing bilingual summary",
+      "entry": "A digest is created from bytes or parsed from its wire representation.",
+      "state": "Stores exactly the BLAKE3 output bytes and no path/read-state metadata.",
+      "effect": "Its text form is canonical 64-character lowercase hexadecimal and alone does not prove a file's contents.",
+      "id": "PID08-3-1",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigest::from_bytes",
+      "kind": "public function",
+      "docAction": "added Parameters and Returns sections",
+      "entry": "Caller supplies any byte sequence through AsRef<[u8]>.",
+      "state": "Hashes exactly those bytes with blake3::hash.",
+      "effect": "Returns the digest; it performs no file read, input size bound, provenance check, or freshness check.",
+      "id": "PID08-3-2",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigest::as_bytes",
+      "kind": "public accessor",
+      "docAction": "no addition needed",
+      "entry": "A digest value is supplied.",
+      "state": "Borrows its fixed-size internal byte array.",
+      "effect": "Returns digest bytes without computing or validating a source file.",
+      "id": "PID08-3-3",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigest::to_hex",
+      "kind": "public accessor",
+      "docAction": "no addition needed",
+      "entry": "A digest value is supplied.",
+      "state": "Uses the type's Display representation.",
+      "effect": "Returns canonical lowercase hexadecimal text.",
+      "id": "PID08-3-4",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigest::parse",
+      "kind": "public parser",
+      "docAction": "added with Errors section",
+      "entry": "Caller supplies text.",
+      "state": "Requires exactly blake3::OUT_LEN * 2 characters and maps only lowercase ASCII hexadecimal nibbles into 32 bytes.",
+      "effect": "Returns the fixed-size digest or an error retaining the rejected value; deserialization reuses the same parser. It does not compare a file.",
+      "id": "PID08-3-5",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "Display::fmt",
+      "kind": "trait implementation",
+      "docAction": "no addition needed",
+      "entry": "A formatter receives a digest.",
+      "state": "Formats the underlying bytes in lowercase hexadecimal.",
+      "effect": "Establishes the same canonical representation used by to_hex.",
+      "id": "PID08-3-6",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "Serialize::serialize",
+      "kind": "manual trait implementation",
+      "docAction": "no addition needed",
+      "entry": "Serde serializes a digest value.",
+      "state": "Serializes its canonical text representation as a string.",
+      "effect": "Wire output is a lowercase hex string, not a byte array.",
+      "id": "PID08-3-7",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "Deserialize::deserialize",
+      "kind": "manual trait implementation",
+      "docAction": "no addition needed beyond parse contract",
+      "entry": "Serde reads a string.",
+      "state": "Deserializes String and calls parse, mapping parse failure to the deserializer error.",
+      "effect": "The serialized input obeys the identical exact-length/lowercase rule; it never reads the manifest.",
+      "id": "PID08-3-8",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "lowercase_hex_value",
+      "kind": "private helper",
+      "docAction": "no addition needed; parser documentation covers its local role",
+      "entry": "Receives one byte from the digest text.",
+      "state": "Maps ASCII 0-9 and a-f to a nibble and returns None for all other bytes.",
+      "effect": "Enforces lowercase ASCII before bytes are assembled.",
+      "id": "PID08-3-9",
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigestParseError",
+      "kind": "public error struct",
+      "docAction": "added concise Chinese responsibility summary after original English summary",
+      "entry": "Digest text fails length or character validation.",
+      "state": "Stores the received text and expected character count for the existing error format.",
+      "effect": "Preserves input context for diagnostics.",
+      "id": "PID08-4-1",
+      "path": "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigestParseError::value",
+      "kind": "public field",
+      "docAction": "added field documentation",
+      "entry": "The parser receives invalid text.",
+      "state": "Retains that original string.",
+      "effect": "Allows diagnostic consumers to inspect the rejected value.",
+      "id": "PID08-4-2",
+      "path": "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "expected_hex_characters",
+      "kind": "private field",
+      "docAction": "no addition needed; the error display and parser define its meaning",
+      "entry": "The parser knows the canonical expected length.",
+      "state": "Stores that length.",
+      "effect": "Supplies the existing thiserror display message.",
+      "id": "PID08-4-3",
+      "path": "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectManifestDigestParseError::new",
+      "kind": "crate-private constructor",
+      "docAction": "no addition needed",
+      "entry": "The digest parser supplies original text and required length.",
+      "state": "Moves both values into the error struct.",
+      "effect": "No validation occurs in the constructor.",
+      "id": "PID08-4-4",
+      "path": "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectIdentity",
+      "kind": "public aggregate",
+      "docAction": "added Serde boundary qualification after the original English and Chinese summary",
+      "entry": "Caller composes a descriptor value, project GUID, and manifest digest.",
+      "state": "Stores three private component values and derives Serialize/Deserialize.",
+      "effect": "Serde applies each component's representation constraints only; it does not check the values belong together or match the current file.",
+      "id": "PID08-5-1",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "canonical_descriptor",
+      "kind": "private field",
+      "docAction": "covered by type and constructor docs; no field-name restatement",
+      "entry": "Caller supplies a CanonicalDescriptorIdentity.",
+      "state": "Stored unchanged.",
+      "effect": "The struct does not perform physical path normalization.",
+      "id": "PID08-5-2",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_guid",
+      "kind": "private field",
+      "docAction": "covered by type and constructor docs",
+      "entry": "Caller supplies ProjectGuid.",
+      "state": "Stored unchanged.",
+      "effect": "Only ProjectGuid's nil restriction has been applied.",
+      "id": "PID08-5-3",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "manifest_digest",
+      "kind": "private field",
+      "docAction": "covered by type and constructor docs",
+      "entry": "Caller supplies ProjectManifestDigest.",
+      "state": "Stored unchanged.",
+      "effect": "Digest bytes are not re-read or checked against a manifest.",
+      "id": "PID08-5-4",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectIdentity::new",
+      "kind": "public constructor",
+      "docAction": "added Parameters and Returns sections",
+      "entry": "Caller supplies all three identity components.",
+      "state": "Moves the components into the aggregate without filesystem access.",
+      "effect": "Returns a value snapshot, not proof of common origin, freshness, or admission authorization.",
+      "id": "PID08-5-5",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectIdentity::canonical_descriptor",
+      "kind": "public accessor",
+      "docAction": "no addition needed",
+      "entry": "Borrows an identity.",
+      "state": "Returns a shared reference to the stored descriptor value.",
+      "effect": "No normalization or mutation occurs.",
+      "id": "PID08-5-6",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectIdentity::project_guid",
+      "kind": "public const accessor",
+      "docAction": "no addition needed",
+      "entry": "Borrows an identity.",
+      "state": "Copies the stored Copy GUID.",
+      "effect": "No lookup or uniqueness check occurs.",
+      "id": "PID08-5-7",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "ProjectIdentity::manifest_digest",
+      "kind": "public const accessor",
+      "docAction": "no addition needed",
+      "entry": "Borrows an identity.",
+      "state": "Copies the stored Copy digest.",
+      "effect": "No file read or content comparison occurs.",
+      "id": "PID08-5-8",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "Serde derive for ProjectIdentity",
+      "kind": "derive macro",
+      "docAction": "reviewed; derive input unchanged",
+      "entry": "Serde serializes/deserializes the fields.",
+      "state": "Delegates representation handling to component types.",
+      "effect": "There is no cross-field or filesystem validation.",
+      "id": "PID08-5-9",
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_guid_preserves_a_canonical_uuid_across_parse_and_display",
+      "kind": "test function",
+      "entry": "Canonical UUID text enters FromStr.",
+      "state": "Parses and formats the value.",
+      "effect": "Asserts parse/display preserves the canonical UUID.",
+      "id": "PID08-6-1",
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_guid_rejects_malformed_text",
+      "kind": "test function",
+      "entry": "Malformed UUID text enters FromStr.",
+      "state": "The parser returns an error.",
+      "effect": "Asserts malformed text is rejected.",
+      "id": "PID08-6-2",
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_guid_rejects_the_nil_uuid_identity",
+      "kind": "test function",
+      "entry": "Nil is supplied through checked construction/parsing paths.",
+      "state": "The nil guard is exercised.",
+      "effect": "Asserts nil cannot become ProjectGuid.",
+      "id": "PID08-6-3",
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "generated_project_guids_are_non_nil_and_distinct",
+      "kind": "test function",
+      "entry": "Calls new repeatedly.",
+      "state": "Generated identifiers are collected.",
+      "effect": "Asserts generated values are non-nil and distinct in the sample.",
+      "id": "PID08-6-4",
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "rendered_project_templates_persist_distinct_project_guids_in_the_manifest",
+      "kind": "test function",
+      "entry": "Renders two template projects.",
+      "state": "Parses each resulting manifest summary.",
+      "effect": "Asserts each rendered manifest retains its own generated GUID.",
+      "id": "PID08-6-5",
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "current_manifest_summary_rejects_a_missing_project_guid",
+      "kind": "test function",
+      "entry": "A current manifest summary lacks the required GUID.",
+      "state": "The summary parser validates the input.",
+      "effect": "Asserts current summary input rejects missing identity.",
+      "id": "PID08-6-6",
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_manifest_digest_matches_blake3_content_identity",
+      "kind": "test function",
+      "entry": "Fixture bytes are supplied.",
+      "state": "The test computes the digest.",
+      "effect": "Asserts equality with BLAKE3 content identity.",
+      "id": "PID08-7-1",
+      "path": "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_manifest_digest_changes_when_manifest_bytes_change",
+      "kind": "test function",
+      "entry": "Two byte sequences differ.",
+      "state": "Each sequence is hashed independently.",
+      "effect": "Asserts the resulting digest values differ.",
+      "id": "PID08-7-2",
+      "path": "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_manifest_digest_rejects_noncanonical_wire_text",
+      "kind": "test function",
+      "entry": "Noncanonical text is supplied to the parser.",
+      "state": "Length and uppercase cases reach parse.",
+      "effect": "Asserts noncanonical digest text is rejected.",
+      "id": "PID08-7-3",
+      "path": "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "project_identity_preserves_canonical_descriptor_guid_and_manifest_digest",
+      "kind": "test function",
+      "entry": "Constructs descriptor, GUID, digest, and aggregate.",
+      "state": "Checks each accessor and Serde round trip.",
+      "effect": "Asserts component values survive composition and serialization.",
+      "id": "PID08-8-1",
+      "path": "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "canonical_descriptor_identity_rejects_nonphysical_path_shapes",
+      "kind": "test function",
+      "entry": "Uses relative and dot-segment path shapes.",
+      "state": "Tests constructor and deserialization checks.",
+      "effect": "Asserts those lexical shapes are rejected.",
+      "id": "PID08-8-2",
+      "path": "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "canonical_descriptor_identity_preserves_literal_filename_dots",
+      "kind": "test function",
+      "entry": "Uses filename components containing literal dots.",
+      "state": "Constructs the descriptor identity.",
+      "effect": "Asserts ordinary filename dots remain accepted.",
+      "id": "PID08-8-3",
+      "path": "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    },
+    {
+      "symbol": "canonical_descriptor_identity_preserves_non_unicode_windows_paths",
+      "kind": "Windows-only test function",
+      "entry": "Builds a Windows path with a non-Unicode unit.",
+      "state": "Constructs the descriptor identity.",
+      "effect": "Asserts OS path data is preserved without requiring Unicode.",
+      "id": "PID08-8-4",
+      "path": "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "rootDisposition": "reviewed against full current source; read-only caller context and test assertions traced"
+    }
+  ],
+  "callerEvidence": [
+    {
+      "id": "CALL-01",
+      "path": "zircon_runtime_interface/src/project/mod.rs",
+      "sha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+      "status": "clean at caller-pin observation",
+      "symbols": "project module re-exports ProjectGuid, ProjectManifestDigest, ProjectIdentity, and their parse errors",
+      "relationship": "Defines the crate-visible API entry points used by downstream crates.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-02",
+      "path": "zircon_runtime_interface/src/project/tests/mod.rs",
+      "sha256": "12cecad134d6d6c0a5cedcebb4d5498e71d652be3e26b0bfa61e380caac9f256",
+      "status": "clean at caller-pin observation",
+      "symbols": "project_guid, manifest_digest, project_identity test modules",
+      "relationship": "Wires all three exact tests included in this batch.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-03",
+      "path": "zircon_runtime_interface/src/project/canonical_descriptor_identity.rs",
+      "sha256": "e48056564079f5888d8cf201b17549535cb74db947e23acf10f1053d08924625",
+      "status": "clean at caller-pin observation",
+      "symbols": "CanonicalDescriptorIdentity::new and Deserialize",
+      "relationship": "Applies lexical absolute-path and dot-segment shape checks; physical path resolution is left to the Editor filesystem boundary.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-04",
+      "path": "zircon_editor/src/core/project/filesystem.rs",
+      "sha256": "f4530e38c0c09fb6949e75c15461f88fb7d382af3999d02f11415106f8d60755",
+      "status": "clean at caller-pin observation",
+      "symbols": "resolve_project_path_with_identity; ProjectPaths::resolve_path",
+      "relationship": "Resolves the physical project path before constructing its descriptor identity.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-05",
+      "path": "zircon_editor/src/core/project/preflight_manifest_reader.rs",
+      "sha256": "92b04791cc0f0d814d0b7c7431304aff1da0c16a046b56e197f2d4f32c134179",
+      "status": "clean at caller-pin observation",
+      "symbols": "inspect_project_manifest",
+      "relationship": "Reads manifest bytes under the Editor's 4 MiB preflight bound and computes the digest over the same raw byte buffer before parsing.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-06",
+      "path": "zircon_editor/src/core/project/project_preflight/preflight_receipt.rs",
+      "sha256": "b9af148d5d48b1f24fc7543cc275e15136566ab46707a4e80fbf61ac7261e705",
+      "status": "clean at caller-pin observation",
+      "symbols": "preflight receipt construction and ProjectIdentity composition",
+      "relationship": "Combines already-resolved descriptor, required summary GUID, and exact manifest digest; receipt creation itself does not grant runtime activation or admission.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-07",
+      "path": "zircon_editor/src/core/project/project_preflight/revalidation.rs",
+      "sha256": "151cf7e010c294a441d92636a3d1220130b98e748ad00be4d049c7a3097f9a68",
+      "status": "clean at caller-pin observation",
+      "symbols": "revalidate_preflight",
+      "relationship": "Compares the current digest with the receipt digest and reports unchanged versus changed.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-08",
+      "path": "zircon_editor/src/core/project/authority/preflight.rs",
+      "sha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+      "status": "clean at caller-pin observation",
+      "symbols": "validate_launch_receipt and revalidate_preflight",
+      "relationship": "Separately checks migration, engine compatibility, GUID identity, and provider requirements; identity alone does not establish those admission predicates.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-09",
+      "path": "zircon_editor/src/core/project/tests/preflight.rs",
+      "sha256": "678194c06912b8a62c325ba878c56d425c6a2de092de7aa0080ab18030ffa038",
+      "status": "clean at caller-pin observation",
+      "symbols": "project_preflight_revalidation_reports_manifest_replacement_without_opening_project_state; current GUID and bounded manifest tests",
+      "relationship": "Tests changed-byte revalidation, required GUID, and size-bounded data-only preflight.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-10",
+      "path": "zircon_editor/src/ui/host/editor_manager_project_session.rs",
+      "sha256": "cd84b526aac64642b7670d6a5125728c24362408520406572c7ec07b680bdc3f",
+      "status": "clean at caller-pin observation",
+      "symbols": "project-session open path",
+      "relationship": "Revalidates preflight immediately before opening and retries when manifest bytes changed.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-11",
+      "path": "zircon_runtime/src/asset/project/manifest/project_manifest.rs",
+      "sha256": "862eccba6ca7f434d371065c86290f69c6aeffa613f2aa2b824aeffdafec7464",
+      "status": "clean at caller-pin observation",
+      "symbols": "ProjectManifest::new and persisted project_guid",
+      "relationship": "Creates a new project manifest with ProjectGuid::new and stores the resulting GUID.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-12",
+      "path": "zircon_runtime/src/asset/project/manifest/validation.rs",
+      "sha256": "e2528d416eea11d15253a4ae5715308fb2c166b39ea68980ee5e9c0729abd297",
+      "status": "clean at caller-pin observation",
+      "symbols": "ProjectManifest::validate; template receipt compatibility",
+      "relationship": "Compares template receipt project_guid to the manifest GUID and its descriptor engine_version_req to the manifest engine_version_req. This checks template receipt compatibility, not a supplied ProjectIdentity or raw-byte digest.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-13",
+      "path": "zircon_runtime/src/plugin/package_service/admission/project_lock/input.rs",
+      "sha256": "0b7b151afef8c293b270c523e3f81297d722e964393c33c8a03f3c02286c7658",
+      "status": "clean at caller-pin observation",
+      "symbols": "project lock manifest input admission",
+      "relationship": "Reads bounded manifest bytes, checks the expected digest and parsed GUID before admitting project-lock input.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-14",
+      "path": "zircon_runtime/src/plugin/package_service/admission/project_lock/tests/input.rs",
+      "sha256": "21da9bc96b139fe3c8d8339f19c39585b82bdb4f86204747b9513e46ede515c0",
+      "status": "clean at caller-pin observation",
+      "symbols": "project_manifest_bytes_and_guid_are_both_required_for_admission; missing_project_manifest_cannot_be_replaced_by_caller_selections",
+      "relationship": "Tests that manifest bytes and GUID are required and cannot be substituted by caller selections.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-15",
+      "path": "zircon_hub/src/account/cloud/snapshot.rs",
+      "sha256": "a6733db50d1bbe6aae5326cabc64d14d55ee486be64233a6e4678927a3a5a0f8",
+      "status": "preexisting M; read-only, foreign dirty path",
+      "symbols": "cloud project snapshot capture",
+      "relationship": "Captures selected project identity and manifest digest from source bytes before helper upload.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-16",
+      "path": "zircon_hub/src/account/cloud/tests/snapshot.rs",
+      "sha256": "ad3106ef114b15cb21bc4e8ab7bd00b18c863f535c8657edfbb2da6fbf02ccfb",
+      "status": "preexisting M; read-only, foreign dirty path",
+      "symbols": "changed_project_identity_is_rejected_before_helper_capture; changed_project_bytes_fail_before_the_captured_manifest_can_be_uploaded",
+      "relationship": "Tests changed identity/bytes rejection before helper capture or upload.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-17",
+      "path": "zircon_hub/src/tauri_app/runtime_state/cloud_bindings.rs",
+      "sha256": "a161f8c9eaf7aff79824302ea064bd5d17306f0a86392274c34fe2913c2bbfe4",
+      "status": "preexisting M; read-only, foreign dirty path",
+      "symbols": "selected project binding validation",
+      "relationship": "Rechecks selected project path and manifest GUID against cached binding before persisting state.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-18",
+      "path": "zircon_hub/src/tauri_app/runtime_state/tests/cloud_bindings.rs",
+      "sha256": "757ec64be906e591a1cf86bcfc750dee7ed416aa87b730b12d9bf7c3cd6bbf1c",
+      "status": "preexisting M; read-only, foreign dirty path",
+      "symbols": "selected_binding_survives_reopen_but_never_follows_other_account_path_or_manifest",
+      "relationship": "Tests that a saved cloud binding does not follow another account, project path, or manifest.",
+      "rootPinMatches": true,
+      "readOnly": true
+    },
+    {
+      "id": "CALL-19",
+      "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+      "sha256": "c67b5e623fb8c0c11748178c1f781753f8c728607bbd72de27b9b62e4a8bb3f3",
+      "status": "preexisting M; owned by project-template-pack-007 and read-only in this batch",
+      "symbols": "render_project_template",
+      "relationship": "Generates a ProjectGuid for a rendered project; A8's template GUID test reaches this caller. Preserve A7's frozen evidence and reconcile the doc-only caller SHA separately.",
+      "rootPinMatches": true,
+      "readOnly": true
+    }
+  ],
+  "rootSourceReadEvidence": {
+    "chunks": [
+      "fb9432",
+      "33d166",
+      "c948f5"
+    ],
+    "fullEightFinalFiles": true,
+    "lines": 448,
+    "note": "f2bd6a attempted to iterate the scope object as a list and failed before reading any source. Corrected read fb9432 used scope.authorizedSources and read all eight files. No credit is based on the failed read."
+  },
+  "rootCallerContextReadEvidence": {
+    "chunks": [
+      "fd3132",
+      "569ba3",
+      "e4551b",
+      "f6f03d",
+      "c04e71"
+    ],
+    "pinCheckChunk": "c948f5",
+    "exactCurrentPins": 19,
+    "note": "Physical-path resolution, bounded Editor raw-byte preflight, data receipt composition/revalidation, Runtime package-lock manifest admission, Hub snapshot/binding boundaries and associated tests. Caller context is read-only; no entire caller-file coverage is claimed."
+  },
+  "boundaryFindings": [
+    "ProjectGuid::new generates UUID v4; checked conversion and manual Deserialize reject nil only. UUID version/variant and cross-project uniqueness are not enforced by the wrapper. The owned nil test exercises FromStr and Deserialize; both call try_from_uuid.",
+    "ProjectManifestDigest hashes exactly the provided bytes without reading a path or applying a byte cap. Text parse and Deserialize require exactly 64 lowercase ASCII hex characters. Whitespace changes can alter the digest while preserving TOML meaning.",
+    "ProjectIdentity construction and Serde do not authenticate common origin, current file contents, canonical physical resolution or admission. CanonicalDescriptorIdentity checks lexical path shape; Editor filesystem resolution and revalidation establish the physical boundary.",
+    "Editor preflight reads bounded bytes and derives the digest from that same buffer. Runtime package-lock input separately pins/limits/compares manifest bytes and GUID. Hub tests/callers are foreign dirty inputs and were inspected without edits.",
+    "All three owned test files and the unchanged GUID parse-error file remain byte-identical to the assignment. Per-test comments were not added because assertions and names already express their contracts; static reading is not test execution."
+  ],
+  "metadataQualifications": [
+    {
+      "location": "inputEvidence.reviewSummary.sourceDelta / objects for ProjectIdentity Serde derive",
+      "correction": "Explicit code, derives, Serde arguments and string/assertion tokens are unchanged; added Rust doc comments are new #[doc] attributes visible to proc macros. Do not interpret 'macro inputs unchanged' as including docs."
+    },
+    {
+      "location": "inputEvidence.reviewSummary.commentsPreserved",
+      "correction": "The four unchanged files consist of three test files and project_guid_parse_error.rs; there are not four owned test files."
+    },
+    {
+      "location": "CALL-12",
+      "correction": "Compares template receipt project_guid to the manifest GUID and its descriptor engine_version_req to the manifest engine_version_req. This checks template receipt compatibility, not a supplied ProjectIdentity or raw-byte digest."
+    },
+    {
+      "location": "validation.scopedCommentParserAcceptance",
+      "correction": "No extra named parser or macro/rustdoc gate is invented. Actual exact8 rustfmt/raw-code checks and source review are recorded; any registered Jenkins semantic-flow tickets remain pending."
+    }
+  ],
+  "validation": {
+    "rawByteAndBaselineCheck": {
+      "chunk": "c948f5",
+      "exitCode": 0,
+      "baselineHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+      "exactPaths": 8,
+      "insertedCommentOrBlankLines": 34,
+      "deletedOrReplacedLines": 0,
+      "allBaselineCodeCommentsEolPreserved": true,
+      "unmodifiedFiles": 4
+    },
+    "format": {
+      "chunk": "c948f5",
+      "exitCode": 0,
+      "toolSha256": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+      "args": "--edition 2021 --config skip_children=true --check [exact8]",
+      "stdout": "",
+      "stderr": "",
+      "pinsUnchanged": true,
+      "note": "Fresh source-bound receipt closes the missing nested identity in agent wrapper111; no broad Cargo run."
+    },
+    "scopedDiffCheck": {
+      "chunk": "5b3bf4",
+      "childExitCode": 0,
+      "exactPaths": 8,
+      "output": "No diff-check errors; Git LF-to-CRLF warnings only. Raw source remains LF-only."
+    },
+    "changeGuard": {
+      "status": "passed",
+      "command": "python .codex/skills/zircon-change-guard/scripts/change_guard.py --json patch --git --base d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef --path <exact 8 source paths>",
+      "nativeChunk": "796927",
+      "nativeExit": 0,
+      "toolSha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+      "patchDigest": "b8919bf01f69af886db71873254da2c420bb47ef397cb2f5555a121f77d85b71",
+      "declaredPaths": 8,
+      "changedFiles": 4,
+      "writeGrantCheck": true,
+      "contributorMode": false,
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0,
+      "markersOpened": 0,
+      "markersClosed": 0,
+      "markersMoved": 0
+    },
+    "formalCoordinator": {
+      "status": "pending",
+      "receipt": null
+    },
+    "cargoDocMacroTestExecution": "not run"
+  },
+  "correctionHistory": [
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "rootOwned": true,
+      "change": "Corrected only the new word 序列化解码 to 反序列化; chunk33d166 verifies final pin, included in exact8 checks."
+    }
+  ],
+  "crossBatchDependencies": [
+    {
+      "batchId": "project-template-pack-007",
+      "callerPath": "zircon_runtime_interface/src/project/template_pack/render.rs",
+      "currentReadOnlySha256": "c67b5e623fb8c0c11748178c1f781753f8c728607bbd72de27b9b62e4a8bb3f3",
+      "status": "preexisting M, foreign A7 ownership",
+      "dependency": "A8's rendered-template GUID test exercises ProjectGuid::new through render_project_template; keep A7 proof frozen and reconcile this current doc-only caller pin separately."
+    },
+    {
+      "batchId": "manifest-summary-006",
+      "frozenProofSha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+      "dependency": "Editor preflight caller uses the manifest summary API alongside ProjectGuid and digest; no source/evidence from that batch is changed here."
+    }
+  ],
+  "issueIds": [],
+  "newSourceIssueTags": [],
+  "commit": {
+    "status": "pending",
+    "sha": null
+  },
+  "notification": {
+    "status": "pending",
+    "receipt": null
+  }
+}

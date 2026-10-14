@@ -3,13 +3,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::asset::assets::{AlphaMode, MaterialAsset};
-use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
-use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use crate::asset::{AssetReference, AssetUri};
-use crate::core::math::{Transform, UVec2, Vec3, Vec4};
-use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
+use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
+use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
@@ -24,11 +24,13 @@ use crate::{
         pluginized_wgpu_render_framework_with_asset_manager,
         virtual_geometry_render_feature_descriptor,
     },
-    types::{
+    virtual_geometry::types::{
         ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareDrawSegment, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
         VirtualGeometryPrepareRequest,
     },
+};
+use zircon_runtime::graphics::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
     RenderPipelineCompileOptions, SceneRenderer,
 };
@@ -410,7 +412,10 @@ fn build_dual_entity_extract(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
+        environment: Default::default(),
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
             ..RenderOverlayExtract::default()

@@ -1,3 +1,7 @@
+//! Runtime Interface crate 的内部测试根，仅由 crate 根的 `#[cfg(test)]` 模块加载。
+//!
+//! 各 `#[path]` 声明把测试按领域拆分；模板选择器用例从 `contracts` 子模块继续加载。
+
 #[path = "abi_safety_contracts.rs"]
 mod abi_safety_contracts;
 #[path = "accessibility_contracts.rs"]

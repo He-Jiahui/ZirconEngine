@@ -1,10 +1,10 @@
 use std::process::Command;
-use std::sync::{mpsc, Mutex};
+use std::sync::{Mutex, mpsc};
 use std::time::{Duration, Instant};
 
 use super::EditorChildReaper;
-use crate::process::editor_child_receipt::EditorChildDisposition;
 use crate::process::SupervisedChild;
+use crate::process::editor_child_receipt::EditorChildDisposition;
 
 #[test]
 fn exited_child_delivers_one_attempt_bound_receipt_after_reap() {

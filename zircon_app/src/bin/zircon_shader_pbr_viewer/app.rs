@@ -37,6 +37,7 @@ use crate::terminal_outcome::{
     TerminalArtifactState, TerminalCleanupState, TerminalErrorCategory, TerminalOutcome,
     TerminalPhase,
 };
+use crate::work_paths::ViewerWorkPaths;
 
 #[path = "base_pipeline_recheck.rs"]
 mod base_pipeline_recheck;
@@ -1090,7 +1091,10 @@ impl PbrMirrorViewerApp {
             .screenshot_path
             .as_deref()
             .expect("a GPU timing request requires a screenshot path");
-        validate_gpu_timing_report_output(screenshot_path, path)?;
+        let terminal_outcome_path = ViewerWorkPaths::new(&self.work_dir, None)
+            .terminal_outcome_path()
+            .to_path_buf();
+        validate_gpu_timing_report_output(screenshot_path, path, &terminal_outcome_path)?;
         let timing_evidence = format_gpu_timing_evidence(screenshot_path, &resolution)?;
         fs::write(path, timing_evidence).map_err(|error| error.to_string())?;
         self.gpu_timing_evidence_written = true;

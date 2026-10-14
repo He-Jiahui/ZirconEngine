@@ -32,7 +32,7 @@ pub mod projects;
 #[cfg(feature = "local-service")]
 #[path = "service/mod.rs"]
 pub mod service;
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "hub-settings"))]
 #[path = "settings/mod.rs"]
 pub mod settings;
 #[cfg(feature = "desktop")]

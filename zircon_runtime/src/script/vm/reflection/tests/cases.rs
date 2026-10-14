@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Barrier};
 
 use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
-use crate::core::{CoreRuntime, TasksModule, TASKS_MODULE_NAME};
+use crate::core::{CoreRuntime, TasksModule, TimeModule, TASKS_MODULE_NAME, TIME_MODULE_NAME};
 use crate::engine_module::EngineModule;
 use crate::scene::{NodeKind, SceneError, VmTypeBacking, World, WorldReflection};
 use crate::script::{PluginSlotId, VmStateSchema, VmStateTypeSchema};
@@ -22,6 +22,9 @@ mod schema_invariants;
 fn reflection_test_runtime(catalog: &VmReflectionCatalog) -> CoreRuntime {
     let runtime = CoreRuntime::new();
     runtime
+        .register_module(TimeModule.descriptor())
+        .expect("reflection test time module should register");
+    runtime
         .register_module(crate::foundation::module_descriptor())
         .expect("reflection test foundation module should register");
     runtime
@@ -33,6 +36,9 @@ fn reflection_test_runtime(catalog: &VmReflectionCatalog) -> CoreRuntime {
     runtime
         .register_module(crate::scene::module_descriptor())
         .expect("reflection test scene module should register");
+    runtime
+        .activate_module(TIME_MODULE_NAME)
+        .expect("reflection test time module should activate");
     runtime
         .activate_module(crate::core::framework::foundation::FOUNDATION_MODULE_NAME)
         .expect("reflection test foundation module should activate");
@@ -296,7 +302,13 @@ fn concurrent_catalog_publications_preserve_every_slot() {
                 &type_path,
                 &short,
                 ReflectScriptVisibility::Public,
-                vec![scalar_field("value")],
+                vec![ReflectFieldInfo::from_stable_keys(
+                    &type_path,
+                    "value",
+                    "value",
+                    "f64",
+                    ReflectEditorHint::Scalar,
+                )],
             )]);
             barrier.wait();
             catalog

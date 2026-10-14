@@ -15,10 +15,12 @@ pub enum UiBindingMissingValuePolicy {
     Optional,
     /// 没有表达式值时使用配置值；本解析层与 Fallback 采用相同替代行为。
     Default {
+        /// 缺值决策会克隆此值；持有该值不代表它已通过目标值类型校验。
         value: UiValue,
     },
     /// 没有表达式值时使用配置值；策略名称在序列化协议中保留。
     Fallback {
+        /// 缺值决策会克隆此值；持有该值不代表它已通过目标值类型校验。
         value: UiValue,
     },
     /// 没有表达式值时产生显式错误结果。

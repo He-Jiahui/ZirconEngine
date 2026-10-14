@@ -24,7 +24,7 @@ This static guard result does not establish Rust compilation, Native test execut
 
 ## Acceptance pending
 
-- [x] Write the [Jenkins batch08 file-handoff record](../../../../../.jenkins/records/runtime-editor-optimize-01a13451-20261013-batch08.json), binding the reviewed source hashes and 15 command arms.
+- [x] Write the batch08 JSON and Markdown, binding the reviewed source hashes and 15 command arms. Both paths were later absent during one file-evidence reconciliation; the [continuation log](../../../../../.codex/outbox/reports/optimize-20261013-01a13451/continuation-log.md) preserves the original write hashes. The cause is unknown.
 - [ ] Reconcile actual queue and native receipts. The later shared-persistence-snapshot repair changes overlapping Runtime source hashes and requires a cumulative follow-up batch; r2 evidence cannot accept those new postimages.
 - [ ] Run the focused ordinary Rust regressions and obtain Native/type-check evidence through the authorized validation path.
 - [ ] Execute the ignored Release selector and retain all raw samples. Its 100 ms observation window and the 2 s / 30 s wait or shutdown timeouts are not performance budgets.

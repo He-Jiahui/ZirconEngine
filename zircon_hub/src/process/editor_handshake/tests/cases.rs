@@ -9,7 +9,7 @@ use zircon_runtime_interface::hub_protocol::{
 
 use super::mailbox_path::editor_handshake_mailbox_path;
 use super::read::read_editor_handshake;
-use super::wait::{wait_for_editor_handshake_until_terminal, SupervisedChildState};
+use super::wait::{SupervisedChildState, wait_for_editor_handshake_until_terminal};
 use crate::error::HubError;
 use crate::state::TaskExecutionOutcome;
 

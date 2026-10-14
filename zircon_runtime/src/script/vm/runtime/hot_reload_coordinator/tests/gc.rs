@@ -206,7 +206,9 @@ fn gc_step_only_host_steps_cooperative_active_slots_in_slot_order() {
         )
         .unwrap();
 
-    let report = coordinator.gc_step(VmGcBudget::default()).unwrap();
+    let report = coordinator
+        .gc_step_with_test_clock(VmGcBudget::default(), 0)
+        .unwrap();
 
     assert_eq!(calls.lock().unwrap().as_slice(), &[(cooperative, 1_000)]);
     assert_eq!(report.slots[0].slot, cooperative);
@@ -235,16 +237,20 @@ fn gc_step_honors_interval_frames_without_wall_clock_timing() {
         .unwrap();
 
     assert!(coordinator
-        .gc_step(VmGcBudget::default())
+        .gc_step_with_test_clock(VmGcBudget::default(), 0)
         .unwrap()
         .slots
         .is_empty());
     assert_eq!(
-        coordinator.gc_step(VmGcBudget::default()).unwrap().slots[0].slot,
+        coordinator
+            .gc_step_with_test_clock(VmGcBudget::default(), 0)
+            .unwrap()
+            .slots[0]
+            .slot,
         slot
     );
     assert!(coordinator
-        .gc_step(VmGcBudget::default())
+        .gc_step_with_test_clock(VmGcBudget::default(), 0)
         .unwrap()
         .slots
         .is_empty());
@@ -388,11 +394,14 @@ fn gc_pending_fifo_prevents_full_budget_slot_starvation() {
         max_micros_per_frame: 10,
     };
 
-    assert_eq!(coordinator.gc_step(budget).unwrap().slots[0].slot, first);
-    let second_frame = coordinator.gc_step(budget).unwrap();
-
+    let first_frame = coordinator.gc_step_with_test_clock(budget, 10).unwrap();
+    assert_eq!(first_frame.slots[0].slot, first);
+    let second_frame = coordinator.gc_step_with_test_clock(budget, 10).unwrap();
     assert_eq!(second_frame.slots[0].slot, second);
-    assert_eq!(second_frame.slots[1].slot, third);
+    let third_frame = coordinator.gc_step_with_test_clock(budget, 10).unwrap();
+    assert_eq!(third_frame.slots[0].slot, third);
+    let fourth_frame = coordinator.gc_step_with_test_clock(budget, 10).unwrap();
+    assert_eq!(fourth_frame.slots[0].slot, first);
 }
 
 #[test]
@@ -433,9 +442,9 @@ fn interval_due_work_remains_pending_past_due_frame() {
         max_micros_per_frame: 10,
     };
 
-    coordinator.gc_step(budget).unwrap();
-    coordinator.gc_step(budget).unwrap();
-    let third_frame = coordinator.gc_step(budget).unwrap();
+    coordinator.gc_step_with_test_clock(budget, 10).unwrap();
+    coordinator.gc_step_with_test_clock(budget, 10).unwrap();
+    let third_frame = coordinator.gc_step_with_test_clock(budget, 10).unwrap();
 
     assert_eq!(third_frame.frame_index, 3);
     assert_eq!(third_frame.slots[0].slot, interval);

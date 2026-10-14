@@ -5,6 +5,13 @@ use super::{
 
 /// 在 TOML 已解析后、转为 JSON 值之前约束容器深度和元素总量。
 /// 此处不限制原始文档字节数，入口调用方须先执行字节预算。
+///
+/// # 参数
+/// root 是已由 TOML 解析器构造的值树；根表从深度 0 开始。
+///
+/// # 返回值
+/// 表项和数组元素分别按整棵树累计；容器层级超过预算或累计数量超限时返回对应错误。
+///
 pub(super) fn validate_toml_complexity(
     root: &toml::Value,
 ) -> Result<(), ProjectManifestSummaryError> {
@@ -46,6 +53,9 @@ pub(super) fn validate_toml_complexity(
     Ok(())
 }
 
+/// 检查遍历到的 TOML 容器层级；根表为 0，每进入一层数组或子表加一。
+/// 深度上限包含边界值，只有大于上限时才拒绝。
+///
 fn ensure_depth(depth: usize) -> Result<(), ProjectManifestSummaryError> {
     if depth > MAX_PROJECT_MANIFEST_NESTING_DEPTH {
         return Err(ProjectManifestSummaryError::TomlNestingTooDeep {

@@ -69,6 +69,55 @@ class CurrentSourceTests(unittest.TestCase):
             result = intake.prepare_current_source(self.state, self.root, self.control(ref), trusted_driver_digest="b" * 64)
         return ref, result, metadata
 
+    def test_same_repository_worktree_keeps_canonical_identity_and_seals_its_bytes(self):
+        worktree = Path(self.temp.name) / "selected-worktree"
+        worktree_bytes = dict(self.files)
+        worktree_bytes["crate/main.rs"] = b"fn worktree_version() {}\n"
+        for relative, data in worktree_bytes.items():
+            target = worktree / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+        worktree_hashes = {
+            relative: None if checksum is None else file_digest(worktree.joinpath(*relative.split("/")))
+            for relative, checksum in self.hashes.items()
+        }
+        canonical_before = {relative: (self.root / relative).read_bytes() for relative in self.files}
+
+        with patch("tools.jenkins.current_source.subprocess.run",
+                   return_value=SimpleNamespace(returncode=0, stdout=str(self.root / ".git"))):
+            registered = self.register(sourceRoot=str(worktree), currentHashes=worktree_hashes)
+            reference = registered["currentSourceRef"]
+            intent = self.state.get("current_source_intent", reference)["payload"]
+            with patch.object(intake, "_ensure_patch_metadata"):
+                prepared = intake.prepare_current_source(
+                    self.state, self.root, self.control(reference), trusted_driver_digest="b" * 64)
+
+        self.assertEqual(str(self.root), intent["repositoryRoot"])
+        self.assertEqual(str(worktree), intent["sourceRoot"])
+        self.assertEqual(self.identity["repositoryId"], intent["identity"]["repositoryId"])
+        sealed = self.state.get("sealed_input", prepared["sealedInputRef"])["payload"]
+        entry = next(item for item in sealed["sourceManifest"]["entries"]
+                     if item["path"] == "crate/main.rs")
+        self.assertEqual(file_digest(worktree / "crate/main.rs"), entry["sha256"])
+        self.assertNotEqual(self.hashes["crate/main.rs"], entry["sha256"])
+        self.assertEqual(canonical_before,
+                         {relative: (self.root / relative).read_bytes() for relative in self.files})
+        operation = self.state.get_operation(prepared["sourcePreparationRef"])
+        self.assertFalse(operation["result"]["canonicalSourceModified"])
+
+    def test_foreign_git_common_directory_is_rejected_before_intake(self):
+        foreign = Path(self.temp.name) / "foreign-worktree"
+        foreign.mkdir()
+        with patch("tools.jenkins.current_source.subprocess.run",
+                   return_value=SimpleNamespace(returncode=0, stdout=str(foreign / ".git"))):
+            with self.assertRaises(JenkinsError) as error:
+                self.register(sourceRoot=str(foreign))
+
+        self.assertEqual("current_source_root_mismatch", error.exception.code)
+        self.assertEqual([], self.state.list("current_source_intent"))
+        self.assertEqual([], self.state.list("current_source_request"))
+        self.assertFalse(self.cas.exists())
+
     def test_registration_is_side_effect_free_and_replay_exact(self):
         result = self.register()
         self.assertEqual(self.register()["currentSourceRef"], result["currentSourceRef"])

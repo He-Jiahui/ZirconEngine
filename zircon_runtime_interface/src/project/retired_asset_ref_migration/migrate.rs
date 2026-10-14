@@ -10,6 +10,24 @@ use super::{RetiredAssetRefMigrationBudget, RetiredAssetRefMigrationError, Retir
 
 /// Rewrites only exact retired `{ uuid, url }` objects through the supplied resolver.
 /// 仅将精确的旧 `{ uuid, url }` 对象交给调用方解析器；形似对象保持原样。
+///
+/// # 使用时机与生命周期
+///
+/// 适用于调用方持有资产身份解析上下文的 JSON 文档迁移。函数先采用标准预算检查输入，
+/// 通过后才调用 resolver；之后发生的形状或解析错误不会撤销此前 resolver 的外部副作用。
+///
+/// # 参数
+///
+/// `value` 是已载入的 JSON 值；`resolver` 将识别出的旧引用映射为当前 `AssetRef`。
+///
+/// # 约束
+///
+/// 非精确形状的对象保留其字段并继续遍历子值；只有精确旧引用会交给 resolver。
+/// 更严格的资源上限可通过 [`migrate_retired_asset_references_with_budget`] 提供。
+///
+/// # 返回值
+///
+/// 成功时返回重写后的 JSON 值；结构、字段或 resolver 错误会终止并返回对应错误。
 pub fn migrate_retired_asset_references_with<E>(
     value: Value,
     resolver: impl FnMut(RetiredAssetReference) -> Result<AssetRef, E>,
@@ -23,6 +41,20 @@ pub fn migrate_retired_asset_references_with<E>(
 
 /// Rewrites exact retired references under caller-owned structural limits.
 /// 在调用方预算内遍历整份 JSON；预算不通过时解析器不会收到任何引用。
+///
+/// # 参数
+///
+/// `budget` 分别限制 JSON 值节点数、根为 0 的嵌套深度和精确旧引用数。
+/// `resolver` 为通过精确形状识别并完成 GUID/locator 解析的引用生成 `AssetRef`。
+///
+/// # 使用时机与生命周期
+///
+/// 预算阶段先于重写阶段完成；若返回资源超限错误，本次调用尚未执行 resolver。
+/// 形状解析或 resolver 错误在重写期间产生，之前已执行的 resolver 副作用不会回滚。
+///
+/// # 返回值
+///
+/// 成功时返回改写后的 JSON 值；任一精确引用无法解析或 resolver 失败时返回首个错误。
 pub fn migrate_retired_asset_references_with_budget<E>(
     value: Value,
     budget: RetiredAssetRefMigrationBudget,
@@ -33,6 +65,23 @@ pub fn migrate_retired_asset_references_with_budget<E>(
 
 /// Plan 11's context-free v0-to-v1 rule for `res://` project references.
 /// 旧版无上下文迁移入口：项目引用按 `res://` 生成路径提示，builtin 引用保留独立种类。
+///
+/// # 参数
+///
+/// `value` 是已载入的旧版 JSON 值；本入口不读取文件。
+///
+/// # 返回值
+///
+/// 成功时返回当前项目/Builtin 持久化引用表示；解析或校验失败时返回 `MigrateError`。
+///
+/// # 约束
+///
+/// 项目引用要求定位符使用 `res://`，生成的 `assets/<path>` 仅作为路径提示；
+/// 本函数不查询文件系统或注册表。builtin 定位符直接保留为独立持久化变体。
+///
+/// # 错误
+///
+/// 输入中的项目定位符使用其他 scheme、路径提示无法通过 RelPath 校验，或引用字段形状无效时返回迁移错误。
 pub fn migrate_retired_asset_references(value: Value) -> Result<Value, MigrateError> {
     migrate_retired_persisted_asset_references_with(value, |reference| {
         let locator = reference.locator();
@@ -56,6 +105,19 @@ pub fn migrate_retired_asset_references(value: Value) -> Result<Value, MigrateEr
 /// Rewrites project references to `Project(AssetRef)` and retired builtin references to
 /// the distinct `Builtin { locator }` authoring contract.
 /// 把旧项目引用交给解析器生成当前资产身份；builtin 引用转为独立的持久化种类。
+///
+/// # 参数
+///
+/// `value` 是已载入的 JSON 值。`project_resolver` 只接收非 builtin 的旧引用；builtin 变体由本函数直接构造。
+/// 其他 scheme 是否可接受由解析器决定。
+///
+/// # 约束
+///
+/// 使用标准资源预算；预算通过后解析器才会运行。后续形状或解析错误不会回滚此前回调副作用。
+///
+/// # 返回值
+///
+/// 返回包含 project 或 builtin 持久化引用的 JSON 值。
 pub fn migrate_retired_persisted_asset_references_with<E>(
     value: Value,
     project_resolver: impl FnMut(RetiredAssetReference) -> Result<AssetRef, E>,
@@ -69,6 +131,19 @@ pub fn migrate_retired_persisted_asset_references_with<E>(
 
 /// Rewrites project and builtin retired references under caller-owned structural limits.
 /// 以调用方预算迁移项目和 builtin 引用；解析器只处理项目引用。
+///
+/// # 参数
+///
+/// `budget` 限制整棵 JSON 值树、嵌套深度和精确旧引用数；builtin 引用不传给 resolver。
+/// `project_resolver` 为精确的非 builtin 旧引用生成当前 `AssetRef`。
+///
+/// # 约束
+///
+/// 整树预算准入先于任何 resolver 调用；资源超限不会触发回调。后续解析错误可能发生在其他引用已解析之后。
+///
+/// # 返回值
+///
+/// 成功时返回重写后的 JSON 值；预算、旧字段解析或 resolver 错误会中止当前结果。
 pub fn migrate_retired_persisted_asset_references_with_budget<E>(
     value: Value,
     budget: RetiredAssetRefMigrationBudget,
@@ -89,6 +164,19 @@ pub fn migrate_retired_persisted_asset_references_with_budget<E>(
 /// Format owners use this primitive when a reference is flattened beside owner-specific
 /// fields that must not be interpreted by the generic recursive walker.
 /// 只迁移一个精确的旧引用，不遍历其所属容器；格式所有者用它处理与其他字段平铺的引用。
+///
+/// # 参数
+///
+/// `value` 必须是根对象且只含 `uuid`、`url` 两个字段；项目定位符交由
+/// `project_resolver` 解析，builtin 定位符直接成为 builtin 变体。
+///
+/// # 约束
+///
+/// 此入口不遍历子值，也不执行批量 JSON 预算检查。解析器副作用不会因后续输出转换错误而回滚。
+///
+/// # 返回值
+///
+/// 返回序列化后的当前项目或 builtin 引用；根值形状、字段语法或 resolver 失败时返回错误。
 pub fn migrate_retired_persisted_asset_reference_with<E>(
     value: Value,
     mut project_resolver: impl FnMut(RetiredAssetReference) -> Result<AssetRef, E>,
@@ -122,6 +210,8 @@ where
     R: serde::Serialize,
 {
     // 先完成整树预算检查，避免解析器已有副作用后才发现超限。
+    // 预算预检只统计结构，不解析旧引用；成功后才开始可调用 resolver 的改写阶段。
+    // 因而资源超限保证无 resolver 副作用，但后续形状或解析错误不会回滚此前回调。
     admit_migration_value(&value, budget)?;
 
     let mut stack = vec![RewriteFrame::Visit(&mut value)];
@@ -162,6 +252,7 @@ where
     Ok(value)
 }
 
+// 这些帧通过显式栈逐个访问容器子值，以深度优先遍历而不消耗 Rust 递归栈。
 enum RewriteFrame<'value> {
     Visit(&'value mut Value),
     Array(std::slice::IterMut<'value, Value>),
@@ -172,6 +263,7 @@ fn admit_migration_value<E>(
     value: &Value,
     budget: RetiredAssetRefMigrationBudget,
 ) -> Result<(), RetiredAssetRefMigrationError<E>> {
+    // 预算成功时检查整棵 Value 树；超限可提前退出。此阶段不解析字段，也不调用 resolver。
     let mut visited_nodes = 0_usize;
     let mut references = 0_usize;
     let mut stack = vec![AdmissionFrame::Visit(value, 0_usize)];
@@ -221,6 +313,7 @@ fn admit_migration_value<E>(
     Ok(())
 }
 
+// AdmissionFrame 用显式迭代器保存遍历状态；子值深度入栈时加一，根值从 0 开始。
 enum AdmissionFrame<'value> {
     Visit(&'value Value, usize),
     Array(std::slice::Iter<'value, Value>, usize),
@@ -232,6 +325,7 @@ fn ensure_resource_limit<E>(
     found: usize,
     max: usize,
 ) -> Result<(), RetiredAssetRefMigrationError<E>> {
+    // 上限为包含式：仅 found 大于 max 时拒绝。
     if found > max {
         return Err(RetiredAssetRefMigrationError::ResourceLimitExceeded {
             resource,
@@ -243,6 +337,7 @@ fn ensure_resource_limit<E>(
 }
 
 fn is_exact_retired_shape(values: &Map<String, Value>) -> bool {
+    // 这里只识别键集合；字符串类型、UUID 与 locator 语法留给 migrate_reference 校验。
     values.len() == 2 && values.contains_key("uuid") && values.contains_key("url")
 }
 
@@ -253,6 +348,7 @@ fn migrate_reference<E, R>(
 where
     R: serde::Serialize,
 {
+    // 先解析两个字符串，再调用 resolver；输出 JSON 序列化若失败，不会撤销该回调的副作用。
     let guid = take_string(&mut values, "uuid")?;
     let locator = take_string(&mut values, "url")?;
     let guid = AssetUuid::from_str(&guid).map_err(|error| invalid_shape(error.to_string()))?;

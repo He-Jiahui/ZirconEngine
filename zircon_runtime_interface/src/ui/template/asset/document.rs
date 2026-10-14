@@ -60,7 +60,7 @@ pub struct UiAssetImports {
 /// 树形 TOML 源文档；加载器先执行版本迁移和权属校验，再交由编译器展开。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// 从 TOML 反序列化得到的源模型；构造或反序列化本身不保证树、导入及组件契约合法。
-/// Runtime asset loader 先执行 schema migration 与文档验证，再由编译器消费；跨资产引用的句柄解析属于后续 Runtime 装配阶段。
+/// Runtime asset loader 先迁移版本，再校验文档根树和各组件定义中的节点标识及其归属，之后才交由编译器展开；跨资产引用句柄的解析属于后续 Runtime 装配阶段。
 pub struct UiAssetDocument {
     pub asset: UiAssetHeader,
     #[serde(default)]
@@ -158,7 +158,7 @@ pub struct UiNodeDefinition {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 /// 父调用点对展开后子根施加的布局/挂载属性，不表示子组件的命名槽参数声明。
-/// `component_instance_expander::apply_child_mount` 与 `prototype_instancer::apply_prototype_child_mount` 会先按父上下文解析 `slot`，再规范化布局并合并到每个子根的 `slot_attributes`；映射覆盖会递归合并表、替换标量/数组。
+/// `component_instance_expander::apply_child_mount` 与 `prototype_instancer::apply_prototype_child_mount` 会先按父上下文解析 `slot`，再规范化布局并作为 overlay 合并到每个子根的 `slot_attributes`；同名嵌套表递归合并，父调用点提供的标量/数组替换子根值。
 pub struct UiChildMount {
     #[serde(default)]
     /// 非空时仅在解析后的 `slot` 缺少 `mui_slot` 键时提供默认挂载名。
@@ -230,10 +230,22 @@ pub enum UiStyleScope {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 资产中的原始样式表声明，只保存表标识和规则，不持有已解析选择器或编译状态。
+///
+/// # 使用时机与生命周期
+/// Runtime `UiStyleResolver::apply` 收集导入、Widget 与本地样式表，`build_style_plan` 解析规则选择器，再由 `apply_styles_to_tree` 按特异性和收集顺序匹配、应用声明值。
+///
+/// # 约束
+/// 构造或反序列化本身不验证表/规则标识或选择器，也不代表规则已编译；Runtime 文档校验流程显式调用 `UiAssetDocumentRuntimeExt::validate_tree_authority` 时检查这些约束。
+///
+/// # 参考
+/// Runtime `zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver.rs` 与 `style_apply.rs`。
 pub struct UiStyleSheet {
     #[serde(default)]
+    /// 文档内样式表标识；Runtime `validate_stylesheet_ids` 检查其非空且唯一，编辑器按该标识定位表。
     pub id: String,
     #[serde(default)]
+    /// 按资产声明顺序保存的源规则；规则计划为它们分配收集顺序，级联以该顺序打破相同特异性的平局。
     pub rules: Vec<UiStyleRule>,
 }
 

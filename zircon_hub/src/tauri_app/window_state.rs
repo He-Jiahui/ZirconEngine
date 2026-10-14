@@ -1,11 +1,11 @@
 use std::sync::Mutex;
 
 use tauri::{
-    utils::config::WindowConfig, Emitter, LogicalSize, Manager, PhysicalPosition, PhysicalRect,
-    PhysicalSize,
+    Emitter, LogicalSize, Manager, PhysicalPosition, PhysicalRect, PhysicalSize,
+    utils::config::WindowConfig,
 };
 
-use crate::settings::{default_hub_config_path, HubConfig};
+use crate::settings::{HubConfig, default_hub_config_path};
 
 use super::{
     commands::HubCommandState,

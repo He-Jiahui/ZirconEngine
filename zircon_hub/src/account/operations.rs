@@ -9,7 +9,7 @@ mod tests;
 #[path = "operations/windows.rs"]
 mod windows;
 
-use super::{cloud::manifest::Manifest, AccountConfig, AccountError};
+use super::{AccountConfig, AccountError, cloud::manifest::Manifest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;

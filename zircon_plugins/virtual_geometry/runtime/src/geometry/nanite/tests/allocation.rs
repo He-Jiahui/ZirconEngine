@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     hint::black_box,
     time::{Duration, Instant},
 };
@@ -22,15 +23,18 @@ fn borrowed_payload_decode_clamps_items_and_reserves_exact_vertices() {
     let vertices = mesh_vertices(CAPACITY_ITEM_COUNT * 3);
     let indices = (0..vertices.len() as u32).collect::<Vec<_>>();
 
-    let decoded = render_page_vertices(&payload, &vertices, &indices);
+    let (decoded, ranges) = render_page_vertices(&payload, &vertices, &indices, &BTreeMap::new());
 
     assert_eq!(decoded.len(), CAPACITY_ITEM_COUNT * 3);
     assert_eq!(decoded.capacity(), decoded.len());
+    assert_eq!(ranges.len(), CAPACITY_ITEM_COUNT);
 
     let truncated = triangle_payload(0, u32::MAX);
-    let decoded_truncated = render_page_vertices(&truncated, &vertices, &indices);
+    let (decoded_truncated, ranges_truncated) =
+        render_page_vertices(&truncated, &vertices, &indices, &BTreeMap::new());
     assert!(decoded_truncated.is_empty());
     assert_eq!(decoded_truncated.capacity(), 0);
+    assert!(ranges_truncated.is_empty());
 }
 
 #[test]
@@ -42,13 +46,15 @@ fn borrowed_exact_capacity_payload_decode_performance_contract() {
         black_box(legacy_render_page_vertices(&payload, &vertices, &indices));
     };
     let optimized = || {
-        black_box(render_page_vertices(&payload, &vertices, &indices));
+        black_box(render_page_vertices(&payload, &vertices, &indices, &BTreeMap::new()));
     };
 
     legacy();
     optimized();
     let legacy_capacity = legacy_render_page_vertices(&payload, &vertices, &indices).capacity();
-    let optimized_capacity = render_page_vertices(&payload, &vertices, &indices).capacity();
+    let optimized_capacity = render_page_vertices(&payload, &vertices, &indices, &BTreeMap::new())
+        .0
+        .capacity();
     let (legacy_samples, optimized_samples) = paired_samples(legacy, optimized);
     let legacy_p50 = nearest_rank(&legacy_samples, 50).as_nanos();
     let legacy_p95 = nearest_rank(&legacy_samples, 95).as_nanos();

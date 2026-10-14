@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "binary-envelope-007",
+  "owner": "/root/public_serialization",
+  "callerPinsCount": 11,
+  "checkout": "E:/Git/ZirconEngine",
+  "assignmentHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "assignmentLedger": {
+    "path": "docs/tests/source-comment-review-coverage-03.json",
+    "activationRevision": 9,
+    "activationReadChunk": "988438",
+    "currentReadSha256": "7d0a76bf8d350d98b0de3d16504c5a11a3bbcdc6b668c50dd5078f98baa8da8f",
+    "note": "共享 coverage-03 由主审维护；本证据不写 coverage/issue ledger。"
+  },
+  "scope": [
+    "zircon_runtime_interface/src/serialization/binary/mod.rs",
+    "zircon_runtime_interface/src/serialization/binary/envelope.rs",
+    "zircon_runtime_interface/src/serialization/binary/wire.rs",
+    "zircon_runtime_interface/src/serialization/binary/encode.rs",
+    "zircon_runtime_interface/src/serialization/binary/decode.rs",
+    "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs",
+    "zircon_runtime_interface/src/serialization/tests/write_contract.rs"
+  ],
+  "changeClassification": {
+    "result": "Partial: mod.rs, encode.rs, decode.rs, and write_contract.rs have accurate Chinese documentation. envelope.rs and wire.rs still need Chinese documentation; binary_malformed_contract.rs has an inaccurate module-summary generalization and remains pending root correction.",
+    "sourceDelta": "Observed scoped diff contains comments/doc comments only. Function signatures, fields/order, constants, expressions, derives/serde attributes, test assertions and registrations are unchanged.",
+    "macroNote": "Rust //! and /// comments become #[doc] attributes visible to compiler/procedural macros; the BinaryEnvelope field docs are therefore macro-visible inputs. This record does not claim identical macro inputs or report macro/rustdoc execution. No explicit derive or serde attribute was changed.",
+    "behaviorAndApi": "No executable code, public API, wire bytes, test setup or assertion was changed.",
+    "unresolved": [
+      "The new English additions in envelope.rs and wire.rs still need accurate Chinese documentation. Their targeted patch attempts returned Failed to write file; no permission or filesystem cause is inferred.",
+      "The malformed-contract module summary currently overgeneralizes fixture construction. Root owns this correction; its second-file write did not succeed, so the source remains unchanged and pending.",
+      "Formal Jenkins source-bound review/receipt and independent root review remain pending."
+    ]
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/mod.rs",
+      "beforeSha256": "fed9f5c0e11430dc398cdbc702262c9afc6de5dc734cbfac1b569f7f66ace87c",
+      "afterSha256": "33446dce32f2a33cbce5232416464036f609e67361b44ed9b93f84a7ef2b4714",
+      "finalLineEndingCounts": {
+        "LF": 27,
+        "CRLF": 0
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "object": "module serialization::binary",
+          "entered": "write_versioned 的 Format::Binary 分支进入 encode_binary_payload；load_versioned 经 load_binary_versioned 读取头部并在 payload 解码前检查目标 schema/version。",
+          "status": "新增中文模块说明，区分 wire version 与头部 schema version，并说明本模块将前缀、封套和 BinaryValue 组合成 v1 格式。",
+          "impact": "职责和兼容边界可从入口追溯；模块内容、re-export 和编码调用未变。"
+        },
+        {
+          "object": "path 子模块声明与 pub(super) re-export 块",
+          "entered": "decode、encode、envelope、value、wire 由本模块聚合；父 serialization 模块通过 re-export 调用受限入口。",
+          "status": "逐项核对 path 归属和 re-export 的符号去向；没有改动模块声明。",
+          "impact": "保留原模块树和可见性。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/envelope.rs",
+      "beforeSha256": "6ce9d9fd24b7762e5969f8ece4ca211dfcf5ec1695e4d8651b97c1c30e0ce080",
+      "afterSha256": "973d29fab8511d420d7bcbc3f657a92608906e20b8f63c15c1395ecf10402397",
+      "finalLineEndingCounts": {
+        "LF": 26,
+        "CRLF": 0
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "object": "BinaryEnvelope and derive(Deserialize, Serialize)",
+          "entered": "encode_binary_value 按字段声明顺序写入 envelope；decode_binary_header 先从 body 读取 PayloadHeader，load_binary_versioned 再检查请求 schema 和版本，决定当前类型直接解码或旧版本迁移。",
+          "status": "已加 envelope 用途、wire/schema 版本区别及 header/payload 字段说明，但新加文字目前是英文；中文修订待工具写入恢复后完成。字段顺序及 derive 未改。",
+          "impact": "文档解释字段顺序是 v1 wire 契约、header 检查责任在 loader；doc 属性影响 derive 可见输入，未主张宏输入不变。"
+        },
+        {
+          "object": "BinaryEnvelope::{header, payload}",
+          "entered": "header 是 PayloadHeader；payload 是扁平 BinaryValue 节点流，作为 bincode body 中的后续字段。",
+          "status": "字段注释说明 schema identity/version 与 payload 位置；中文化仍 pending。",
+          "impact": "字段类型、可见性和 wire 顺序不变。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/wire.rs",
+      "beforeSha256": "ede1385469408fe9f8b9f8cb7720a37b8259d62b828e9a6308a33d431079b8cb",
+      "afterSha256": "e0d0511abad96c484697c6640709e0788b1b10a1fe4dfa12bbbcc1811c274928",
+      "finalLineEndingCounts": {
+        "LF": 83,
+        "CRLF": 0
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "object": "BINARY_MAGIC, BINARY_WIRE_VERSION, BINARY_PREFIX_LEN",
+          "entered": "body_after_valid_prefix 先检查总长，再比较 magic 与 little-endian wire version；编码端 append_prefix 写入相同 8+2 字节。",
+          "status": "常量英文说明已添加，中文修订待工具写入恢复；逐项核对了 8 字节 discriminator、wire revision 与十字节固定宽度。",
+          "impact": "值及前缀布局不变；schema version 仍由封套 header 表示。"
+        },
+        {
+          "object": "MAX_BINARY_BODY_BYTES, MAX_BINARY_CONTAINER_ENTRIES, MAX_BINARY_DEPTH, MAX_BINARY_NODES, MAX_BINARY_STRING_BYTES",
+          "entered": "body cap 在前缀/封套编解码层执行；容器、深度、节点和字符串限制由 binary/value 的 JSON 转换及 direct decode 路径执行。",
+          "status": "当前新增常量说明为英文；依 caller pins 对照限制实际消费点，中文修订待完成。",
+          "impact": "区分 64 MiB body 字节上限与 BinaryValue 值域限额；常量及消费点未变。"
+        },
+        {
+          "object": "options and append_prefix",
+          "entered": "读写端都使用 VariableLittleEndian；编码先生成有界 body，再追加 magic 和 wire version。",
+          "status": "options 原有配置说明保留；追加前缀说明为英文新增内容。函数体未改。",
+          "impact": "持久化配置及追加顺序保持不变。"
+        },
+        {
+          "object": "body_after_valid_prefix and prefix-check block",
+          "entered": "按短前缀、magic、wire version、body 切片、body 超限顺序返回错误；成功时借用返回去掉 10 字节前缀的 body。",
+          "status": "函数新增英文文档含 bytes/返回借用/错误阶段；在切片前新增中文私有顺序注释。中文文档修订 patch 失败，故仍 incomplete。",
+          "impact": "错误优先级、body 计量不含 prefix、借用生命周期及解码边界未变；本函数不解析 envelope/payload。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/encode.rs",
+      "beforeSha256": "018afa6757cb55fa26f0c815b5feec1806afc0169d7e10e7fdebdc99bab4299c",
+      "afterSha256": "0662f3f4ed25d9685812b08aa780fd74ce23ae7a2ef6ec899e0d7fce7dcf5f14",
+      "finalLineEndingCounts": {
+        "LF": 70,
+        "CRLF": 0
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "object": "encode_binary_payload(header, payload) and its conversion/error block",
+          "entered": "write.rs 的 Format::Binary 分支先从领域对象取得 JSON Value 和 current header 后调用；payload 先 canonicalize_value，再 BinaryValue::try_from。",
+          "status": "新增中文参数、完整返回值及错误说明。记录映射：值域错误为 InvalidBinaryPayload，SizeLimit 为 BinaryPayloadTooLarge，其余为携带 schema/version 的 BinaryEncode。",
+          "impact": "对象键稳定顺序、值域检查、body cap 和错误分类均未改。"
+        },
+        {
+          "object": "encode_binary_value(header, payload) and body/prefix block",
+          "entered": "测试夹具及 encode_binary_payload 会调用；构造 BinaryEnvelope，以 options().encode_bounded 生成不含 prefix 的 body，再分配并拼接前缀和 body。",
+          "status": "新增中文说明：此底层 helper 仅序列化给定 BinaryValue 并施加 body 字节上限，不检查 BinaryValue 节点值域；生产 encode_binary_payload 通过 BinaryValue::try_from 做值域转换，而畸形输入契约测试刻意绕过该转换以构造 reader 应拒绝的 wire body。保留固定 bincode 选项与 body 限额边界。",
+          "impact": "body cap 不含前缀；生产写入器负责 payload 值域转换，低层 helper 保持可用于畸形 wire 测试的序列化边界；函数行为未改。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/decode.rs",
+      "beforeSha256": "d4557f4482260256e11c048a8ab1ec9765c30ed330c445a904e99bfaeb3f2ea1",
+      "afterSha256": "af0792107858987a6827aff8828294c59aef2c8dfe972911c4943c8a787ef836",
+      "finalLineEndingCounts": {
+        "LF": 55,
+        "CRLF": 0
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "object": "decode_binary_header(bytes) and header-only prefix decode block",
+          "entered": "load_binary_versioned 传入完整文件；本函数委托前缀校验，再用 decode_prefix_bounded 读取 PayloadHeader 并返回 body 剩余切片。",
+          "status": "新增中文说明输入阶段、借用返回值和检查责任；header syntax/deserialization 发生于此，目标 schema/version 检查仍由上层 loader 在 payload 解码前完成。",
+          "impact": "保留允许 header 后带 payload 的 prefix decode 行为与借用生命周期。"
+        },
+        {
+          "object": "decode_binary_payload(body) and conversion/error block",
+          "entered": "旧 schema version 分支调用；完整解码 BinaryValue 后转换为 serde_json::Value 供 migration chain 使用。",
+          "status": "新增中文说明不含 prefix 的完整 body、尾随字节拒绝及值域转换错误。",
+          "impact": "完整解码、尾随检查与 InvalidBinaryPayload 映射不变。"
+        },
+        {
+          "object": "decode_binary_current<T>(body) and DirectBinaryDecodeError mapping",
+          "entered": "load_binary_versioned 在 schema/version 匹配当前类型后调用；BinaryValue 流先完整解码，再 direct-decode 到 DeserializeOwned 的 T。",
+          "status": "新增中文说明无需 JSON 中间值、调用方头部校验前提及输入只含 payload body。",
+          "impact": "当前版本 fast path 和具体错误映射未变。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs",
+      "beforeSha256": "89de10069762b8cbcad7804a6df52a0105e65d83706ea160ddcf0557e2b831a2",
+      "afterSha256": "04c8cb2c773e95cf360c6248c43985fa86cfd04e3f8281cf541b8d924d8d667a",
+      "finalLineEndingCounts": {
+        "LF": 214,
+        "CRLF": 0
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "object": "module imports and BINARY_PREFIX_LEN",
+          "entered": "测试从 serialization 超级模块导入生产 binary 编码器、BinaryValue 类型和值域限制；常量按 v1 8+2 字节前缀构造畸形样本。",
+          "status": "模块概述当前仍将样本策略过度概括为使用生产编码器；实际上 NaN、重复键、过深节点及截断输入中包含刻意非法或手工构造的样本。root 接管该精确概述修正；其第二文件写入未成功，此项保持 pending。导入和常量未变。",
+          "impact": "需将文档收窄为混合构造策略：有效载荷样本可走生产 writer，刻意非法或截断样本为直接构造；在修正前不把此模块说明计为已完成。测试与注册未变。"
+        },
+        {
+          "object": "truncated_binary_prefix_is_a_typed_header_error; binary_magic_mismatch_is_rejected_before_payload_decode; future_binary_wire_version_is_rejected_before_payload_decode",
+          "entered": "分别以短输入、错误 discriminator 和未来 wire revision 触发 body 解析前的前缀拒绝。",
+          "status": "逐项检查输入构造、LoadError 变体和断言顺序；未改测试。",
+          "impact": "保留前缀错误不进入封套/payload 解码的契约。"
+        },
+        {
+          "object": "trailing_binary_bytes_are_rejected_instead_of_silently_ignored; non_finite_binary_number_is_rejected_before_typed_payload_decode",
+          "entered": "完整载荷解码应拒绝残余字节；值域非法的非有限数在 typed decode 前产生错误。",
+          "status": "追踪生产 options 和 BinaryValue 路径，核对断言分类；未改测试。",
+          "impact": "防止 bincode 尾随数据静默接受及非法数字被 typed decode 隐藏。"
+        },
+        {
+          "object": "future_schema_header_is_rejected_before_an_invalid_value_domain_payload; oversized_binary_body_is_rejected_before_bincode_decode",
+          "entered": "第一个样本让不可接受的 schema 头先于无效值域 payload 被 loader 检查；第二个样本超过 body cap 1 字节。",
+          "status": "核对 header/payload 分界和 prefix 长度预算；未改构造或断言。",
+          "impact": "固定头部校验早于 payload 解释，并固定 body 上限不含十字节前缀。"
+        },
+        {
+          "object": "deeply_nested_binary_values_are_rejected_at_the_wire_limit; duplicate_binary_object_keys_are_rejected_instead_of_overwritten",
+          "entered": "分别穿过生产编码样本验证 BinaryValue 深度边界，以及手工重复 object key 验证 direct/value 转换拒绝策略。",
+          "status": "追踪 BinaryValue 转换/direct decode 和相应错误断言；未改测试。",
+          "impact": "嵌套限制和重复键错误不被覆盖或归一化。"
+        },
+        {
+          "object": "FutureBinaryDocument, VersionedSchema impl, future_binary_schema_version_is_rejected_before_typed_payload_decode, current_binary_fixture, current_header",
+          "entered": "fixture schema 与当前文档一致但 VERSION=3，migration chain 为空；有效当前样本由 write_versioned(Format::Binary) 构造。",
+          "status": "核对 fixture 类型、关联常量、空迁移静态值及头部构造 helper；未改注册、类型或断言。",
+          "impact": "证明未来 schema version 在 typed payload 解码前拒绝；无手写有效 wire 样本绕过生产 writer。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "beforeSha256": "bb574c0738d068cb3e1e275894b3a0e425595a7665bedf57500a8032ac49e51f",
+      "afterSha256": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+      "finalLineEndingCounts": {
+        "LF": 899,
+        "CRLF": 0
+      },
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "object": "module imports and TEST_CANONICAL_ARCHIVE_BUDGET",
+          "entered": "本文件大部分断言 canonical text writer 和显式 raw-streaming budget；二进制相关用例仅覆盖共享 payload 校验和 reader/writer body cap。",
+          "status": "新增中文模块概述以划清测试职责；imports、预算常量及测试注册均未改。",
+          "impact": "避免将整份文本/流式 writer 契约误记为 binary envelope 覆盖。"
+        },
+        {
+          "object": "probe types and VersionedSchema/Serialize/Display implementations",
+          "entered": "逐组核对 FloatProbe 与 oversized probes、RepeatedChunkProbe、CanonicalMapProbe、DuplicateKey/NumericKey/InvalidMapKey probes、CustomSerializeFailure、ByteProbe、WideIntegerProbe、RawValue probes、ChunkedDisplayProbe、KeyHeavyProbe、NestedArrayProbe。",
+          "status": "追踪每个 fixture 的 Serialize/Display 分支与对应测试消费：有限/超限数值，重复/非字符串/非法键，raw private marker，字节序列化，分块显示/键生成，嵌套与超大 payload；fixture 和 impl 均未改。",
+          "impact": "调用者依赖的序列化边界由专用 fixture 建立；无测试 helper 被改成生产逻辑。"
+        },
+        {
+          "object": "canonical and shared payload tests: canonical_text_writer_orders_nested_keys_and_uses_one_trailing_newline; canonical_text_writer_uses_shortest_roundtrip_float_spelling; canonical_text_writer_serializes_bytes_through_the_sequence_contract; text_and_binary_writers_reject_out_of_range_json_integers_consistently; text_and_binary_writers_reject_raw_value_private_marker_consistently; canonical_text_preaggregation_rejects_raw_value_map_keys_as_payload_validation; canonical_text_preaggregation_stops_chunked_display_before_all_chunks_are_formatted; canonical_text_preaggregation_stops_key_generation_before_the_full_map_is_retained; canonical_text_rejects_an_object_before_it_retains_unbounded_entries; canonical_text_rejects_nesting_beyond_the_runtime_stack_budget; versioned_text_preserves_the_typed_canonical_resource_failure; canonical_text_preaggregation_counts_a_duplicate_map_key_only_once",
+          "entered": "这些测试构造 canonical JSON/map/serializer 输入，检查键顺序、失败分类、预聚合早停和资源界限；其中两项同时断言 text 与 binary 的共享 payload 分类。",
+          "status": "逐测试追踪 fixture、被测公开/私有 writer 入口、错误 variant 和输出断言；没有修改 test body。",
+          "impact": "保留 canonical text 契约和 text/binary 共用 payload validation 一致性。"
+        },
+        {
+          "object": "streaming and error tests: current_text_writer_streams_a_borrowed_payload_with_canonical_map_order; streaming_text_writer_matches_the_owned_text_adapter_through_short_writes; streaming_text_writer_preserves_the_downstream_write_failure; canonical_text_writer_matches_json_key_normalization_and_error_categories; writers_reject_non_finite_floats_instead_of_normalizing_them_to_null",
+          "entered": "分别覆盖借用 payload、短写、下游 I/O 错误、键规范化/错误类别及两格式的非有限数拒绝。",
+          "status": "核对 ChunkedDisplay/ChunkedSink 状态推进与断言；未改写入重试或测试断言。",
+          "impact": "影响仅是说明；sink 状态和下游错误传播契约保持不变。"
+        },
+        {
+          "object": "binary_writer_rejects_a_body_larger_than_the_reader_limit and text_writer_rejects_a_document_larger_than_the_reader_limit",
+          "entered": "二进制 probe 通过生产 write_versioned(Format::Binary)，以多个 MAX_BINARY_STRING_BYTES 字符串让 64 MiB body 超限；文本 probe 对照文本读取限额。",
+          "status": "核对 binary writer 映射到 BinaryPayloadTooLarge 且 max 与 reader 共享常量；测试本身未改。",
+          "impact": "固定 writer cap 与 reader body cap 一致，前缀不计入上限。"
+        },
+        {
+          "object": "raw streaming budget tests: raw_streaming_writer_uses_its_explicit_archive_budget; raw_streaming_writer_rejects_output_above_its_explicit_archive_budget; raw_streaming_writer_handles_a_one_mebibyte_direct_array_without_text_aggregation; raw_streaming_writer_bounds_each_sink_request_to_the_staging_size; raw_streaming_writer_rejects_output_above_its_explicit_512_mebibyte_budget",
+          "entered": "这些测试走 raw streaming writer 的显式 archive budget/staging 路径，不进入 BinaryEnvelope 编码。",
+          "status": "核对预算、输出长度和 sink 请求大小断言；未改测试。",
+          "impact": "按文件模块说明将此组保留为相邻的 text/raw streaming 契约，不误归 binary。"
+        },
+        {
+          "object": "ChunkedSink::{new, Write::write, Write::flush}; RequestTrackingSink::{Write::write, Write::flush}",
+          "entered": "streaming tests 用 ChunkedSink 产生短写或指定位置失败，用 RequestTrackingSink 记录单次 sink 请求大小。",
+          "status": "核对 remaining/output/failure 状态变化和 flush 委托；未改 helper block。",
+          "impact": "保持测试对流式 writer 重试、错误和 staging 上限的可观察检查。"
+        }
+      ]
+    }
+  ],
+  "callerPins": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/write.rs",
+      "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+      "symbols": "write_versioned; Format::Binary; encode_binary_payload_value; current_header",
+      "contract": "版本化 writer 对领域值生成 JSON payload 和当前 PayloadHeader，再进入 binary 编码器；text/binary 共享前置序列化上下文。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "symbols": "load_binary_versioned; decode_binary_header; decode_binary_current; decode_binary_payload",
+      "contract": "先解析头部并检查 schema/version；当前版本走直接 typed decode，旧版本走完整 JSON Value decode 后进入迁移。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/value/mod.rs",
+      "sha256": "d444228755138d01a514e9cb39c8586508effd1f7e436a3b9eadecc73241ca7b",
+      "symbols": "BinaryValue value submodule exports",
+      "contract": "聚合 BinaryValue、JSON conversion、直接 decode 与错误类型；不属于本批写范围。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/value/binary_value.rs",
+      "sha256": "5120e43eddc6fd328b010e60a9be15aa7c26e979f6098b31f1b67abf93ebe26e",
+      "symbols": "BinaryValue; BinaryNode",
+      "contract": "BinaryValue 是扁平节点流的 serde wire 表示；其结构/variant 顺序受现有 golden wire 测试约束。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/value/from_json.rs",
+      "sha256": "12734a7eb39b6b57ba02a7894581691eba4ba9728c5b3c1799ae2ba815285e1c",
+      "symbols": "TryFrom<Value> for BinaryValue",
+      "contract": "写入转换 canonical JSON 到有界节点流，检查深度、容器项数、节点数、字符串/key 字节和不可表示值。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/value/into_json.rs",
+      "sha256": "ee2ecd46ccd4651852e97f204ae904bbba45e4f58b310f3dab7c17dfe2f10b50",
+      "symbols": "TryFrom<BinaryValue> for Value",
+      "contract": "旧 schema migration 路径将完整 BinaryValue 转成 JSON，并再次执行可表示性/值域检查。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/value/direct_decode.rs",
+      "sha256": "45dce349d0f100cf0b19862b7a6114641af1b02441952e8eef67ca1ccd44868c",
+      "symbols": "decode_binary_value_direct; BinaryValue stream validation",
+      "contract": "当前 schema 路径在不经 JSON 中间值时检查节点结构、重复键、深度/节点及字符串边界，再交给目标 T 的 serde decode。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/value/error.rs",
+      "sha256": "05d01f2eb65f8af811f197301ef7764476a45503b3fb67a5f6984674018359de",
+      "symbols": "BinaryValueError; DirectBinaryDecodeError",
+      "contract": "写入和完整 decode 的值域错误与当前 typed decode 的 malformed/domain 错误分类。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "symbols": "pub use load::load_versioned; pub use write::write_versioned; Format; PayloadHeader",
+      "contract": "公开版本化读写入口由调用方选择格式；此批未改公开 API。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "497341e9ea1ad82fed314704cff7ae97b982f80fefa8c1a38cc73f87adbc12a3",
+      "symbols": "#[path] mod binary_contract; #[path] mod binary_malformed_contract; #[path] mod write_contract",
+      "contract": "确认相关合同测试在 crate test module 下注册；三个 path 声明未改。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/binary_contract.rs",
+      "sha256": "a54fa257552598bcbb9c5f02621056754644618484f2658286f1d753fa0363bd",
+      "symbols": "current binary roundtrip/direct decode; binary v1 golden bytes; schema mismatch and migration tests",
+      "contract": "只读的兼容契约覆盖现有封套字段顺序、wire v1 字节、当前版本直解和旧版迁移；该 held 文件没有编辑。"
+    }
+  ],
+  "priorEvidenceDependency": {
+    "batchId": "positional-codec-006",
+    "path": "docs/tests/source-comment-review-evidence-positional-codec-006.json",
+    "frozenSha256": "90b1f28fce8f52d4e02cd46f669df616a3a56510e8c2f47b9443dfd7d28a5e5a",
+    "affectedCallerPins": [
+      "zircon_runtime_interface/src/serialization/binary/wire.rs",
+      "zircon_runtime_interface/src/serialization/binary/encode.rs",
+      "zircon_runtime_interface/src/serialization/binary/decode.rs"
+    ],
+    "disposition": "保留旧证据原样；本批新增文档会造成以上 frozen caller hashes 漂移，需由主审在独立补充中 reconcile。"
+  },
+  "patchObservations": [
+    {
+      "wrapperCell": "pre-resume combined patch; exact cell not available in this resumed tool output",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/binary/mod.rs",
+        "zircon_runtime_interface/src/serialization/binary/envelope.rs",
+        "zircon_runtime_interface/src/serialization/binary/wire.rs",
+        "zircon_runtime_interface/src/serialization/binary/encode.rs",
+        "zircon_runtime_interface/src/serialization/binary/decode.rs"
+      ],
+      "result": "Reported context mismatch at encode.rs: patch expected `});` while actual source is `})?;`. In this resumed turn, read-only diff showed comment additions present in mod.rs/envelope.rs/wire.rs while encode.rs/decode.rs still matched initial pins; the initial summary's later claim that all files were unchanged did not match this observed state. No executable code delta was present."
+    },
+    {
+      "wrapperCell": "30",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/binary/envelope.rs"
+      ],
+      "result": "tools.apply_patch returned `Failed to write file E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\serialization\\binary\\envelope.rs`. Before/after hashes within this attempt were unchanged; no cause inferred."
+    },
+    {
+      "wrapperCell": "32",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs"
+      ],
+      "result": "tools.apply_patch returned `{}` and added the Chinese module documentation; final source pin recorded above."
+    },
+    {
+      "wrapperCell": "33",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/binary/envelope.rs",
+        "zircon_runtime_interface/src/serialization/binary/wire.rs"
+      ],
+      "result": "tools.apply_patch returned `Failed to write file E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\serialization\\binary\\envelope.rs`; subsequent raw hashes of both paths matched their pre-attempt partial-documentation hashes."
+    },
+    {
+      "wrapperCell": "34",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/binary/wire.rs"
+      ],
+      "result": "tools.apply_patch returned `Failed to write file E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\serialization\\binary\\wire.rs`; subsequent raw hash matched the pre-attempt partial-documentation hash."
+    },
+    {
+      "wrapperCell": "36",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/binary/encode.rs",
+        "zircon_runtime_interface/src/serialization/binary/decode.rs"
+      ],
+      "result": "tools.apply_patch returned `{}`; added Chinese contracts to both encode functions and all three decode functions."
+    },
+    {
+      "wrapperCell": "38",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/tests/write_contract.rs"
+      ],
+      "result": "tools.apply_patch returned `{}`; added Chinese module scope/contract summary."
+    },
+    {
+      "wrapperCell": "40",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/binary/encode.rs"
+      ],
+      "result": "tools.apply_patch returned `{}`; revised one descriptor from '已校验的 schema 头' to '给定的 schema 头' to avoid implying this helper validates the header."
+    },
+    {
+      "wrapperCell": "root-reported root74/root75; native patch identity not supplied",
+      "paths": [
+        "zircon_runtime_interface/src/serialization/binary/encode.rs",
+        "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs"
+      ],
+      "result": "Root took ownership of these two exact comment corrections. Root reported the encode.rs correction succeeded before the second-file malformed-contract wording patch failed; root75 readback confirmed encode.rs SHA 0662f3f4ed25d9685812b08aa780fd74ce23ae7a2ef6ec899e0d7fce7dcf5f14 (70 LF, 0 CRLF), while malformed_contract.rs remained at 04c8cb2c773e95cf360c6248c43985fa86cfd04e3f8281cf541b8d924d8d667a. No native patch identity or failure cause is inferred. Both files are frozen to this agent."
+    }
+  ],
+  "issueIds": [],
+  "validation": {
+    "rustfmt": {
+      "wrapperCell": "62",
+      "previousWrapperCell": "47",
+      "tool": "C:\\Users\\HeJiahui\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\bin\\rustfmt.exe",
+      "toolSha256": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+      "version": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "args": "--edition 2021 --config skip_children=true --check [the exact seven scope paths]",
+      "exitCode": 0,
+      "nestedChunk": "d2847c",
+      "sessionId": null,
+      "processEvidence": "functions.exec wrapper cell 62 captured tools.exec_command chunk d2847c, which returned session_id=null and exit_code=0 synchronously. PowerShell recorded the rustfmt process exit code as 0. Formatter output for the check itself was empty; the captured stdout consists only of the PowerShell metadata JSON. The earlier wrapper cell 47 also reported exit 0 but did not forward nested exec metadata, so its nested identity remains unavailable.",
+      "scopeValidity": "The exact seven-file check d2847c preceded the root encode.rs comment correction; it remains applicable to the six unchanged source files but does not validate the new encode.rs bytes.",
+      "postCorrectionEncode": {
+        "chunk": "be6136",
+        "tool": "C:\\Users\\HeJiahui\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\bin\\rustfmt.exe",
+        "toolSha256": "0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67",
+        "version": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+        "args": "--edition 2021 --config skip_children=true --check zircon_runtime_interface/src/serialization/binary/encode.rs",
+        "exitCode": 0,
+        "sessionId": null,
+        "processEvidence": "functions.exec wrapper completed synchronously; nested exec_command chunk be6136 returned session_id=null and exit_code=0.",
+        "stdout": "",
+        "stderr": "",
+        "result": "Fresh format check of the post-correction encode.rs pin 0662f3f4ed25d9685812b08aa780fd74ce23ae7a2ef6ec899e0d7fce7dcf5f14."
+      }
+    },
+    "scopedDiffCheck": {
+      "chunk": "60a848",
+      "command": "git --no-optional-locks diff --check -- [the exact seven scope paths]",
+      "exitCode": 0,
+      "output": "Only Git LF-to-CRLF configuration warnings appeared; physical raw-byte checks report LF-only files with zero CRLF. No diff-check mutation.",
+      "scopeValidity": "The exact seven-file check chunk 60a848 preceded the root encode.rs comment correction.",
+      "postCorrectionEncode": {
+        "chunk": "444d45",
+        "command": "git --no-optional-locks diff --check -- zircon_runtime_interface/src/serialization/binary/encode.rs",
+        "exitCode": 0,
+        "output": "Only Git LF-to-CRLF configuration warning; physical source remains LF-only. No diff-check mutation."
+      }
+    },
+    "finalPinsAndStatus": {
+      "chunk": "3c4d4d",
+      "command": "Python -B -X utf8 raw SHA/line-ending calculation plus git --no-optional-locks status on the exact seven batch source paths",
+      "exitCode": 0,
+      "sessionId": null,
+      "result": "Post-root-correction readback confirms all seven afterSha256 and LF/CRLF pins in files[] match physical bytes; all seven paths have status M from this batch. encode.rs is 3000 bytes, LF 70, CRLF 0; malformed_contract.rs is unchanged at its recorded pin."
+    },
+    "callerPins": {
+      "chunk": "edf67d",
+      "command": "Python -B -X utf8 raw SHA calculation plus git --no-optional-locks status on the exact eleven caller/test paths above",
+      "exitCode": 0,
+      "result": "All eleven caller/test paths are clean and their hashes match the pins."
+    },
+    "checksNotRun": [
+      "Cargo/build/generation",
+      "rustdoc or proc-macro execution",
+      "Jenkins source-bound acceptance receipt"
+    ],
+    "batchDisposition": "Partial; accurate Chinese docs cover four files. envelope.rs and wire.rs still need Chinese translation, and malformed_contract.rs module summary remains inaccurate/pending root correction. Fresh encode-only formatter and diff checks pass after root correction. Independent root review and formal Jenkins source-bound receipt remain pending.",
+    "preRootCorrectionPins": {
+      "chunk": "f25370",
+      "scopeValidity": "Historical readback before root encode.rs correction; stale only for encode.rs."
+    }
+  }
+}

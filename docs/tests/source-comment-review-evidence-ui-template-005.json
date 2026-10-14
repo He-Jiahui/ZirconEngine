@@ -1,0 +1,3292 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "ui-template-005",
+  "owner": "/root/public_assets",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignmentHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "observedHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+  "assignmentLedger": {
+    "path": "docs/tests/source-comment-review-coverage-02.json",
+    "sha256": "003645d2de77b7d094617e830fd068ef99524c2cf861abc14f74c970aa8ae54c",
+    "canonicalContinuationPath": "docs/tests/source-comment-review-coverage-03.json",
+    "canonicalContinuationSha256": "3997e1db8352d11a06786396eb88a128905e79191218b8b0ddd1f1620a0064ee",
+    "note": "Source before hashes are the exact batch pins from coverage-02; coverage-03 is the currently read canonical continuation. This evidence does not edit either ledger."
+  },
+  "scope": [
+    "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+    "zircon_runtime_interface/src/ui/template/asset/document.rs",
+    "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+    "zircon_runtime_interface/src/ui/template/asset/style.rs",
+    "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+    "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+    "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+    "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs"
+  ],
+  "changeClassification": {
+    "result": "comment-only documentation additions; independent root review pending",
+    "sourceDelta": {
+      "insertedLines": 278,
+      "deletedLines": 0,
+      "replacedLines": 0,
+      "addedNonCommentLines": 0,
+      "perFile": [
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "addedCommentLines": 3
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "addedCommentLines": 76
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "addedCommentLines": 18
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "addedCommentLines": 30
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "addedCommentLines": 4
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "addedCommentLines": 10
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "addedCommentLines": 61
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "addedCommentLines": 76
+        }
+      ]
+    },
+    "macroNote": "Rust /// and //! become compiler-facing #[doc] attributes. Explicit derive/serde macro arguments and executable tokens are unchanged, but derive macros can observe added doc attributes; this is not asserted to be invisible macro input. No custom macro execution/Cargo doc gate was invented.",
+    "behaviorAndApi": "No executable token, signature, field, visibility, serde rule, string literal, test assertion, macro argument, FFI, or runtime behavior was changed. Read-only base comparison found insert-only comment lines.",
+    "unresolved": "Jenkins formal source-comment semantic-flow receipt and root's independent row-by-row evidence review remain pending."
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "27da1b34a0d3825f834eb49a1b5cabdb2b90b209a4c8308bf5254a8c93560ca9",
+      "afterSha256": "91a95dd04e954ae6a8d0d105c7336251238596d3bfaecd28d9fcbb57ed9cbb0a",
+      "beforeLineCount": 86,
+      "finalLineCount": 89,
+      "finalLineEndingCounts": {
+        "LF": 89,
+        "CRLF": 0
+      },
+      "assignmentStatus": "clean; content is already in current HEAD",
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R001",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "module asset 与私有子模块声明",
+          "members": [
+            "action_policy",
+            "binding",
+            "compiler",
+            "component_contract",
+            "document",
+            "invalidation",
+            "localization",
+            "prototype",
+            "resource_ref",
+            "schema",
+            "style"
+          ],
+          "entered": "Runtime loader/compiler 和编辑器从 ui::template 入口导入此接口子树。",
+          "status": "核对11个 path 子模块与隔离可见性。",
+          "impact": "模块组织与公开面未改变；私有子模块由下列 pub use 块选择性导出。",
+          "callerPinIds": [],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "模块使用 #[path] 属性指定现有源码；没有 macro_rules!/extern/unsafe/动态注册。"
+        },
+        {
+          "id": "TPL05-R002",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use action_policy",
+          "members": [
+            "UiActionHostPolicy",
+            "UiActionPolicyDiagnostic",
+            "UiActionPolicyDiagnosticSeverity",
+            "UiActionPolicyReport",
+            "UiActionSideEffectClass"
+          ],
+          "entered": "父 template 模块重导出动作策略契约。",
+          "status": "逐项核对重导出来源与名称。",
+          "impact": "本批不拥有这些类型定义；重导出入口保持原样。",
+          "callerPinIds": [],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R003",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use binding",
+          "members": [
+            "UiActionPayloadFieldName",
+            "UiBindingContractTerm",
+            "UiBindingDiagnostic",
+            "UiBindingDiagnosticCode",
+            "UiBindingDiagnosticSeverity",
+            "UiBindingExpression",
+            "UiBindingExpressionEvaluationError",
+            "UiBindingExpressionParseError",
+            "UiBindingMissingValuePolicy",
+            "UiBindingMissingValueResolution",
+            "UiBindingReport",
+            "UiBindingSchemaNameError",
+            "UiBindingSchemaNameKind",
+            "UiBindingTarget",
+            "UiBindingTargetAssignment",
+            "UiBindingTargetKind",
+            "UiBindingTargetSchema",
+            "UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY",
+            "UI_BINDING_EXPRESSION_MAX_DEPTH",
+            "UI_BINDING_EXPRESSION_MAX_NODES",
+            "UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES",
+            "UI_BINDING_EXPRESSION_MAX_TOKENS",
+            "UI_BINDING_SCHEMA_NAME_MAX_BYTES"
+          ],
+          "entered": "调用方通过 ui::template 公共入口使用绑定契约。",
+          "status": "核对binding模块 re-export 的实际 item 名称。",
+          "impact": "公开绑定契约仍由原子模块定义，本批只补接口文档。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C14",
+            "TPL05-C15",
+            "TPL05-C16"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R004",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use compiler",
+          "members": [
+            "UiBindingId",
+            "UiBindingPackageLifecycleStage",
+            "UiCompileCacheKey",
+            "UiCompiledActionId",
+            "UiCompiledActionPayloadField",
+            "UiCompiledActionPayloadValue",
+            "UiCompiledAssetArtifact",
+            "UiCompiledAssetCacheRecord",
+            "UiCompiledAssetDependency",
+            "UiCompiledAssetDependencyManifest",
+            "UiCompiledAssetHeader",
+            "UiCompiledAssetId",
+            "UiCompiledAssetPackageArtifactEntry",
+            "UiCompiledAssetPackageManifest",
+            "UiCompiledAssetPackageProfile",
+            "UiCompiledAssetPackageSection",
+            "UiCompiledAssetPackageValidationReport",
+            "UiCompiledBinding",
+            "UiCompiledBindingExpression",
+            "UiCompiledBindingGeneration",
+            "UiCompiledBindingHandle",
+            "UiCompiledBindingProgram",
+            "UiCompiledBindingTarget",
+            "UiCompiledBindingTargetEndpoint",
+            "UiCompiledBindingTargetId",
+            "UiCompiledBindingTargetKind",
+            "UiCompiledControlId",
+            "UiCompiledNodeBindings",
+            "UiCompiledNodeId",
+            "UiCompiledRouteId",
+            "UiPropertyId",
+            "UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION",
+            "UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION",
+            "UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION"
+          ],
+          "entered": "compiler outputs and package metadata are exposed through parent template API.",
+          "status": "核对 compiler 子模块公开重导出项。",
+          "impact": "本批未修改 compiler 定义；此 re-export 供 source-to-compiled flow 追踪。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C24"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R005",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use component_contract",
+          "members": [
+            "UiComponentApiVersion",
+            "UiComponentBindingContract",
+            "UiComponentContractDiagnostic",
+            "UiComponentContractDiagnosticCode",
+            "UiComponentFocusContract",
+            "UiComponentPublicContract",
+            "UiPublicBindingRoute",
+            "UiPublicPart",
+            "UiRootClassPolicy"
+          ],
+          "entered": "组件 contract validator 和调用方从公共模板模块取得契约类型。",
+          "status": "核对全部重导出符号。",
+          "impact": "公开结构保持不变；节点/组件契约验证不构成项目权限授权。",
+          "callerPinIds": [
+            "TPL05-C02",
+            "TPL05-C17"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R006",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use document",
+          "members": [
+            "parse_component_reference",
+            "UiActionRef",
+            "UiAssetDocument",
+            "UiAssetError",
+            "UiAssetHeader",
+            "UiAssetImports",
+            "UiAssetKind",
+            "UiChildMount",
+            "UiComponentDefinition",
+            "UiComponentParamSchema",
+            "UiNamedSlotSchema",
+            "UiNodeDefinition",
+            "UiNodeDefinitionKind",
+            "UiStyleDeclarationBlock",
+            "UiStyleRule",
+            "UiStyleScope",
+            "UiStyleSheet"
+          ],
+          "entered": "Runtime loader、validator、compiler 与编辑器使用源模型。",
+          "status": "核对 document.rs 的实际 pub 项；未把私有 default_asset_version 当作导出项。",
+          "impact": "源模型仍可公开构造/反序列化；有效性由后续加载验证路径建立。",
+          "callerPinIds": [
+            "TPL05-C01",
+            "TPL05-C02",
+            "TPL05-C03",
+            "TPL05-C04",
+            "TPL05-C05",
+            "TPL05-C06"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R007",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use invalidation",
+          "members": [
+            "UiAssetChange",
+            "UiAssetFingerprint",
+            "UiInvalidationDiagnostic",
+            "UiInvalidationDiagnosticSeverity",
+            "UiInvalidationImpact",
+            "UiInvalidationReport",
+            "UiInvalidationSnapshot",
+            "UiInvalidationStage"
+          ],
+          "entered": "增量失效调用方使用公开 report/snapshot 类型。",
+          "status": "核对现有重导出，没有改本批范围外定义。",
+          "impact": "可见性保持不变。",
+          "callerPinIds": [],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R008",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use localization",
+          "members": [
+            "UiLocalizationDependency",
+            "UiLocalizationDiagnostic",
+            "UiLocalizationDiagnosticSeverity",
+            "UiLocalizationReport",
+            "UiLocalizationTextCandidate",
+            "UiLocalizedTextRef",
+            "UiTextDirection"
+          ],
+          "entered": "本模块聚合定位文本契约。",
+          "status": "核对公开名称与来源模块。",
+          "impact": "不改变定位文本数据或解析流程。",
+          "callerPinIds": [],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R009",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use prototype",
+          "members": [
+            "UiComponentPrototype",
+            "UiDocumentPrototype",
+            "UiNodePrototype",
+            "UiPrototypeChildMount",
+            "UiPrototypeNodeHandle",
+            "UiRawAssetPrototype",
+            "UiStylePrototype"
+          ],
+          "entered": "Runtime prototype builder/instancer使用扁平化节点表契约。",
+          "status": "核对prototype.rs 中全部导出项。",
+          "impact": "句柄仍为表内索引，生命周期由原型对象持有。",
+          "callerPinIds": [
+            "TPL05-C04",
+            "TPL05-C05"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R010",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use resource_ref",
+          "members": [
+            "UiResourceCollectionReport",
+            "UiResourceDependency",
+            "UiResourceDependencySource",
+            "UiResourceDiagnostic",
+            "UiResourceDiagnosticSeverity",
+            "UiResourceFallbackMode",
+            "UiResourceFallbackPolicy",
+            "UiResourceKind",
+            "UiResourceRef"
+          ],
+          "entered": "资源收集器接收文档引用并产出依赖/report。",
+          "status": "核对公开资源类型，不把它们误作 runtime handle。",
+          "impact": "公开重导出未改变。",
+          "callerPinIds": [
+            "TPL05-C18"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R011",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use schema",
+          "members": [
+            "UiAssetMigrationOutcome",
+            "UiAssetMigrationReport",
+            "UiAssetMigrationStep",
+            "UiAssetSchemaDiagnostic",
+            "UiAssetSchemaDiagnosticSeverity",
+            "UiAssetSchemaSourceKind",
+            "UiAssetSchemaVersionPolicy",
+            "UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION",
+            "UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION"
+          ],
+          "entered": "源 schema 迁移和版本检查经公共 template API 使用。",
+          "status": "核对 schema 模块重导出。",
+          "impact": "版本契约公开形状保持不变。",
+          "callerPinIds": [
+            "TPL05-C03"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R012",
+          "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+          "object": "pub use style",
+          "members": [
+            "UiSelector",
+            "UiSelectorCombinator",
+            "UiSelectorSegment",
+            "UiSelectorSpecificity",
+            "UiSelectorToken"
+          ],
+          "entered": "验证器和样式计划使用共享 selector AST。",
+          "status": "核对 style.rs 中公开类型全部经父模块重导出。",
+          "impact": "选择器运行时匹配仍由 Runtime matcher 决定。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C10",
+            "TPL05-C20",
+            "TPL05-C25",
+            "TPL05-C26"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[path]"
+        ],
+        "manualImpls": "无本文件内trait实现；仅模块声明和pub use。",
+        "macroFfiRegistration": "未发现macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "91e010741ca4ab53df356455df3c638a0b60dff9585897c2a8f41d01c21abdeb",
+      "afterSha256": "b21845024c31e941e424579c6fcab84169b4cb38154dc78a9c80a60a1f034210",
+      "beforeLineCount": 310,
+      "finalLineCount": 386,
+      "finalLineEndingCounts": {
+        "LF": 386,
+        "CRLF": 0
+      },
+      "assignmentStatus": "M relative to current HEAD",
+      "existingIssueTags": [
+        "CR-R02-public_ui_templates-0001"
+      ],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R013",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiAssetKind",
+          "members": [
+            "UiAssetKind",
+            "Layout",
+            "Widget",
+            "Style"
+          ],
+          "entered": "资产 header 标记布局、组件库或样式来源，随后驱动导入类型检查。",
+          "status": "三个类别的序列化标签由 serde rename_all 处理。",
+          "impact": "kind 本身不校验文档其他字段；类型兼容由 Runtime import validation 决定。",
+          "callerPinIds": [
+            "TPL05-C01",
+            "TPL05-C02",
+            "TPL05-C04"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "derive Clone/Copy/Debug/PartialEq/Eq/Serialize/Deserialize；serde rename_all；无手写 FFI/注册。"
+        },
+        {
+          "id": "TPL05-R014",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiAssetHeader",
+          "members": [
+            "UiAssetHeader",
+            "kind",
+            "id",
+            "version",
+            "display_name"
+          ],
+          "entered": "header 随 UiAssetDocument 进入加载与版本迁移。",
+          "status": "记录 id、source version 与默认 serde version 的边界。",
+          "impact": "header 可被构造/反序列化；支持版本和 id 的合法性由 loader/migrator/validator 后续判断。",
+          "callerPinIds": [
+            "TPL05-C01",
+            "TPL05-C03"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "default_asset_version",
+              "entry": "反序列化缺少 version 时由 serde default 调用。",
+              "stateAndEffect": "返回初始 source version 值；调用方仍经过正常 migration/validation。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R015",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiAssetImports",
+          "members": [
+            "UiAssetImports",
+            "widgets",
+            "styles",
+            "resources"
+          ],
+          "entered": "文档声明由原型/样式装配和资源收集阶段分别读取。",
+          "status": "widgets/styles 保持资产引用文本；resources 在 collection 阶段消费。",
+          "impact": "声明不等于已解析 handle；组件/样式解析在 Runtime store/resolver，资源解析在 collector。",
+          "callerPinIds": [
+            "TPL05-C04",
+            "TPL05-C08",
+            "TPL05-C18"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R016",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiAssetDocument",
+          "members": [
+            "UiAssetDocument",
+            "asset",
+            "imports",
+            "tokens",
+            "root",
+            "components",
+            "stylesheets"
+          ],
+          "entered": "loader产生源模型后，Runtime validator检查节点/组件引用与树关系，原型构造/样式计划继续消费。",
+          "status": "新增文档描述被限定为纯源数据；serde/default不自动建立合法性。",
+          "impact": "root/component ownership指文档树与组件定义归属校验，不是项目权限或授权；validate_tree_authority 的证据仅支持此范围。",
+          "callerPinIds": [
+            "TPL05-C01",
+            "TPL05-C02",
+            "TPL05-C03",
+            "TPL05-C04",
+            "TPL05-C08",
+            "TPL05-C28"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R017",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiAssetDocument::root_node_id",
+          "members": [
+            "root_node_id"
+          ],
+          "entered": "编译/编辑器查询已存在文档的可选根节点标识。",
+          "status": "薄 accessor 仅借用 root.node_id。",
+          "impact": "root 为 None 时返回 None；不验证、分配或延长节点生命周期。",
+          "callerPinIds": [
+            "TPL05-C01"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "root_node_id",
+              "entry": "调用者在已有 UiAssetDocument 上查询 root。",
+              "stateAndEffect": "只返回借用的 node_id 或 None；没有状态变化。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R018",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiAssetDocument::component_root_node_id",
+          "members": [
+            "component_root_node_id"
+          ],
+          "entered": "调用方按组件名查询该组件定义根节点 id。",
+          "status": "通过 components 查找后借用 root.node_id。",
+          "impact": "组件名不存在时返回 None；查询不是完整 component contract 验证。",
+          "callerPinIds": [
+            "TPL05-C01",
+            "TPL05-C02"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "component_root_node_id",
+              "entry": "以组件名进入 map 查询。",
+              "stateAndEffect": "命中时返回借用 id，未命中返回 None；不构造实例。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R019",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiNodeDefinitionKind",
+          "members": [
+            "UiNodeDefinitionKind",
+            "Native",
+            "Component",
+            "Reference",
+            "Slot"
+          ],
+          "entered": "源节点 kind 决定 Runtime 后续 native 构造、组件展开、引用解析或 slot 填充路径。",
+          "status": "四种标签语义与 compiler 分派入口已逐项对照。",
+          "impact": "公开构造和 Deserialize 不证明 kind 与节点字段相互一致；validator/compiler 建立具体约束。",
+          "callerPinIds": [
+            "TPL05-C02",
+            "TPL05-C04",
+            "TPL05-C05",
+            "TPL05-C06"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R020",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiNodeDefinition",
+          "members": [
+            "UiNodeDefinition",
+            "node_id",
+            "kind",
+            "widget_type",
+            "component",
+            "component_ref",
+            "component_api_version",
+            "slot_name",
+            "control_id",
+            "classes",
+            "params",
+            "props",
+            "layout",
+            "bindings",
+            "style_overrides",
+            "focus",
+            "navigation",
+            "picking",
+            "a11y",
+            "widget",
+            "children"
+          ],
+          "entered": "节点在源文档 load/validation 后进入 prototype builder、component expansion、style/binding compilation。",
+          "status": "字段与 serde rename/default/skip 条件按实际声明审查；嵌入 contract 持有者不替代对应 validator。",
+          "impact": "公开数据形状可不一致；node/component 归属校验在 Runtime validator，跨资产引用在 prototype store，binding/style 在各自 compiler 阶段。",
+          "callerPinIds": [
+            "TPL05-C01",
+            "TPL05-C02",
+            "TPL05-C04",
+            "TPL05-C05",
+            "TPL05-C06",
+            "TPL05-C09",
+            "TPL05-C13"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R021",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiChildMount",
+          "members": [
+            "UiChildMount",
+            "mount",
+            "slot",
+            "node"
+          ],
+          "entered": "父节点展开子挂载时，mount/slot 表达式在父调用点解析。",
+          "status": "component_instance_expander 与 prototype_instancer 两路实现相同顺序：解析slot；非空 mount 仅在缺少 mui_slot 时填默认；normalize_layout；合并到展开根 slot_attributes。",
+          "impact": "slot 是父容器写入子展开根的布局/挂载属性映射，与组件 named-slot declaration 及 UiNodeDefinition.slot_name 不同；显式 mui_slot 保留。",
+          "callerPinIds": [
+            "TPL05-C05",
+            "TPL05-C06",
+            "TPL05-C07"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "apply_child_mount / apply_prototype_child_mount",
+              "entry": "进入子组件/原型挂载的父级上下文。",
+              "stateAndEffect": "解析slot map；mount只作缺省mui_slot；随后布局归一化并应用到每个展开根slot_attributes。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R022",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiComponentDefinition",
+          "members": [
+            "UiComponentDefinition",
+            "root",
+            "style_scope",
+            "contract",
+            "params",
+            "slots"
+          ],
+          "entered": "本地/导入组件定义先通过契约验证，再进入 prototype/instance expansion。",
+          "status": "字段及 style_scope 在 prototype 中原样保存；没有把保存行为扩写成隔离保证。",
+          "impact": "style_scope 的 Open/Closed 隔离语义仍是现有 CR-R02 TODO；contract/params/slots 的约束由 Runtime component contract validator 建立。",
+          "callerPinIds": [
+            "TPL05-C02",
+            "TPL05-C04",
+            "TPL05-C05",
+            "TPL05-C17"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R023",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiComponentParamSchema",
+          "members": [
+            "UiComponentParamSchema",
+            "r#type",
+            "default"
+          ],
+          "entered": "参数声明在实例扩展和 binding parameter resolution 读取。",
+          "status": "type 标签和可选 TOML 默认值作为 schema 数据。",
+          "impact": "模型本身不检查传入值或求表达式；合法种类/默认值约束在 component contract/binding resolver。",
+          "callerPinIds": [
+            "TPL05-C05",
+            "TPL05-C12",
+            "TPL05-C17"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R024",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiNamedSlotSchema",
+          "members": [
+            "UiNamedSlotSchema",
+            "required",
+            "multiple",
+            "kind",
+            "accepts"
+          ],
+          "entered": "组件 contract validator 用槽声明检查挂载数量、布局族和直接子组件身份。",
+          "status": "真实许可字段名为 accepts；空集合表示此处不限制组件身份。",
+          "impact": "没有额外 accepted_components 字段；schema 数据由后续 validator 解释。",
+          "callerPinIds": [
+            "TPL05-C02",
+            "TPL05-C17"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R025",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiNamedSlotSchema::accepts_component",
+          "members": [
+            "accepts_component"
+          ],
+          "entered": "slot validator询问直接子组件标识是否被槽接受。",
+          "status": "empty accepts 返回 unrestricted，非空时按成员相等查找。",
+          "impact": "仅是此槽允许集合查询；不执行项目权限或递归后代校验。",
+          "callerPinIds": [
+            "TPL05-C17"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "accepts_component",
+              "entry": "调用者给出 child component identity。",
+              "stateAndEffect": "返回空许可集合或 contains 命中的布尔结果；不改动 schema。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R026",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiStyleScope",
+          "members": [
+            "UiStyleScope",
+            "Open",
+            "Closed"
+          ],
+          "entered": "组件定义和 prototype 持有二值 style_scope。",
+          "status": "真实 enum 只有 Open/Closed；源与原型持有该字段。",
+          "impact": "现有 TODO 明确 selector isolation behavior 未由该类型或当前测试证明，不描述为 scope selects global/component/widget rules。",
+          "callerPinIds": [
+            "TPL05-C02",
+            "TPL05-C05"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R027",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiStyleSheet",
+          "members": [
+            "UiStyleSheet",
+            "id",
+            "rules"
+          ],
+          "entered": "文档装配、style resolver、style plan与编辑器按 stylesheet 数据处理。",
+          "status": "结构实际仅含 id 与 rules；Runtime 校验 id 非空且唯一，resolver/plan消耗规则顺序。",
+          "impact": "没有 scope 字段；validation不证明 UiStyleSheet 自动拥有权属或已 compiled；CSS子集仅由selector parser限定。",
+          "callerPinIds": [
+            "TPL05-C02",
+            "TPL05-C08",
+            "TPL05-C09",
+            "TPL05-C26"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R028",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiStyleRule",
+          "members": [
+            "UiStyleRule",
+            "id",
+            "selector",
+            "set"
+          ],
+          "entered": "Runtime build_style_plan按文本解析 selector，匹配后按 specificity/source order 应用 set。",
+          "status": "selector 是文本；公开构造/Deserialize不自动生成合法 UiSelector。",
+          "impact": "只有 parse结果有支持子集文法约束；style set 的 self 与 slot 由不同应用目标消费。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C26"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R029",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiStyleDeclarationBlock",
+          "members": [
+            "UiStyleDeclarationBlock",
+            "self_values",
+            "slot"
+          ],
+          "entered": "样式计划将 self_values 施加到节点属性，将 slot map 施加到节点 slot_attributes。",
+          "status": "核对 serde 的 self rename 和两个目标表。",
+          "impact": "仅数据容器；具体值类型及归一化由 Runtime style/layout路径处理。",
+          "callerPinIds": [
+            "TPL05-C07",
+            "TPL05-C09"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R030",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiActionRef",
+          "members": [
+            "UiActionRef",
+            "route",
+            "action",
+            "payload",
+            "payload_missing_policy"
+          ],
+          "entered": "事件路由与 action binding compiler 使用源 action标识和payload。",
+          "status": "保留源中文/英文原 summary；字段缺失策略在事件分发路径解释。",
+          "impact": "payload schema与 route/action 名由 schema validator核验；Required default的serde省略不等于目标已解析。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C14",
+            "TPL05-C16"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R031",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "UiAssetError",
+          "members": [
+            "UiAssetError",
+            "ParseToml",
+            "Io",
+            "UnsupportedSchemaVersion",
+            "SchemaMigrationFailed",
+            "InvalidDocument",
+            "MissingNode",
+            "UnknownComponent",
+            "UnknownImport",
+            "ImportKindMismatch",
+            "MissingRequiredSlot",
+            "UnknownSlot",
+            "SlotDoesNotAcceptMultiple",
+            "SlotDoesNotAcceptComponent",
+            "InvalidSelector"
+          ],
+          "entered": "loader、migrator、validator、import resolver、selector parser按不同失败阶段生成错误。",
+          "status": "逐variant核对字段与 thiserror Display；错误枚举承载原因，不触发校验。",
+          "impact": "分类对应source parsing/version/document/component/import/selector阶段，调用端决定诊断或停止编译。",
+          "callerPinIds": [
+            "TPL05-C01",
+            "TPL05-C02",
+            "TPL05-C03",
+            "TPL05-C04",
+            "TPL05-C09"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "derive thiserror::Error/Clone/Debug/PartialEq/Eq/Serialize/Deserialize；#[error] 为格式宏输入；无 FFI/动态注册。"
+        },
+        {
+          "id": "TPL05-R032",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "parse_component_reference",
+          "members": [
+            "parse_component_reference"
+          ],
+          "entered": "组件引用进入 prototype store解析前拆为asset与component两片。",
+          "status": "单次 # 分割、两段非空且无第二个 #；返回借用输入的片段。",
+          "impact": "只验证引用词法结构，不查注册表或资产kind；store随后做resolve。",
+          "callerPinIds": [
+            "TPL05-C04"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "parse_component_reference",
+              "entry": "输入源引用字符串。",
+              "stateAndEffect": "成功借出两片并保持输入生命周期；格式错误返回 UiAssetError。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R033",
+          "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+          "object": "default_asset_version",
+          "members": [
+            "default_asset_version"
+          ],
+          "entered": "serde反序列化缺少 header.version 时调用。",
+          "status": "返回初始源schema版本默认值。",
+          "impact": "默认值不是版本迁移或当前格式兼容性证明。",
+          "callerPinIds": [
+            "TPL05-C03"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "default_asset_version",
+              "entry": "由serde default属性触发。",
+              "stateAndEffect": "提供单个默认整数，之后仍由migrator按支持版本处理。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[derive(Clone/Copy/Debug/PartialEq/Eq/Serialize/Deserialize)]",
+          "#[serde(default/rename/skip_serializing_if)]",
+          "#[error]"
+        ],
+        "manualImpls": "UiAssetDocument两个只读accessor；UiNamedSlotSchema::accepts_component；UiAssetError由thiserror derive提供Error。",
+        "macroFfiRegistration": "无macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "5c280ebb6ab6a4c631d797df1fc2b008a62b06e88b7e98ef6809dbd538d53394",
+      "afterSha256": "8d90a49a27b03d5ede78ca0d2994f702d178dcea5c8470bb7dfffb2339133ff5",
+      "beforeLineCount": 135,
+      "finalLineCount": 153,
+      "finalLineEndingCounts": {
+        "LF": 153,
+        "CRLF": 0
+      },
+      "assignmentStatus": "clean; content is already in current HEAD",
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R034",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiPrototypeNodeHandle",
+          "members": [
+            "UiPrototypeNodeHandle"
+          ],
+          "entered": "prototype节点图和 child mount通过u32句柄引用节点表。",
+          "status": "tuple field 公共且由Deserialize/构造器可赋值。",
+          "impact": "句柄只在所属 UiDocumentPrototype.nodes 表内有意义；不持有节点，也不延长原型生命周期。",
+          "callerPinIds": [
+            "TPL05-C05"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。",
+          "fieldDetails": [
+            "public tuple field index 0 has type u32"
+          ]
+        },
+        {
+          "id": "TPL05-R035",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiPrototypeNodeHandle::new",
+          "members": [
+            "new"
+          ],
+          "entered": "调用方用节点索引建立prototype-local handle。",
+          "status": "薄构造只封装 u32，不查表。",
+          "impact": "索引合法性由随后 UiRawAssetPrototype::node 查表；越界返回 None。",
+          "callerPinIds": [
+            "TPL05-C05"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "new",
+              "entry": "调用方提供u32索引。",
+              "stateAndEffect": "创建句柄值，不触碰或扩容节点表。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R036",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiPrototypeNodeHandle::index",
+          "members": [
+            "index"
+          ],
+          "entered": "实例化或访问器读取句柄索引。",
+          "status": "将u32转成usize。",
+          "impact": "不检查该索引属于哪张表或是否有效。",
+          "callerPinIds": [
+            "TPL05-C05"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "index",
+              "entry": "调用已存在的句柄。",
+              "stateAndEffect": "只返回usize转换结果。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R037",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiRawAssetPrototype",
+          "members": [
+            "UiRawAssetPrototype",
+            "asset",
+            "imports",
+            "tokens",
+            "document",
+            "components",
+            "styles"
+          ],
+          "entered": "源模型校验/原型构造后存放文档根、节点表、组件和样式原型。",
+          "status": "数据结构从源文档分拆出文档/组件prototype，不保存外部项目权限。",
+          "impact": "Deserialize/公开构造本身不校验子句柄；builder/instancer限定节点表边界。",
+          "callerPinIds": [
+            "TPL05-C04",
+            "TPL05-C05",
+            "TPL05-C08"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R038",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiRawAssetPrototype::node",
+          "members": [
+            "node"
+          ],
+          "entered": "实例化器以属于此原型的handle查询nodes。",
+          "status": "按 handle.index() 对当前 self.document.nodes 查表。",
+          "impact": "越界/来自其他表的索引返回 None；借用结果生命周期受 self 限制。",
+          "callerPinIds": [
+            "TPL05-C05"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "node",
+              "entry": "调用端提供handle并选定本prototype。",
+              "stateAndEffect": "只查当前nodes向量并返回借用项或None，无延寿。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R039",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiRawAssetPrototype::node_count",
+          "members": [
+            "node_count"
+          ],
+          "entered": "遍历或诊断需要原型文档节点数。",
+          "status": "返回 self.document.nodes.len()。",
+          "impact": "不分配、不校验、不改变节点图。",
+          "callerPinIds": [
+            "TPL05-C05"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "node_count",
+              "entry": "读取现有prototype。",
+              "stateAndEffect": "返回该prototype节点向量长度。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R040",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiDocumentPrototype",
+          "members": [
+            "UiDocumentPrototype",
+            "root",
+            "nodes"
+          ],
+          "entered": "扁平原型保存文档root handle和节点表，后续实例化按handle访问。",
+          "status": "root可选、nodes唯一存储。",
+          "impact": "handle仅相对此nodes有效；无root的组件/样式资产仍可表达。",
+          "callerPinIds": [
+            "TPL05-C04",
+            "TPL05-C05"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R041",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiComponentPrototype",
+          "members": [
+            "UiComponentPrototype",
+            "root",
+            "style_scope",
+            "contract",
+            "params",
+            "slots"
+          ],
+          "entered": "组件源定义编译成prototype后供component instancer解析root和参数/slot契约。",
+          "status": "复制root handle与scope/contract/params/slots。",
+          "impact": "保存style_scope不等于已验证Open/Closed隔离行为；root handle仍依附同一prototype节点表。",
+          "callerPinIds": [
+            "TPL05-C04",
+            "TPL05-C05",
+            "TPL05-C17"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R042",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiStylePrototype",
+          "members": [
+            "UiStylePrototype",
+            "stylesheet"
+          ],
+          "entered": "样式prototype包装源stylesheet供style resolver后续使用。",
+          "status": "字段只有 stylesheet。",
+          "impact": "不声称stylesheet已通过所有消费校验或携带scope。",
+          "callerPinIds": [
+            "TPL05-C08",
+            "TPL05-C09"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R043",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiNodePrototype",
+          "members": [
+            "UiNodePrototype",
+            "node_id",
+            "kind",
+            "widget_type",
+            "component",
+            "component_ref",
+            "slot_name",
+            "control_id",
+            "classes",
+            "params",
+            "props",
+            "layout",
+            "bindings",
+            "style_overrides",
+            "focus",
+            "navigation",
+            "picking",
+            "a11y",
+            "widget",
+            "children"
+          ],
+          "entered": "prototype builder从验证后的源节点生成扁平节点，instancer按 children handle展开。",
+          "status": "与source node对应字段逐项核对；prototype children是handle而非递归Box树。",
+          "impact": "跨资产引用仍在展开/lookup时解析；公共反序列化对象不自动保证字段互斥或handle有效。",
+          "callerPinIds": [
+            "TPL05-C04",
+            "TPL05-C05",
+            "TPL05-C06",
+            "TPL05-C09",
+            "TPL05-C13"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R044",
+          "path": "zircon_runtime_interface/src/ui/template/asset/prototype.rs",
+          "object": "UiPrototypeChildMount",
+          "members": [
+            "UiPrototypeChildMount",
+            "mount",
+            "slot",
+            "child"
+          ],
+          "entered": "扁平prototype把 child handle、挂载名及slot属性交给instancer。",
+          "status": "child引用本原型节点表；slot map随后解析/归一化并合并。",
+          "impact": "句柄查表受所属prototype约束；mount只提供缺省 mui_slot 时不覆盖显式值。",
+          "callerPinIds": [
+            "TPL05-C05",
+            "TPL05-C06",
+            "TPL05-C07"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[derive(Clone/Copy/Debug/PartialEq/PartialOrd/Ord/Hash/Serialize/Deserialize)]",
+          "#[serde(default/skip_serializing_if/rename)]"
+        ],
+        "manualImpls": "UiPrototypeNodeHandle::new/index；UiRawAssetPrototype::node/node_count。",
+        "macroFfiRegistration": "无macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "8656e545028fa49d1f6c555e52b2fa86b025c5c978e76634310296db1538adc1",
+      "afterSha256": "52ecf3eaa37c3e6a6c54851df01c1c6b7aec4afae7ed1491a18943794a634e0c",
+      "beforeLineCount": 229,
+      "finalLineCount": 259,
+      "finalLineEndingCounts": {
+        "LF": 259,
+        "CRLF": 0
+      },
+      "assignmentStatus": "clean; content is already in current HEAD",
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R045",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelector",
+          "members": [
+            "UiSelector",
+            "segments"
+          ],
+          "entered": "Runtime validator/style plan对selector文本调用parse，Editor inspector维护独立展示解析器。",
+          "status": "segments是public/serde可构造路径；parse只接受当前selector子集。",
+          "impact": "仅parse成功保证首段无combinator、空段/尾随combinator已拒绝；公开构造/Deserialize不自动保证合法。文法不是完整CSS。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C20",
+            "TPL05-C25",
+            "TPL05-C26"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "derive Clone/Debug/PartialEq/Eq/Serialize/Deserialize；无selector宏或FFI。"
+        },
+        {
+          "id": "TPL05-R046",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelectorSegment",
+          "members": [
+            "UiSelectorSegment",
+            "combinator",
+            "tokens"
+          ],
+          "entered": "parse为路径每一复合段保存前驱关系与需同时满足的token。",
+          "status": "首段combinator为None；后续由空白/ > 设置 descendant/child。",
+          "impact": "可公开构造不合法的空token段；只有parse路径拒绝空compound。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C20"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R047",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelectorCombinator",
+          "members": [
+            "UiSelectorCombinator",
+            "Descendant",
+            "Child"
+          ],
+          "entered": "Runtime路径匹配器读取右侧segment上的关系回溯祖先或直接父节点。",
+          "status": "两个关系分支与parse的空白/>映射一致。",
+          "impact": "不包含逗号列表或CSS完整组合器。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C20"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R048",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelectorToken",
+          "members": [
+            "UiSelectorToken",
+            "Type",
+            "Class",
+            "Id",
+            "State",
+            "Part",
+            "Host"
+          ],
+          "entered": "parser产生token，Runtime style matcher按节点路径逐token匹配。",
+          "status": "Part的契约验证可与通用运行时匹配分离；实际 Runtime matches_token 对Part返回false。",
+          "impact": "Part不是通用节点样式匹配成功的保证；调用端必须依赖相应组件契约阶段。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C10",
+            "TPL05-C17",
+            "TPL05-C25"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R049",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelectorSpecificity",
+          "members": [
+            "UiSelectorSpecificity",
+            "id_count",
+            "class_like_count",
+            "type_count"
+          ],
+          "entered": "style plan和editor inspector以三元组排序相同来源规则。",
+          "status": "字段私有；PartialOrd/Ord按结构字段顺序比较。",
+          "impact": "避免将legacy_display_score当级联键；ordinary usize display arithmetic有可表示范围前提。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C20",
+            "TPL05-C26"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R050",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelectorSpecificity::new",
+          "members": [
+            "new"
+          ],
+          "entered": "selector specificity计算按ID/class-like/type累计后构造。",
+          "status": "参数逐字段赋值，无额外饱和/校验。",
+          "impact": "调用方负责传入计数；排序语义由结构Ord提供。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C26"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "new",
+              "entry": "specificity计数器完成累加后进入构造。",
+              "stateAndEffect": "按参数原样建立三字段值。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R051",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelectorSpecificity::legacy_display_score",
+          "members": [
+            "legacy_display_score",
+            "ID_WEIGHT",
+            "CLASS_LIKE_WEIGHT"
+          ],
+          "entered": "Editor matched-rule inspection计算旧显示分数。",
+          "status": "公式 id*100 + class_like*10 + type，使用普通usize乘加。",
+          "impact": "只进入Editor展示字段，真实排序使用(cascade_specificity, source_order)；仅用于可表示分值。",
+          "callerPinIds": [
+            "TPL05-C26"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "legacy_display_score",
+              "entry": "Editor inspector已有匹配规则并计算tuple specificity。",
+              "stateAndEffect": "生成显示整数，不参与Runtime或Editor级联比较；无饱和运算。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R052",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelector::parse",
+          "members": [
+            "parse"
+          ],
+          "entered": "Runtime文档校验与style plan对rule.selector调用；接口测试验证支持语法。",
+          "status": "按空白和>切段，委托parse_compound_tokens；拒绝空selector/空compound/缺少分隔/尾随组合器。",
+          "impact": "成功结果保证本子集AST形状，不保证完整CSS；失败包装InvalidSelector。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C20",
+            "TPL05-C25"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "parse",
+              "entry": "传入选择器源文本。",
+              "stateAndEffect": "消耗片段构成segments；遇到非法分隔/空段返回InvalidSelector，否则返回首段None的路径。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R053",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "UiSelector::specificity",
+          "members": [
+            "specificity"
+          ],
+          "entered": "Runtime style plan按selector路径求优先级，Editor inspector有独立selector计算。",
+          "status": "遍历全部segment token，ID/class-like/type分列计数，通配类型不增加type。",
+          "impact": "三元组供字典序比较；同分源码顺序由plan调用端处理。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C26"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "specificity",
+              "entry": "输入已解析或由调用方构造的selector。",
+              "stateAndEffect": "只累计token种类，不校验公开构造路径。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R054",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "parse_compound_tokens",
+          "members": [
+            "parse_compound_tokens"
+          ],
+          "entered": "UiSelector::parse对已切出的单段调用token解析。",
+          "status": "识别类型/通配、class、id、state、part、host，拒绝空token/不闭合part形状。",
+          "impact": "helper不处理祖先组合器；整体路径关系由UiSelector::parse维护。",
+          "callerPinIds": [
+            "TPL05-C09",
+            "TPL05-C20"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "parse_compound_tokens",
+              "entry": "输入由上层切出的无组合器compound。",
+              "stateAndEffect": "产生有序token向量或InvalidSelector。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R055",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "split_whitespace_prefix",
+          "members": [
+            "split_whitespace_prefix"
+          ],
+          "entered": "UiSelector::parse逐段跳过关系间空白。",
+          "status": "返回剩余输入及是否看见空白。",
+          "impact": "空白事实参与推导Descendant combinator；不单独验证selector。",
+          "callerPinIds": [
+            "TPL05-C09"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "split_whitespace_prefix",
+              "entry": "输入当前selector剩余部分。",
+              "stateAndEffect": "切除前缀空白并回报其存在与否。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R056",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "skip_whitespace",
+          "members": [
+            "skip_whitespace"
+          ],
+          "entered": "selector性能测试/字符扫描路径跳过空白。",
+          "status": "沿peekable chars移动游标并回报是否消耗空白。",
+          "impact": "只处理空白，无AST或语法合法性保证。",
+          "callerPinIds": [],
+          "blockTransitions": [
+            {
+              "symbol": "skip_whitespace",
+              "entry": "传入字符迭代器。",
+              "stateAndEffect": "推进迭代器直到非空白，返回是否推进。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R057",
+          "path": "zircon_runtime_interface/src/ui/template/asset/style.rs",
+          "object": "selector performance module declarations",
+          "members": [
+            "selector_token_performance_tests",
+            "selector_parse_performance_tests",
+            "selector_capacity_performance_tests"
+          ],
+          "entered": "cfg(test) path模块比较selector tokenization/解析/容量路径。",
+          "status": "仅声明现有性能测试模块；未修改测试或production code。",
+          "impact": "性能对照不替代selector契约测试；模块文件在当前8源写范围外。",
+          "callerPinIds": [
+            "TPL05-C20"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[derive(Clone/Copy/Debug/PartialEq/Eq/Serialize/Deserialize)]",
+          "#[path]",
+          "#[cfg(test)]"
+        ],
+        "manualImpls": "UiSelectorSpecificity::new/legacy_display_score；UiSelector::parse/specificity。",
+        "macroFfiRegistration": "无macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "792f594f2253671ceda8cf12ec6dee774907a44fe1d8d7a4b555e86967c29117",
+      "afterSha256": "25f1308b1db9df7de102b2b06e013f69f57734f0216e1be99acc9a088159d5b6",
+      "beforeLineCount": 26,
+      "finalLineCount": 30,
+      "finalLineEndingCounts": {
+        "LF": 30,
+        "CRLF": 0
+      },
+      "assignmentStatus": "clean; content is already in current HEAD",
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R058",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "object": "binding module declarations",
+          "members": [
+            "diagnostic",
+            "expression",
+            "schema",
+            "target"
+          ],
+          "entered": "binding/mod.rs 将四个私有接口子模块汇聚到公共资产binding API。",
+          "status": "逐个核对#[path]指向和子模块边界。",
+          "impact": "模块结构不变；属性宏的可见影响见文件级macro记录。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C14",
+            "TPL05-C15"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R059",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "object": "pub use diagnostic",
+          "members": [
+            "UiBindingDiagnostic",
+            "UiBindingDiagnosticCode",
+            "UiBindingDiagnosticSeverity",
+            "UiBindingReport"
+          ],
+          "entered": "compile/validation错误报告经binding公共入口暴露。",
+          "status": "核对diagnostic子模块实际导出。",
+          "impact": "只重导出既有类型，不改变诊断产生路径。",
+          "callerPinIds": [],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R060",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "object": "pub use expression",
+          "members": [
+            "UiBindingExpression",
+            "UiBindingExpressionEvaluationError",
+            "UiBindingExpressionParseError",
+            "UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY",
+            "UI_BINDING_EXPRESSION_MAX_DEPTH",
+            "UI_BINDING_EXPRESSION_MAX_NODES",
+            "UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES",
+            "UI_BINDING_EXPRESSION_MAX_TOKENS"
+          ],
+          "entered": "Runtime binding compiler使用表达式AST/parser契约。",
+          "status": "核对expression.rs的实际pub项，不把AST parse与compiled evaluator混同。",
+          "impact": "入口只暴露语法/预算API；Runtime parse后另行编译。",
+          "callerPinIds": [
+            "TPL05-C11",
+            "TPL05-C12",
+            "TPL05-C13",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R061",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "object": "pub use schema",
+          "members": [
+            "UiActionPayloadFieldName",
+            "UiBindingContractTerm",
+            "UiBindingSchemaNameError",
+            "UiBindingSchemaNameKind",
+            "UI_BINDING_SCHEMA_NAME_MAX_BYTES"
+          ],
+          "entered": "schema validator和Runtime编译使用命名契约。",
+          "status": "逐项与schema.rs声明匹配。",
+          "impact": "重导出不增加自动校验。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C19",
+            "TPL05-C21"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R062",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/mod.rs",
+          "object": "pub use target",
+          "members": [
+            "UiBindingMissingValuePolicy",
+            "UiBindingMissingValueResolution",
+            "UiBindingTarget",
+            "UiBindingTargetAssignment",
+            "UiBindingTargetKind",
+            "UiBindingTargetSchema"
+          ],
+          "entered": "compiler/runtime分发经公共binding API使用目标契约。",
+          "status": "逐项与target.rs实际pub项匹配。",
+          "impact": "端点身份与类型仍由下游compile/dispatch验证。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C15",
+            "TPL05-C16"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[path]"
+        ],
+        "manualImpls": "无本文件内trait实现；仅模块声明和pub use。",
+        "macroFfiRegistration": "无macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "7afe81dccd4d662cc65cf54b5107cc59ba342e41e7c7286a4477b3b45c6e5ded",
+      "afterSha256": "547b076a7f54c129ef7730d665634d3e83920df79a5ea631274e1ef200eda7a5",
+      "beforeLineCount": 300,
+      "finalLineCount": 310,
+      "finalLineEndingCounts": {
+        "LF": 310,
+        "CRLF": 0
+      },
+      "assignmentStatus": "clean; content is already in current HEAD",
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R063",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "UI_BINDING_SCHEMA_NAME_MAX_BYTES",
+          "members": [
+            "UI_BINDING_SCHEMA_NAME_MAX_BYTES"
+          ],
+          "entered": "所有UiBindingSchemaNameKind::validate分支先检查UTF-8字节上限。",
+          "status": "固定256字节上限。",
+          "impact": "长度限制按字节不是字符数；后续类别规则单独执行。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C19",
+            "TPL05-C21"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R064",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "UiBindingContractTerm and inherent API",
+          "members": [
+            "UiBindingContractTerm",
+            "Event",
+            "Binding",
+            "Target",
+            "Route",
+            "Action",
+            "Command",
+            "ALL",
+            "schema_name",
+            "definition"
+          ],
+          "entered": "共享接口文档/测试枚举稳定术语并返回名称/说明。",
+          "status": "ALL包含六个Term；schema_name/definition是常量映射。",
+          "impact": "枚举/描述不是实际资产完整性校验；当前无Runtime执行调用被证明。",
+          "callerPinIds": [
+            "TPL05-C21"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "ALL/schema_name/definition",
+              "entry": "接口/测试按枚举查看契约词条。",
+              "stateAndEffect": "返回静态数组或静态字符串，不改状态。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R065",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "UiBindingSchemaNameKind and inherent API",
+          "members": [
+            "UiBindingSchemaNameKind",
+            "PayloadField",
+            "Route",
+            "Action",
+            "contract_term",
+            "diagnostic_name",
+            "validate"
+          ],
+          "entered": "Runtime schema validator按名称类别选择payload或route/action规则。",
+          "status": "validate先拒绝空串和超长，再分派类别；PayloadField与点分Route/Action规则不同。",
+          "impact": "validate_payload_field仅ASCII lowercase/digit/underscore，无首字符限制；route/action允许字母数字点下划线连字符且拒绝空段。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C19",
+            "TPL05-C21"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "validate",
+              "entry": "调用端提供类别和字符串。",
+              "stateAndEffect": "执行空/长度检查后进入类别helper，返回结构化错误或Ok。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R066",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "UiBindingSchemaNameKind::Display",
+          "members": [
+            "fmt"
+          ],
+          "entered": "诊断格式化名称类别时调用diagnostic_name。",
+          "status": "fmt将kind映射为静态诊断词再写入Formatter。",
+          "impact": "不参与名称有效性判断。",
+          "callerPinIds": [],
+          "blockTransitions": [
+            {
+              "symbol": "fmt",
+              "entry": "thiserror格式化错误中的kind。",
+              "stateAndEffect": "只向Formatter写诊断名。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "显式实现std::fmt::Display；无FFI/动态注册。"
+        },
+        {
+          "id": "TPL05-R067",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "UiBindingSchemaNameError",
+          "members": [
+            "UiBindingSchemaNameError",
+            "Empty",
+            "TooLong",
+            "EmptySegment",
+            "InvalidCharacter",
+            "kind",
+            "actual_bytes",
+            "maximum_bytes",
+            "segment_index",
+            "character",
+            "byte_index"
+          ],
+          "entered": "名称校验返回具体错误供Runtime/UI诊断映射。",
+          "status": "四种变体区分空、超长、空段和字符错误；byte_index为UTF-8偏移。",
+          "impact": "thiserror Error实现格式化，不执行校验；泛化字段保持结构化错误信息。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C19",
+            "TPL05-C21"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "derive thiserror::Error及serde traits；#[error]内容是derive宏可观察属性。"
+        },
+        {
+          "id": "TPL05-R068",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "UiActionPayloadFieldName and inherent API",
+          "members": [
+            "UiActionPayloadFieldName",
+            "Additive",
+            "Axis",
+            "Channel",
+            "Checked",
+            "Committed",
+            "Confirm",
+            "Context",
+            "Count",
+            "Delta",
+            "Enabled",
+            "Fields",
+            "ForceFullRebuild",
+            "Index",
+            "PayloadKind",
+            "Primary",
+            "Reference",
+            "Scope",
+            "SelectionIds",
+            "Source",
+            "Subject",
+            "SurfaceEntity",
+            "Value",
+            "Visible",
+            "ALL",
+            "schema_name",
+            "from_schema_name",
+            "expected_value_kind"
+          ],
+          "entered": "绑定验证与动作payload类型校验映射稳定字段名。",
+          "status": "23项ALL与schema_name/from_schema_name成对；expected_value_kind仅部分协议字段返回Bool/Int。",
+          "impact": "None表示没有固定类型，不代表名称非法；通用ASCII key检查与已知字段登记是两层契约。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C19",
+            "TPL05-C21"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "schema_name/from_schema_name",
+              "entry": "协议编码或字段反查。",
+              "stateAndEffect": "在固定23项间往返，未知文本返回None。"
+            },
+            {
+              "symbol": "expected_value_kind",
+              "entry": "校验器已有已知payload字段。",
+              "stateAndEffect": "固定bool/int字段返回种类，其余None保留调用方值类型。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R069",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "validate_payload_field",
+          "members": [
+            "validate_payload_field"
+          ],
+          "entered": "UiBindingSchemaNameKind::PayloadField::validate调用。",
+          "status": "逐UTF-8字符检查ASCII lowercase、digit或underscore并记错误字节偏移。",
+          "impact": "没有首字符限制；snake_case是字符集惯例，不是额外首字符校验。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C21"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "validate_payload_field",
+              "entry": "已通过非空与256-byte上限检查的payload字段。",
+              "stateAndEffect": "遇到第一个禁止字符返回InvalidCharacter，否则Ok。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R070",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "validate_dotted_name",
+          "members": [
+            "validate_dotted_name"
+          ],
+          "entered": "Route或Action类别名称校验调用。",
+          "status": "先逐点分段拒绝空段，再检查ASCII alphanumeric/./_/-。",
+          "impact": "错误优先级体现空段先于字符集错误，byte_index使用UTF-8字节偏移。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C21"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "validate_dotted_name",
+              "entry": "已通过空串与字节长度检查的route/action名称。",
+              "stateAndEffect": "顺序检查空段和字符，首错立即返回。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R071",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/schema.rs",
+          "object": "schema unit-test module",
+          "members": [
+            "tests"
+          ],
+          "entered": "#[cfg(test)] path指向binding/tests/schema.rs。",
+          "status": "测试覆盖共享Term、字段映射和名称约束。",
+          "impact": "测试只读，当前ui-template-tests-006未激活；未运行。",
+          "callerPinIds": [
+            "TPL05-C21"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "#[cfg(test)] 与 #[path] 控制测试模块入口；无新增宏/测试。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[derive(Clone/Copy/Debug/PartialEq/Eq/PartialOrd/Ord/Hash/Serialize/Deserialize)]",
+          "#[error]",
+          "#[cfg(test)]",
+          "#[path]"
+        ],
+        "manualImpls": "UiBindingContractTerm/UiBindingSchemaNameKind/UiActionPayloadFieldName inherent映射；UiBindingSchemaNameKind::fmt Display；UiBindingSchemaNameError由thiserror derive提供Error。",
+        "macroFfiRegistration": "无macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "052b5553b0b08c97ce8f1390a82be518f9fd00de976cd56ee17541f5ec58954e",
+      "afterSha256": "0d94c0cc0a41ccc016eb75b63b23a548990c48c2763942023f00bcbce6bf1ef1",
+      "beforeLineCount": 143,
+      "finalLineCount": 204,
+      "finalLineEndingCounts": {
+        "LF": 204,
+        "CRLF": 0
+      },
+      "assignmentStatus": "M relative to current HEAD",
+      "existingIssueTags": [],
+      "addedIssueTags": [],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R072",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingMissingValuePolicy",
+          "members": [
+            "UiBindingMissingValuePolicy",
+            "Required",
+            "Optional",
+            "Default",
+            "Fallback",
+            "Error",
+            "value"
+          ],
+          "entered": "表达式求值缺失后由resolve根据目标配置决策。",
+          "status": "五种策略；Default/Fallback携带UiValue；两field新增doc说明resolve克隆且不做目标类型校验。",
+          "impact": "策略持有有限值检查可单独通过is_well_formed；目标类型由validator/dispatch之后判定。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C15",
+            "TPL05-C16",
+            "TPL05-C23"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "derive serde tagged enum；serde字段/省略规则为序列化属性；无手写FFI。",
+          "fieldDetails": [
+            "Default.value: UiValue",
+            "Fallback.value: UiValue"
+          ]
+        },
+        {
+          "id": "TPL05-R073",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingMissingValueResolution",
+          "members": [
+            "UiBindingMissingValueResolution",
+            "Value",
+            "Omitted",
+            "RequiredMissing",
+            "ExplicitError"
+          ],
+          "entered": "resolve将缺值策略输出给compiler/runtime调用端。",
+          "status": "Value/Omitted/RequiredMissing/ExplicitError分离决策与副作用。",
+          "impact": "Value仍交下游校验；此枚举不执行目标写入或动作分发。",
+          "callerPinIds": [
+            "TPL05-C15",
+            "TPL05-C16",
+            "TPL05-C23"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R074",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingMissingValuePolicy::resolve",
+          "members": [
+            "resolve"
+          ],
+          "entered": "UiBindingExpr::resolve在binding endpoint验证/表达式求值后调用。",
+          "status": "已有Some值先返回Value；None时Required/Optional/Default/Fallback/Error分支。",
+          "impact": "Default/Fallback克隆替代UiValue；不验证目标值kind；Required/ExplicitError由dispatch转换为失败。",
+          "callerPinIds": [
+            "TPL05-C15",
+            "TPL05-C16",
+            "TPL05-C23"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "resolve",
+              "entry": "传入表达式Option结果。",
+              "stateAndEffect": "Some优先通过；None按策略得到值副本、忽略、必需缺失或显式错误。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R075",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingMissingValuePolicy::substitute",
+          "members": [
+            "substitute"
+          ],
+          "entered": "校验器/编辑器查询策略是否含替代值。",
+          "status": "只借用Default/Fallback中value。",
+          "impact": "返回引用生命周期受policy借用约束；不克隆或校验目标kind。",
+          "callerPinIds": [
+            "TPL05-C15"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "substitute",
+              "entry": "调用已有策略实例。",
+              "stateAndEffect": "策略存替代值时返回借用，否则None。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R076",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingMissingValuePolicy::is_well_formed / is_required",
+          "members": [
+            "is_well_formed",
+            "is_required"
+          ],
+          "entered": "输入验证检查替代值finite；serde用is_required省略默认Required。",
+          "status": "is_well_formed仅调用UiValue::is_finite；is_required仅判别Required。",
+          "impact": "finite结构合法性与target expected kind不同；两helper不证明绑定可执行。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C23"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "is_well_formed",
+              "entry": "schema/validator审查policy。",
+              "stateAndEffect": "无替代值为true，有值时检查UiValue finite。"
+            },
+            {
+              "symbol": "is_required",
+              "entry": "serde判断是否省略默认policy。",
+              "stateAndEffect": "只对Required返回true。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R077",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingTargetAssignment",
+          "members": [
+            "UiBindingTargetAssignment",
+            "target",
+            "expression"
+          ],
+          "entered": "binding compiler接收serialized assignment，解析expression并解析/校验target surface。",
+          "status": "保留HEAD原有中文和英文两条summary；字段文档补 compiler解析边界。",
+          "impact": "assignment只配对源文本和目标说明；并非compiled endpoint或可执行写回句柄。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C14",
+            "TPL05-C15"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "derive serde Serialize/Deserialize；保留初始中文/A serialized binding assignment...两条既有注释。"
+        },
+        {
+          "id": "TPL05-R078",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingTarget",
+          "members": [
+            "UiBindingTarget",
+            "kind",
+            "name",
+            "missing_policy"
+          ],
+          "entered": "compiler按目标kind/name解析Runtime-owned endpoint，dispatch再处理missing_policy。",
+          "status": "字段定义只承载契约；具名/无名目标构造函数保持无副作用。",
+          "impact": "公开构造/Deserialize不证明目标存在、target kind相符或missing value通过验证。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C14",
+            "TPL05-C15",
+            "TPL05-C16"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R079",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingTarget constructors",
+          "members": [
+            "prop",
+            "class",
+            "visibility",
+            "enabled",
+            "action_payload",
+            "with_missing_policy"
+          ],
+          "entered": "调用者构造源target描述，再送binding compiler解析。",
+          "status": "具名构造记录name/kind；visibility/enabled无name；with_missing_policy消费self并覆盖配置。",
+          "impact": "构造器只建立声明，不查组件描述符或创建Runtime写入端点；检索范围内未发现Runtime直接调用。",
+          "callerPinIds": [
+            "TPL05-C13"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "prop/class/action_payload",
+              "entry": "调用者传入名称。",
+              "stateAndEffect": "转换为String并建立对应kind/name的target value。"
+            },
+            {
+              "symbol": "visibility/enabled",
+              "entry": "调用者要求固定目标。",
+              "stateAndEffect": "建立无name的目标value。"
+            },
+            {
+              "symbol": "with_missing_policy",
+              "entry": "已有target与策略。",
+              "stateAndEffect": "更新self的策略并返回该target。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R080",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingTargetKind",
+          "members": [
+            "UiBindingTargetKind",
+            "Prop",
+            "Class",
+            "Visibility",
+            "Enabled",
+            "ActionPayload"
+          ],
+          "entered": "validator/compiler根据kind选择属性、class、可见性、enabled或action payload契约。",
+          "status": "五种目标分支对照runtime validation/dispatch。",
+          "impact": "kind枚举不包含解析后的component id/index。",
+          "callerPinIds": [
+            "TPL05-C14",
+            "TPL05-C15",
+            "TPL05-C16"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R081",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+          "object": "UiBindingTargetSchema",
+          "members": [
+            "UiBindingTargetSchema",
+            "target",
+            "value_kind"
+          ],
+          "entered": "公开schema数据可描述静态target与允许值种类配对。",
+          "status": "仅target与value_kind两个字段。",
+          "impact": "源码搜索未发现Runtime consumer；不能描述成运行时目标或写入回调。",
+          "callerPinIds": [],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[derive(Clone/Debug/Default/PartialEq/Serialize/Deserialize)]",
+          "#[serde(tag/rename_all/default/skip_serializing_if)]"
+        ],
+        "manualImpls": "UiBindingMissingValuePolicy四个inherent helper；UiBindingTarget六个inherent constructors。",
+        "macroFfiRegistration": "无macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+      "language": "rust",
+      "classification": "first-party public interface source",
+      "beforeSha256": "e14351b5651d0120e1519b890f35f8bdeab7d51d339334d65f53024d002ed03e",
+      "afterSha256": "c59dc1e83f2d146f2926be71e97eb8d3512cd2a1ac09669a66241b59b78a39b3",
+      "beforeLineCount": 851,
+      "finalLineCount": 927,
+      "finalLineEndingCounts": {
+        "LF": 927,
+        "CRLF": 0
+      },
+      "assignmentStatus": "M relative to current HEAD",
+      "existingIssueTags": [],
+      "addedIssueTags": [
+        "ZCA-TPL05-TODO-001"
+      ],
+      "objectEvidence": [
+        {
+          "id": "TPL05-R082",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "expression budget constants",
+          "members": [
+            "UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES",
+            "UI_BINDING_EXPRESSION_MAX_TOKENS",
+            "UI_BINDING_EXPRESSION_MAX_NODES",
+            "UI_BINDING_EXPRESSION_MAX_DEPTH",
+            "UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY"
+          ],
+          "entered": "tokenizer/parser/AST验证器共享源码、token、节点、递归深度及小栈容量界限。",
+          "status": "5个公开常量由asset/mod与binding/mod重导出。",
+          "impact": "限额失败生成BudgetExceeded；inline capacity不是源语法预算。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C21",
+            "TPL05-C22",
+            "TPL05-C24"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R083",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "UiBindingExpression AST",
+          "members": [
+            "UiBindingExpression",
+            "Literal",
+            "ParamRef",
+            "PropRef",
+            "ControlPropRef",
+            "Equals",
+            "NotEquals",
+            "And",
+            "Or",
+            "Not",
+            "control_id",
+            "property"
+          ],
+          "entered": "完整parse产生AST；binding_program随后compile_expression生成UiCompiledBindingExpression。",
+          "status": "枚举variants代表literal、局部/跨控件引用和运算树。",
+          "impact": "AST不是compiled evaluator状态；引用存在性/类型由compile/contract resolution继续确认。",
+          "callerPinIds": [
+            "TPL05-C11",
+            "TPL05-C12",
+            "TPL05-C13",
+            "TPL05-C14",
+            "TPL05-C24"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R084",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "UiBindingExpression::parse",
+          "members": [
+            "parse"
+          ],
+          "entered": "Runtime binding compiler调用公开parser取得后续编译所需AST。",
+          "status": "Parser::new执行budgeted tokenization，Parser::parse拒绝空/尾随token并检查AST预算。",
+          "impact": "返回供Runtime binding compiler继续编译的AST，不在此执行运行时求值；文法超集/引用验证以后续compiler为准。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C21",
+            "TPL05-C22",
+            "TPL05-C24"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "parse",
+              "entry": "输入源表达式文本。",
+              "stateAndEffect": "tokenize与grammar成功后返回AST；输入/token/depth/node或语法失败返回parse error。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R085",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "param reference query API",
+          "members": [
+            "contains_param_reference",
+            "probe_param_reference"
+          ],
+          "entered": "binding_param_resolver用probe挑选含参数路径的候选，后续完整解析与schema替换。",
+          "status": "contains在probe错误时转false；probe保留词法/预算错误供诊断。",
+          "impact": "只检测独立param根和后续一个Dot+Ident；不完整解析编辑器方言，也不证明参数已声明。",
+          "callerPinIds": [
+            "TPL05-C12",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "contains_param_reference",
+              "entry": "布尔预筛调用。",
+              "stateAndEffect": "吞掉probe错误并返回false；不产诊断。"
+            },
+            {
+              "symbol": "probe_param_reference",
+              "entry": "compiler希望保留词法/预算失败原因。",
+              "stateAndEffect": "调用probe_path_root(param,1)，返回Ok(bool)或ParseError。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R086",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "control reference probe API and TODO",
+          "members": [
+            "contains_control_reference",
+            "probe_control_reference",
+            "probe_path_root",
+            "ZCA-TPL05-TODO-001"
+          ],
+          "entered": "control_scope在scope限定路径先预筛命中，再完整parse并qualify；action payload另检查入口表达式标记。",
+          "status": "probe_path_root仅找独立root后指定数量Dot+Ident；不检查第二段字面prop；完整parse_primary会拒绝非prop。",
+          "impact": "TODO是意图未确认，不是BUG；quoted text被tokenizer区分，现有测试缺中间非prop case；当前caller完整解析命中项。",
+          "callerPinIds": [
+            "TPL05-C11",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "contains_control_reference",
+              "entry": "编辑器/预筛要容忍整体方言未支持的表达式。",
+              "stateAndEffect": "probe error降为false。"
+            },
+            {
+              "symbol": "probe_control_reference",
+              "entry": "Runtime scope预筛传入源文本。",
+              "stateAndEffect": "调用probe_path_root(input, \"control\", 3)，只要求root后有三组Dot+Ident，不检查这三段中的中段字面量为prop。"
+            },
+            {
+              "symbol": "probe_path_root",
+              "entry": "接收root名与trailing_segments。",
+              "stateAndEffect": "tokenize后扫描独立标识符root并逐对检查Dot+Ident，不校验目标语义或其中段词面。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R087",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "UiBindingExpressionParseError and trait impls",
+          "members": [
+            "UiBindingExpressionParseError",
+            "Empty",
+            "BudgetExceeded",
+            "UnsupportedOperator",
+            "UnexpectedToken",
+            "UnterminatedString",
+            "fmt",
+            "budget",
+            "limit"
+          ],
+          "entered": "Parser/tokenizer/compiler把语法、输入和预算错误传回调用端。",
+          "status": "variants及Display实现对应错误分类。",
+          "impact": "parse error不表示引用已经经资产契约验证。",
+          "callerPinIds": [
+            "TPL05-C11",
+            "TPL05-C12",
+            "TPL05-C13",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "UiBindingExpressionParseError显式实现Display和std::error::Error；无FFI。",
+          "traitImplementations": [
+            "std::fmt::Display",
+            "std::error::Error"
+          ]
+        },
+        {
+          "id": "TPL05-R088",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "private Token enum",
+          "members": [
+            "Token",
+            "Ident",
+            "String",
+            "Integer",
+            "Float",
+            "Bool",
+            "Null",
+            "Dot",
+            "Comma",
+            "LeftParen",
+            "RightParen",
+            "Equals",
+            "NotEquals",
+            "And",
+            "Or",
+            "Not",
+            "Unsupported",
+            "Consumed"
+          ],
+          "entered": "Tokenizer产出的token输入Parser。",
+          "status": "Consumed是next移出非Copy token后保留的内部哨兵。",
+          "impact": "只在parser内部存在，不重导出/序列化。",
+          "callerPinIds": [
+            "TPL05-C13"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R089",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "private Parser state",
+          "members": [
+            "Parser",
+            "tokens",
+            "index"
+          ],
+          "entered": "UiBindingExpression::parse构造短生命周期Parser。",
+          "status": "tokens来自budgeted tokenizer，index表示下一个待消费token。",
+          "impact": "parser对象持有本次输入token，不保留全局可变状态。",
+          "callerPinIds": [
+            "TPL05-C13"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R090",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "Parser::new / Parser::parse",
+          "members": [
+            "new",
+            "parse"
+          ],
+          "entered": "语法入口先初始化token state再构造AST。",
+          "status": "new调用tokenize_with_budget；parse拒绝空、解析优先级顶层、拒绝尾随token、验证节点预算。",
+          "impact": "所有失败在返回AST前结束，不留下partial public AST。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "new",
+              "entry": "输入原始表达式。",
+              "stateAndEffect": "tokenizer成功后持有tokens且index=0。"
+            },
+            {
+              "symbol": "parse",
+              "entry": "Parser持有tokens与index。",
+              "stateAndEffect": "消费语法并验证完整性/预算后返回AST或首个错误。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R091",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "Parser precedence methods",
+          "members": [
+            "parse_or",
+            "parse_and",
+            "parse_equality"
+          ],
+          "entered": "parse_or作为完整表达式入口，向更高优先级层递归。",
+          "status": "parse_or最低优先级，parse_and次之，equality在其上；循环构成同级左结合节点。",
+          "impact": "深度检查随parse层级传递；不执行AST。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "parse_or",
+              "entry": "进入表达式顶层。",
+              "stateAndEffect": "先parse_and，再循环折叠||为左结合树。"
+            },
+            {
+              "symbol": "parse_and",
+              "entry": "从or层降到and优先级。",
+              "stateAndEffect": "先parse_equality，再循环折叠&&。"
+            },
+            {
+              "symbol": "parse_equality",
+              "entry": "从and层降到相等层。",
+              "stateAndEffect": "循环折叠==/!=，遇到其他token停止。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R092",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "Parser unary and primary methods",
+          "members": [
+            "parse_unary",
+            "parse_primary"
+          ],
+          "entered": "equality层调用unary，unary递归处理Not后交primary。",
+          "status": "primary处理scalar literals、param/prop、control.id.prop.name、typed literals与括号。",
+          "impact": "control AST只接受字面prop中段；不支持标识符返回错误；括号缺右括号报错。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C14",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "parse_unary",
+              "entry": "处理一元优先级。",
+              "stateAndEffect": "检查depth；Not递归depth+1，否则进入primary。"
+            },
+            {
+              "symbol": "parse_primary",
+              "entry": "读取一个primary token。",
+              "stateAndEffect": "构造literal/ref/operator子树，或返回Empty/UnexpectedToken/UnsupportedOperator。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R093",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "Parser path and typed literal helpers",
+          "members": [
+            "expect_dot",
+            "parse_typed_literal"
+          ],
+          "entered": "parse_primary识别限定引用和固定typed literal constructors时调用。",
+          "status": "expect_dot消费Dot；typed parser按构造器解析参数并复用argument helpers。",
+          "impact": "拼写/参数不符合语法返回parse error；不检查引用存在或最终target kind。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C14"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "expect_dot",
+              "entry": "限定引用grammar期待点号。",
+              "stateAndEffect": "匹配时消费点号，否则返回token error。"
+            },
+            {
+              "symbol": "parse_typed_literal",
+              "entry": "primary识别白名单typed constructor。",
+              "stateAndEffect": "解析参数并创建UiValue literal，失败返回ParseError。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R094",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "Parser argument and expectation helpers",
+          "members": [
+            "expect_string_argument",
+            "expect_float_arguments",
+            "expect_float_arguments_allocating",
+            "expect_string_arguments",
+            "expect_right_paren",
+            "expect_ident"
+          ],
+          "entered": "typed literal parser取具名/数值/字符串参数并完成括号检查。",
+          "status": "固定栈路径与allocating测试参照路径并存；expected token错误转parse错误。",
+          "impact": "helper只消费内部token序列，不成为公共API；测试allocation对照不改变解析语义。",
+          "callerPinIds": [
+            "TPL05-C13"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "expect_string_argument",
+              "entry": "typed literal需要String参数。",
+              "stateAndEffect": "验证当前token类型并消费字符串。"
+            },
+            {
+              "symbol": "expect_float_arguments",
+              "entry": "fixed arity数值构造器读取N个数值。",
+              "stateAndEffect": "在固定容量容器填充并校验分隔/右括号。"
+            },
+            {
+              "symbol": "expect_float_arguments_allocating",
+              "entry": "测试/性能对照分配路径。",
+              "stateAndEffect": "产出等价向量，不用于宣称production分配策略。"
+            },
+            {
+              "symbol": "expect_string_arguments",
+              "entry": "可变字符串参数构造器读取列表。",
+              "stateAndEffect": "消费逗号分隔字符串并在终止条件返回列表。"
+            },
+            {
+              "symbol": "expect_right_paren/expect_ident",
+              "entry": "语法层期待标识符或闭括号。",
+              "stateAndEffect": "匹配时前进，错误时返回结构化ParseError。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R095",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "Parser token cursor helpers",
+          "members": [
+            "consume",
+            "peek",
+            "next",
+            "next_cloned"
+          ],
+          "entered": "Parser各语法层通过cursor检查/消费token。",
+          "status": "index单向前进；next移动非Copy token并留Consumed哨兵，next_cloned提供复制比较路径。",
+          "impact": "不修改token vec长度；cursor只服务单次parse。",
+          "callerPinIds": [
+            "TPL05-C13"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "consume",
+              "entry": "语法层传匹配谓词。",
+              "stateAndEffect": "命中才消费并回报true。"
+            },
+            {
+              "symbol": "peek",
+              "entry": "语法层只检查当前token。",
+              "stateAndEffect": "返回借用，不推进index。"
+            },
+            {
+              "symbol": "next",
+              "entry": "语法层要拥有当前token。",
+              "stateAndEffect": "取走token、用Consumed标记并前移index。"
+            },
+            {
+              "symbol": "next_cloned",
+              "entry": "需要保留token存储时读取。",
+              "stateAndEffect": "克隆结果并前移index。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R096",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "expression budget helpers",
+          "members": [
+            "ensure_expression_depth",
+            "validate_expression_budget",
+            "binding_expression_budget_error"
+          ],
+          "entered": "Parser递归层和parse结束后AST traversal共同 enforce limits。",
+          "status": "depth逐递归检查；AST按栈迭代计数nodes；统一构造BudgetExceeded。",
+          "impact": "迭代节点检查避免再递归走深树；常量预算拒绝超界输入。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C21",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "ensure_expression_depth",
+              "entry": "解析器或AST traversal给定当前depth。",
+              "stateAndEffect": "超限立即产BudgetExceeded，否则继续。"
+            },
+            {
+              "symbol": "validate_expression_budget",
+              "entry": "完整AST生成后进入迭代遍历。",
+              "stateAndEffect": "累计节点/压入子节点，超节点或深度上限失败。"
+            },
+            {
+              "symbol": "binding_expression_budget_error",
+              "entry": "任何预算检查发现超限。",
+              "stateAndEffect": "编码预算label与limit到统一error variant。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R097",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "tokenization entry points",
+          "members": [
+            "tokenize_with_budget",
+            "tokenize"
+          ],
+          "entered": "reference probe与Parser::new共用tokenization入口。",
+          "status": "先按UTF-8字节拒绝超限，再逐字符生成token并在每个token新增后检查上限。",
+          "impact": "预算失败不返回部分token向量；grammar parser只看到被接受token串。",
+          "callerPinIds": [
+            "TPL05-C11",
+            "TPL05-C12",
+            "TPL05-C13",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "tokenize_with_budget",
+              "entry": "公共parse或probe输入。",
+              "stateAndEffect": "拒绝source bytes超限后调用带max_tokens tokenizer。"
+            },
+            {
+              "symbol": "tokenize",
+              "entry": "已选token预算。",
+              "stateAndEffect": "跳过空白、识别词法符号/数字/字符串/标识符，超限立即错误。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R098",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "test-only unbounded tokenizer",
+          "members": [
+            "tokenize_with_budget_unbounded_scan"
+          ],
+          "entered": "#[cfg(test)]对照路径供性能/预算测试比较提前止损策略。",
+          "status": "完整扫描后再检查预算，用于对照而非生产入口。",
+          "impact": "测试辅助不会从公开 API 暴露。",
+          "callerPinIds": [
+            "TPL05-C22"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R099",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "input and string escape helpers",
+          "members": [
+            "normalize_expression_input",
+            "parse_string",
+            "parse_unicode_escape",
+            "parse_unicode_escape_allocating"
+          ],
+          "entered": "tokenizer先规范首尾/可选表达式前缀，再由字符串scanner处理quoted文字和escape。",
+          "status": "非分配与测试分配版本用于语法/性能比较。",
+          "impact": "引号内的param/control文本成为String token，不误判为路径root。",
+          "callerPinIds": [
+            "TPL05-C11",
+            "TPL05-C12",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "normalize_expression_input",
+              "entry": "source字符串进入tokenizer。",
+              "stateAndEffect": "返回去首尾空白/可选前导=后的借用slice。"
+            },
+            {
+              "symbol": "parse_string",
+              "entry": "tokenizer遇到单/双引号。",
+              "stateAndEffect": "消费closing quote及escape，成功返回字符串或None。"
+            },
+            {
+              "symbol": "parse_unicode_escape",
+              "entry": "parse_string见unicode escape。",
+              "stateAndEffect": "消费十六进制表示并产字符或None。"
+            },
+            {
+              "symbol": "parse_unicode_escape_allocating",
+              "entry": "测试对照调用。",
+              "stateAndEffect": "构造分配型参照结果供一致性检查。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R100",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "number and identifier helpers",
+          "members": [
+            "is_typed_literal_constructor",
+            "parse_number_or_ident",
+            "parse_i64_chars",
+            "parse_number_or_ident_allocating",
+            "parse_ident",
+            "parse_ident_allocating",
+            "parse_error_from_token"
+          ],
+          "entered": "tokenizer/primary parser把字符片段分类为数字、关键字、identifier或结构化token错误。",
+          "status": "分配/非分配版本并行用于性能比较；错误转换统一出口。",
+          "impact": "字符分类只产词法token；运算支持范围由parse grammar限定。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C22"
+          ],
+          "blockTransitions": [
+            {
+              "symbol": "is_typed_literal_constructor",
+              "entry": "primary收到identifier。",
+              "stateAndEffect": "检查固定typed-literal构造器白名单。"
+            },
+            {
+              "symbol": "parse_number_or_ident",
+              "entry": "tokenizer遇数字或负号起始。",
+              "stateAndEffect": "解析整数/浮点或转为identifier token。"
+            },
+            {
+              "symbol": "parse_i64_chars",
+              "entry": "integer字符slice已隔离。",
+              "stateAndEffect": "可解析则返回i64，否则None。"
+            },
+            {
+              "symbol": "parse_number_or_ident_allocating",
+              "entry": "测试对照词法路径。",
+              "stateAndEffect": "产分配参照token用于等价验证。"
+            },
+            {
+              "symbol": "parse_ident/parse_ident_allocating",
+              "entry": "tokenizer或测试identifier入口。",
+              "stateAndEffect": "识别boolean/null/名字并推进字符index。"
+            },
+            {
+              "symbol": "parse_error_from_token",
+              "entry": "Parser遇意外/剩余token。",
+              "stateAndEffect": "把内部token编码为公开UnexpectedToken错误。"
+            }
+          ],
+          "traitMacroRegistrationFfi": "在该声明/块的当前实现中检查显式 impl、宏、动态注册与 FFI；本文件级属性/派生清单见文件记录，无未记录的外部调用机制。"
+        },
+        {
+          "id": "TPL05-R101",
+          "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression.rs",
+          "object": "evaluator and expression test module declarations",
+          "members": [
+            "evaluator",
+            "integer_token_performance_tests",
+            "parser_token_performance_tests",
+            "tests"
+          ],
+          "entered": "expression.rs声明子模块与evaluator re-export；相关测试验证parser contract。",
+          "status": "核对path/导出入口；不把evaluator API误写成parse直接执行。",
+          "impact": "R下仅审到公开AST与解析阶段；运行时求值由后续模块/compiled expression链消费。",
+          "callerPinIds": [
+            "TPL05-C13",
+            "TPL05-C22",
+            "TPL05-C24"
+          ],
+          "blockTransitions": [],
+          "traitMacroRegistrationFfi": "模块/path/#[cfg(test)]属性保持原样；doc属性会作为#[doc]供派生宏观察。"
+        }
+      ],
+      "attributeAndImplReview": {
+        "attributes": [
+          "#[derive(Clone/Debug/PartialEq/Eq/Serialize/Deserialize)]",
+          "#[cfg(test)]",
+          "#[path]"
+        ],
+        "manualImpls": "UiBindingExpression/Parser inherent functions；UiBindingExpressionParseError Display与std::error::Error实现；evaluator模块重导出。",
+        "macroFfiRegistration": "无macro_rules、extern/FFI、unsafe或动态注册。"
+      }
+    }
+  ],
+  "callerPins": [
+    {
+      "id": "TPL05-C01",
+      "path": "zircon_runtime/src/ui/template/asset/document.rs",
+      "sha256": "66537079a8f555d3cbbf1d05ec0b7a8ec5155fbefe1846033ac09d863c9b9c7e",
+      "symbols": "loader / document parse and Runtime extension",
+      "contract": "loads source model then sends it through migration, validation and prototype construction; data deserialization itself is not validity proof",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C02",
+      "path": "zircon_runtime/src/ui/template/asset/document/validation.rs",
+      "sha256": "4fc8fe8b57b06f0c6cd13998ce838bf6c9bedacbdf20c8a2d0de3f436f563094",
+      "symbols": "validate_document / validate_tree_authority",
+      "contract": "checks source document node/component references and tree ownership relationships; this is not project permission or authorization",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C03",
+      "path": "zircon_runtime/src/ui/template/asset/schema/migrator.rs",
+      "sha256": "4daaa0cfe656ce87f86b70a97ef9671f1ccf733341a897675fc3878ca54ccae0",
+      "symbols": "source-version migration",
+      "contract": "consumes UiAssetHeader.version and maps supported source versions; does not make public model constructors self-validating",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C04",
+      "path": "zircon_runtime/src/ui/template/asset/prototype_store.rs",
+      "sha256": "fcf559059be6391a8c455daf8d07d1177ba07ec8800e17b3abcf9c0a205d489c",
+      "symbols": "component/style import resolution and prototype lookup",
+      "contract": "resolves declared component references against registered/imported assets and constructs the runtime-owned prototype context",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C05",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs",
+      "sha256": "9430e3799bf0a8b1c5892c6ddbb22212cb4a30091a49f9d4e30d75bb03184f42",
+      "symbols": "apply_prototype_child_mount; prototype node lookup/instantiation",
+      "contract": "uses prototype-local handles; child mount values resolve at parent call site, default mui_slot only fills absence, then normalized values reach expanded root slot_attributes",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C06",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs",
+      "sha256": "761330858c86990904fd338bb1dff34c6167e6f4e220254f66a796b0adc3998b",
+      "symbols": "apply_child_mount",
+      "contract": "same source-component path: resolve slot map, insert default mui_slot only when missing, normalize and merge into each expanded root node",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C07",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/value_normalizer.rs",
+      "sha256": "3eb104d52173bb0bbea1e9473e750cdab9e8290f13bfe294455ab35281850ad0",
+      "symbols": "merge_value_maps_resolved; normalize_layout",
+      "contract": "recursively merges tables; scalar/array values replace; layout normalization occurs after resolved map composition",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C08",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver.rs",
+      "sha256": "a9440f9be96a5fe93a84682ca8c56d6211b9958e466826b6b1cd27cb348ab0cc",
+      "symbols": "UiStyleResolver::apply",
+      "contract": "assembles widget, imported and local styles in actual input order, then builds/applies the style plan",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C09",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/style_apply.rs",
+      "sha256": "138964bb1de4c3f886335e36bb01c6940c8cf5245d3675bf3f8363d186d4dc53",
+      "symbols": "build_style_plan; apply_styles_to_tree",
+      "contract": "parses selectors, matches path, sorts by (specificity, source_order), applies self values and slot values to separate node maps",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C10",
+      "path": "zircon_runtime/src/ui/template/asset/style.rs",
+      "sha256": "e4b7f50f45ad67f997f3fa6808fb736021993c51c1991efd27e3f8a733ff0fb0",
+      "symbols": "matches_token",
+      "contract": "generic Runtime matching supports Type/Class/Id/State/Host and returns false for Part",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C11",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/control_scope.rs",
+      "sha256": "cf6958d78a2a4ca466f254f27905ef6a35c94bd5a62c04437541e281e6e9b408",
+      "symbols": "probe_control_reference; resolve_binding_control_scope; qualify_control_refs",
+      "contract": "scope-less input remains unchanged; scoped path prefilters, fully parses hits, then qualifies references; action payload additionally checks its expression marker",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C12",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/binding_param_resolver.rs",
+      "sha256": "4eb61b7029bd1f0aaafe242fea07136eebee0e5334b8387d641fe5a722fa1917",
+      "symbols": "probe_param_reference / parameter resolution",
+      "contract": "uses token probe to identify candidates; complete parsing and component parameter resolution remain later compiler work",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C13",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/binding_program.rs",
+      "sha256": "b45b8db697a9c4e2fd865cc50d4eb20b889f073c5987227514c604e8aab86f2a",
+      "symbols": "compile_expression; UiCompiledBindingExpression construction",
+      "contract": "parses source AST, then compiles it to the compiled binding representation; parse does not itself evaluate at runtime",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C14",
+      "path": "zircon_runtime/src/ui/template/asset/binding/validation.rs",
+      "sha256": "4a8f764339df4bda489c291dce03bb24323dbf5d3101d818949a21df95eb3c84",
+      "symbols": "validate expression/target payload; expected_kind_for_target",
+      "contract": "checks target/expression compatibility and known action field kinds after parsing; unknown custom field may remain untyped",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C15",
+      "path": "zircon_runtime/src/ui/surface/binding_targets.rs",
+      "sha256": "01033bf26fbc7f2bd13ba0319db5d60de1fa1e96ca427fa398e733a31c2f13c6",
+      "symbols": "UiBindingExpr::resolve and target preparation",
+      "contract": "validates endpoint identity/generation, obtains expression result, applies missing policy, then routes a Value to target preparation or skips Omitted",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C16",
+      "path": "zircon_runtime/src/ui/surface/surface/pointer_component_events/action.rs",
+      "sha256": "1466d34a5a03b5143535b6de8544b5198261c79d7abe103e76fa6d303f9c2705",
+      "symbols": "action payload dispatch",
+      "contract": "Required/ExplicitError absence fails dispatch; Optional omits field; payload resolution belongs to event path",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C17",
+      "path": "zircon_runtime/src/ui/template/asset/component_contract/validation.rs",
+      "sha256": "7729f24e4b35c8bb30d438792d3c5b40319a616eb66a8d27ef3db621dffe0354",
+      "symbols": "component public contract and named-slot validation",
+      "contract": "validates public component/slot compatibility, including actual accepts field semantics; not a selector invocation",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C18",
+      "path": "zircon_runtime/src/ui/template/asset/resource_ref/collect.rs",
+      "sha256": "c0b9494e18419a2f5f217a727c2e5673fc3a382e3e15b17d835703933c03d65e",
+      "symbols": "resource import/reference collection",
+      "contract": "consumes UiAssetImports.resources during resource collection",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C19",
+      "path": "zircon_runtime/src/ui/tests/asset_binding/schema_naming.rs",
+      "sha256": "69f2b29d096618551f1e36550848c858cd7f5b226c9df7e3e9fbc9b488224375",
+      "symbols": "schema naming tests",
+      "contract": "checks shared schema names and diagnostics against runtime integration",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C20",
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "sha256": "9b89fe4d2d1d852396725649a27af9837e447f52ebe4b77fcf9d3f2c85cf7042",
+      "symbols": "selector contract tests",
+      "contract": "checks parse shape, token grammar and specificity ordering at interface layer",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C21",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs",
+      "sha256": "228e93961895eae999462b040528d9cbe2ffc00c6fde3805563d723a2a987f59",
+      "symbols": "schema module tests",
+      "contract": "checks contract terms, payload name rules, known field mappings and value-kind mapping",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C22",
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/expression.rs",
+      "sha256": "071e96e4b606b885f5aa6223e7bfd2d7e402cd193d73c69b190a5b655ec0150d",
+      "symbols": "expression tests; historical foreign owner, read-only",
+      "contract": "covers token-root detection, quoted text, budgets and non-root references; no test for non-prop middle segment",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C23",
+      "path": "zircon_runtime/src/ui/tests/event_routing/component_events/missing_policy.rs",
+      "sha256": "387c174e7676b6837338ca0750b2346fc8035aa3123a288bd2571bed2e918ef7",
+      "symbols": "missing policy integration tests",
+      "contract": "checks required/optional/default/fallback/error decisions through event binding path",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C24",
+      "path": "zircon_runtime/src/ui/tests/asset_binding/compiled_program.rs",
+      "sha256": "4a404117950b37646dff2b89e7e307bfa4aeecfbe738705bc4185de6745ceff4",
+      "symbols": "compiled program integration tests",
+      "contract": "exercises the parsed/compiled binding pipeline and resulting target behavior",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C25",
+      "path": "zircon_runtime/src/ui/template/asset/style/tests/single_match_tests.rs",
+      "sha256": "3bf232fc471b837ed142b00f14177c1c552c0088ca4bbe296ddbac780558efd2",
+      "symbols": "selector matcher tests",
+      "contract": "exercises runtime selector matching and excludes any claim that Part is matched by the generic matcher",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C26",
+      "path": "zircon_editor/src/ui/asset_editor/style/matched_rule_inspection.rs",
+      "sha256": "af6fa0aa3a16ec8bf8ba0f6058ae63bbda4fefc6b44ce1dc010d6e1b9c1105d1",
+      "symbols": "InspectorSelector::cascade_specificity; collect_matching_rules",
+      "contract": "production editor path parses/matches rules; sort key is (cascade_specificity, source_order); legacy_display_score is copied only to display field",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C27",
+      "path": "zircon_editor/src/tests/ui/ui_asset_editor/palette_descriptor_registry.rs",
+      "sha256": "a849a75033e133d22a05990e027856736a2ebfb56e05ea034edf8f4b056c95d0",
+      "symbols": "palette descriptor tests; unrelated to selector",
+      "contract": "covers descriptor palette entries, local/imported reference sources and inserted templates; selector/specificity search had no matches",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    },
+    {
+      "id": "TPL05-C28",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs",
+      "sha256": "8ef1c33c51334583830be8ca1c4a4918bba5f0c9c0c377b7de84eeec5164f8b8",
+      "symbols": "document compile entry",
+      "contract": "connects validated source document/prototype construction with compiler entry; no permission/authorization semantics",
+      "use": "read-only definition/caller/test context; not an owned edit path"
+    }
+  ],
+  "callerPinsCount": 28,
+  "priorEvidenceDependency": {
+    "batchId": "ui-template-005",
+    "path": "docs/tests/source-comment-review-evidence-ui-template-005.json",
+    "preTruncationSha256": "8e1c73a8da26f435e6721dc2a490ea83e75912d2b14b19bf4d1ca46cd5558835",
+    "observedAfterFailureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "disposition": "The prior sole physical draft was truncated during the actual invalid Path.write_text(newline=...) operation and cannot be recovered from HEAD/index or an available stored payload. This file is freshly reconstructed from current source/traces; no old row/group/correction table is claimed as restored."
+  },
+  "reconstructionHistory": [
+    {
+      "kind": "evidence-write-failure",
+      "nativeCell": "ec8c71",
+      "exitCode": 1,
+      "actualFailure": "Python Path.write_text received an invalid newline argument after opening/truncating the sole draft; follow-up stale-hash assertion did not restore bytes.",
+      "sourceFilesChanged": false,
+      "authorityChanged": false
+    },
+    {
+      "kind": "reconstruction",
+      "status": "reconstructed from pinned source files and current read-only caller/test files; fresh object ids TPL05-R001 onward",
+      "historicalRows": "Prior per-row metadata and totals are unrecoverable; they are not represented as current coverage."
+    }
+  ],
+  "patchObservations": [
+    {
+      "kind": "source-base-comparison",
+      "base": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "result": "All eight exact source paths compare as insert-only lines: 278 additions, zero deletions/replacements, zero added non-comment lines. Every addition is a //, ///, //! or blank/comment form; line endings remain LF."
+    },
+    {
+      "kind": "shared-head",
+      "head": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+      "status": "Preserved shared checkout history; current source bytes are pinned independently of HEAD attribution. No Git write or stage commit was made."
+    },
+    {
+      "kind": "duplicate-review",
+      "result": "Initial comments remain byte-preserved; newly added duplicate summaries previously identified in UiAssetImports, UiComponentParamSchema, UiActionRef, resolve, TargetAssignment, and TargetSchema were removed from the authored additions or reduced to non-redundant contract supplements. The source-vs-base comparison confirms no baseline comment deletion/replacement."
+    }
+  ],
+  "correctionHistory": [
+    {
+      "historicalId": "TPL05-013",
+      "oldMetadata": "members claimed accepted_components",
+      "verifiedCorrection": "UiNamedSlotSchema has actual field accepts; empty set means unrestricted; Runtime component-contract validation reads it.",
+      "verificationPin": "TPL05-C17",
+      "mapping": "reconstructed as UiNamedSlotSchema/accepts; old row body unrecoverable"
+    },
+    {
+      "historicalId": "TPL05-014",
+      "oldMetadata": "members/scopes claimed global/component/widget",
+      "verifiedCorrection": "UiStyleScope has only Open and Closed. It is stored on UiComponentDefinition and UiComponentPrototype. No scope-driven isolation behavior is proved; existing CR-R02 TODO remains.",
+      "verificationPin": "TPL05-C02",
+      "mapping": "reconstructed as UiStyleScope; old row body unrecoverable"
+    },
+    {
+      "historicalId": "TPL05-015",
+      "oldMetadata": "UiStyleSheet described as carrying scope",
+      "verifiedCorrection": "UiStyleSheet has only id and rules; scope belongs to component models, not this type.",
+      "verificationPin": "TPL05-C08",
+      "mapping": "reconstructed as UiStyleSheet; old row body unrecoverable"
+    },
+    {
+      "historicalId": "TPL05-042",
+      "oldMetadata": "AST described as directly consumed by runtime evaluator",
+      "verifiedCorrection": "UiBindingExpression::parse yields AST; binding_program::compile_expression compiles it to UiCompiledBindingExpression before runtime execution/evaluation.",
+      "verificationPin": "TPL05-C13",
+      "mapping": "reconstructed as UiBindingExpression::parse/compiler boundary; old row body unrecoverable"
+    },
+    {
+      "historicalId": "selector-caller-path",
+      "oldMetadata": "zircon_editor/src/tests/ui/ui_asset_editor/matched_rule_inspection.rs",
+      "verifiedCorrection": "That path does not exist. The selector/specificity consumer is production zircon_editor/src/ui/asset_editor/style/matched_rule_inspection.rs (current pin TPL05-C26). The existing palette_descriptor_registry test is a separate palette test with no selector/specificity references (TPL05-C27).",
+      "mapping": "old caller SHA is unrecoverable; previous path was misrecorded, not an external source change"
+    }
+  ],
+  "unmappedHistoricalRows": [
+    {
+      "id": "TPL05-007",
+      "mapping": "unrecoverable; no original row or reliable symbol mapping"
+    },
+    {
+      "id": "TPL05-032",
+      "mapping": "unrecoverable; no original row or reliable symbol mapping"
+    },
+    {
+      "id": "TPL05-040",
+      "mapping": "unrecoverable; no original row or reliable symbol mapping"
+    },
+    {
+      "id": "TPL05-045",
+      "mapping": "unrecoverable; no original row or reliable symbol mapping"
+    },
+    {
+      "id": "TPL05-041",
+      "mapping": "known prior concern was UiBindingTargetSchema direct Runtime consumer evidence; no direct Runtime consumer found in current traced paths. Keep as historical uncertainty, not mapped to a recovered old row."
+    }
+  ],
+  "objectEvidenceGroupCount": 101,
+  "blockEvidenceCount": 71,
+  "issueIds": [
+    "CR-R02-public_ui_templates-0001",
+    "ZCA-TPL05-TODO-001"
+  ],
+  "issueEvidence": {
+    "path": "docs/tests/source-comment-review-issues-02.json",
+    "sha256": "b816625543212cef1af77fccbead48270b20ddf1980aab47871dde1d2beb26d9",
+    "records": [
+      {
+        "id": "CR-R02-public_ui_templates-0001",
+        "state": "pre-existing TODO retained",
+        "source": "document.rs::UiStyleScope",
+        "meaning": "confirm whether stored Open/Closed value should drive private style isolation; current evidence does not establish behavior"
+      },
+      {
+        "id": "ZCA-TPL05-TODO-001",
+        "state": "root-approved TODO physically present at expression.rs::probe_control_reference",
+        "sourceSha256": "c59dc1e83f2d146f2926be71e97eb8d3512cd2a1ac09669a66241b59b78a39b3",
+        "meaning": "probe checks root and three Dot+Ident pairs but not literal prop; scoped caller fully parses hits; intended prefilter grammar is unresolved, no proven BUG"
+      }
+    ]
+  },
+  "validation": {
+    "sourceDiff": {
+      "method": "read-only Python byte-hash and line SequenceMatcher against assignmentHead blobs",
+      "status": "passed for source-delta observation",
+      "result": "8 final pins match; 278 insertion-only comment lines; no deleted/replaced lines or non-comment additions."
+    },
+    "exact8StaticGuard": {
+      "nativeChunk": "182b49",
+      "exitCode": 0,
+      "scope": "the assigned eight paths",
+      "note": "Root reported an earlier exact8 lexical/non-doc pass before the final two target value-field docs were inserted. It is not a final-pin guard receipt; a final scoped guard remains pending root review."
+    },
+    "previousExact8Rustfmt": {
+      "nativeChunk": "52cc64",
+      "exitCode": 1,
+      "scope": "assigned eight paths",
+      "note": "Only target.rs Default.value and Fallback.value field-layout diagnostics remained; source code layout was baseline multi-line. After the two authorized field doc lines were inserted, target-only formatter passed. Do not report aggregate exact8 rustfmt as passed."
+    },
+    "targetRustfmt": {
+      "nativeChunk": "21d2ee",
+      "exitCode": 0,
+      "scope": "target.rs only",
+      "command": "rustfmt --edition 2021 --config skip_children=true --check zircon_runtime_interface/src/ui/template/asset/binding/target.rs",
+      "note": "Run after the two authorized value-field docs; other seven final source hashes were unchanged."
+    },
+    "targetScopedDiff": {
+      "nativeChunk": "f5f5384",
+      "exitCode": 0,
+      "scope": "target.rs only",
+      "command": "git --no-optional-locks diff --check -- zircon_runtime_interface/src/ui/template/asset/binding/target.rs"
+    },
+    "checksNotRun": [
+      "Cargo build/test/doc",
+      "Jenkins semantic-flow/formal source-comment acceptance",
+      "test execution"
+    ],
+    "batchDisposition": "reconstructed evidence awaiting root review; formal Jenkins acceptance and any stage commit remain pending; no commit was made.",
+    "finalScopedGuard": {
+      "status": "pending",
+      "owner": "root",
+      "note": "Run against final eight source pins after the authorized target field-doc insertion; do not infer from the earlier 182b49 receipt."
+    }
+  },
+  "sourceMacroInventory": {
+    "observedAttributes": [
+      "#[path]",
+      "#[derive]",
+      "#[serde]",
+      "#[error]",
+      "#[cfg(test)]"
+    ],
+    "explicitMacros": "No macro_rules! definition or custom procedural macro invocation was found in the eight source files.",
+    "dynamicRegistrationOrFfi": "No dynamic registration, extern/FFI entry, or unsafe block was found in the eight source files.",
+    "observability": "Inserted doc comments are compiler-facing doc attrs and may be observed by derive macros. Explicit derive/serde parameters and executable tokens remained unchanged. No Cargo doc or macro execution gate was added."
+  },
+  "statementBlockCoverage": {
+    "groupCount": 101,
+    "callableBlockSummaryCount": 71,
+    "meaning": "每个可执行函数/关联函数块进入条件、状态变化和后续影响按成员记录；无执行体的数据类型、模块和重导出组记录其装配/可见性影响。重要的分支与循环在对应blockTransitions中说明。"
+  }
+}

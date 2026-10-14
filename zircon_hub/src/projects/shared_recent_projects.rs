@@ -3,13 +3,13 @@ use std::time::Duration;
 
 use thiserror::Error;
 use zircon_runtime_interface::hub_protocol::{
-    hub_recent_project_path_key, HubRecentProjectV1, HubRecentProjectsError,
-    HubRecentProjectsStore, HubRecentProjectsStoreError, HubRecentProjectsV1,
-    HubRecentProjectsWritePolicy,
+    HubRecentProjectV1, HubRecentProjectsError, HubRecentProjectsStore,
+    HubRecentProjectsStoreError, HubRecentProjectsV1, HubRecentProjectsWritePolicy,
+    hub_recent_project_path_key,
 };
 
-use super::metadata::normalize_project_root;
 use super::RecentProject;
+use super::metadata::normalize_project_root;
 
 // Hub reconciliation runs on its background action path and may wait briefly for a concurrent
 // post-Ready Editor projection, but it never inherits an unbounded OS mutex wait.

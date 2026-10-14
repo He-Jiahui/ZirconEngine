@@ -628,6 +628,14 @@ fn notification_work(
     };
     match action {
         NativePluginDiscoveryManifestAction::Refresh => {
+            // A path reached through a link is never admitted for an incremental read. A full
+            // root scan owns the diagnostic and applies the same no-symlink policy as startup.
+            let Ok(physical_path) = path.canonicalize() else {
+                return NativePluginDiscoveryRefreshWork::root_scan();
+            };
+            if !physical_path.starts_with(root.as_path()) || physical_path != path {
+                return NativePluginDiscoveryRefreshWork::root_scan();
+            }
             NativePluginDiscoveryRefreshWork::refresh_manifest(path)
         }
         NativePluginDiscoveryManifestAction::Remove => {
@@ -636,9 +644,8 @@ fn notification_work(
     }
 }
 
-// BUG: [CR-PLUGIN-NATIVE-0202] 通知映射只归一词法路径，随后清单读取会跟随符号链接；
-// 根内链接可指向根外清单并被增量加入候选，绕过全扫拒绝符号链接和越根目录的边界；证据：受限读取直接打开映射路径。
-// 删除通知常在文件消失后到达，因此词法映射不能要求目标存在；刷新读取另需确认真实路径边界。
+// Deletion notifications can arrive after the file disappears, so lexical mapping remains
+// available for removals; refresh reads are separately checked against physical root identity.
 fn canonical_notification_path(
     canonical_root: &Path,
     lexical_root: &Path,

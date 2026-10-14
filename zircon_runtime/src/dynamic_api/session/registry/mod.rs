@@ -1,3 +1,13 @@
+//! 动态会话注册表的接线层：向 `session::ffi` 提供句柄准入、owner 分派和输出释放入口。
+//!
+//! `session_store` 管理句柄的发布与销毁，`session_slot` 管理动作准入和等待状态，
+//! `allocation_registry` 独立拥有跨 ABI 返回的字节分配；frame activity 与 wake 负责异步唤醒排空。
+//! 会话状态只在 owner 任务中访问，句柄及 allocation ID 均为编号，不是可解引用的地址。
+//!
+//! # 参考
+//! 上层 `dynamic_api/session.rs` 与 `dynamic_api/exports.rs` 的 V8 表；
+//! `tests/cases.rs` 覆盖动作、回调和 allocation 的关闭顺序，测试辅助导出仅在测试配置启用。
+
 #[path = "action_guard.rs"]
 mod action_guard;
 #[path = "allocation_registry.rs"]

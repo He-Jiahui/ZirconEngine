@@ -13,12 +13,14 @@ fn cloud_head_desktop_action_is_read_only_and_generation_scoped() {
     let context = request.service_response_context().unwrap();
     assert_eq!(context.generation, "7");
     assert!(!context.mutation);
-    assert!(serde_json::from_value::<AccountActionRequest>(json!({
-        "action": "cloud-head", "backendEpoch": "hub-current", "generation": "7",
-        "organization": "00000000-0000-4000-8000-000000000001",
-        "project": "00000000-0000-4000-8000-000000000002", "operationId": "unexpected"
-    }))
-    .is_err());
+    assert!(
+        serde_json::from_value::<AccountActionRequest>(json!({
+            "action": "cloud-head", "backendEpoch": "hub-current", "generation": "7",
+            "organization": "00000000-0000-4000-8000-000000000001",
+            "project": "00000000-0000-4000-8000-000000000002", "operationId": "unexpected"
+        }))
+        .is_err()
+    );
 }
 
 #[test]

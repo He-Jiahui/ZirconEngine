@@ -1,9 +1,9 @@
 use super::*;
-use axum::{http::StatusCode, response::IntoResponse, routing::get, Json, Router};
-use jsonwebtoken::{encode, EncodingKey, Header};
+use axum::{Json, Router, http::StatusCode, response::IntoResponse, routing::get};
+use jsonwebtoken::{EncodingKey, Header, encode};
 use std::sync::{
-    atomic::{AtomicBool, AtomicUsize, Ordering},
     RwLock,
+    atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
 fn fixture_keys() -> Vec<serde_json::Value> {
@@ -25,20 +25,24 @@ fn signed_tokens_require_issuer_audience_and_matching_key() {
     let keys: JwkSet =
         serde_json::from_value(serde_json::json!({"keys":[fixtures[0]["jwk"]]})).unwrap();
     assert!(verify_signature(&token(0, "issuer", "audience"), &keys, "issuer", "audience").is_ok());
-    assert!(verify_signature(
-        &token(0, "different", "audience"),
-        &keys,
-        "issuer",
-        "audience"
-    )
-    .is_err());
-    assert!(verify_signature(
-        &token(0, "issuer", "different"),
-        &keys,
-        "issuer",
-        "audience"
-    )
-    .is_err());
+    assert!(
+        verify_signature(
+            &token(0, "different", "audience"),
+            &keys,
+            "issuer",
+            "audience"
+        )
+        .is_err()
+    );
+    assert!(
+        verify_signature(
+            &token(0, "issuer", "different"),
+            &keys,
+            "issuer",
+            "audience"
+        )
+        .is_err()
+    );
     assert!(
         verify_signature(&token(1, "issuer", "audience"), &keys, "issuer", "audience").is_err()
     );
@@ -125,10 +129,12 @@ async fn rotated_keys_refresh_once_and_replace_revoked_keys() {
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert!(verifier.verify_cached_signature(&old).await.is_err());
     assert_eq!(calls.load(Ordering::SeqCst), 1);
-    assert!(verifier
-        .verify_cached_signature(&token(1, &issuer, "other"))
-        .await
-        .is_err());
+    assert!(
+        verifier
+            .verify_cached_signature(&token(1, &issuer, "other"))
+            .await
+            .is_err()
+    );
 
     // Expiry refresh replaces the cache even for a known kid; failures never retain trust.
     *document.write().unwrap() = serde_json::json!({"keys":[fixtures[0]["jwk"]]});

@@ -30,3 +30,8 @@ required-features = ["native"]
 name = "native_entry_guard"
 path = "tests/native_entry_guard.rs"
 required-features = ["native"]
+
+[[example]]
+name = "native_entry_shipping_guard"
+path = "examples/native_entry_shipping_guard.rs"
+required-features = ["native"]

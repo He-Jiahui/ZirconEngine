@@ -44,6 +44,7 @@ pub mod ui;
 
 pub use crate::core::resource;
 
+/// Core rendering, scene rasterization, and host-agnostic GPU services.
 #[cfg(feature = "graphics")]
 #[path = "graphics/mod.rs"]
 pub mod graphics;

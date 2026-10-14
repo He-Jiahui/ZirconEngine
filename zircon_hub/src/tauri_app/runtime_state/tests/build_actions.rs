@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 use crate::build::BuildExecutionReport;
 use crate::engines::source_engine_id;
-use crate::projects::{project_metadata_key, ProjectMetadata, RecentProject};
+use crate::projects::{ProjectMetadata, RecentProject, project_metadata_key};
 use crate::settings::{HubConfig, HubLanguage};
 use crate::state::{HubActionKind, HubActionStatus, HubMessage, HubMessageId, ProjectMessageId};
 use crate::tauri_app::HubActionRequest;
@@ -25,11 +25,13 @@ fn background_build_prepares_command_without_running_or_recording_history() {
     assert!(session.task_status.running);
     assert!(session.task_status.cancellable);
     assert_eq!(session.task_status.label, "Building");
-    assert!(pending
-        .command()
-        .command_line()
-        .iter()
-        .any(|part| part.contains("zircon_build.py")));
+    assert!(
+        pending
+            .command()
+            .command_line()
+            .iter()
+            .any(|part| part.contains("zircon_build.py"))
+    );
     let bound_engine = session
         .config
         .engines
@@ -45,9 +47,11 @@ fn background_build_prepares_command_without_running_or_recording_history() {
     let bound_output = bound_engine.output_dir.to_string_lossy().into_owned();
     let command_line = pending.command().command_line();
     assert!(command_line.iter().any(|part| part == &bound_build_script));
-    assert!(pending
-        .build_output_dir()
-        .starts_with(&bound_engine.output_dir));
+    assert!(
+        pending
+            .build_output_dir()
+            .starts_with(&bound_engine.output_dir)
+    );
     let pending_output = pending.build_output_dir().to_string_lossy().into_owned();
     assert!(command_line.iter().any(|part| part == &pending_output));
     assert!(!command_line.iter().any(|part| part == &bound_output));

@@ -1,6 +1,6 @@
 use super::*;
 use crate::service::{organization, storage::Database};
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{EncodingKey, Header, encode};
 
 fn principal(subject: &str) -> Principal {
     Principal {
@@ -258,17 +258,19 @@ async fn listing_has_a_cursor_beyond_one_hundred_and_revocation_hides_releases()
             assert_eq!(second.items.len(), 3);
             assert!(second.next_cursor.is_none());
             policy.keys.keys.clear();
-            assert!(list(
-                connection,
-                &policy,
-                CatalogQuery {
-                    after: None,
-                    query: None,
-                    limit: Some(100)
-                }
-            )?
-            .items
-            .is_empty());
+            assert!(
+                list(
+                    connection,
+                    &policy,
+                    CatalogQuery {
+                        after: None,
+                        query: None,
+                        limit: Some(100)
+                    }
+                )?
+                .items
+                .is_empty()
+            );
             Ok(())
         })
         .await

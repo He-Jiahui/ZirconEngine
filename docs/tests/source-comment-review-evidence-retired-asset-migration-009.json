@@ -1,0 +1,867 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "retired-asset-migration-009",
+  "owner": "/root/public_project",
+  "checkout": "E:/Git/ZirconEngine",
+  "scope": {
+    "authorizedSources": [
+      "zircon_runtime_interface/src/project/retired_asset_ref_migration/mod.rs",
+      "zircon_runtime_interface/src/project/retired_asset_ref_migration/budget.rs",
+      "zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs",
+      "zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs",
+      "zircon_runtime_interface/src/project/retired_asset_reference.rs",
+      "zircon_runtime_interface/src/project/persisted_asset_reference.rs",
+      "zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs",
+      "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs"
+    ],
+    "onlyEvidencePath": "docs/tests/source-comment-review-evidence-retired-asset-migration-009.json",
+    "observedHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "assignmentBaseHead": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "coverageLedger": {
+      "path": "docs/tests/source-comment-review-coverage-03.json",
+      "assignmentRevision": 13,
+      "sha256AtAssignment": "69db16f80ad2d58198730516717bb358534fff46edc3c27f8b07f041428b6ff1",
+      "sha256AtEvidenceObservation": "7b5bfa8e09e827294fa40724610b97e6a32c0b015a6ba4bfc2b8952458a29342",
+      "observation": "本次只读回读中 8 条记录仍为 assigned，owner 为 /root/public_project，初始 SHA 与本批 HEAD raw blob 一致；账本读回 pin 与分配时 pin 不同，未编辑共享账本。"
+    },
+    "sourceStatusAtAssignment": "coverage-03 revision 13 记录八路径精确 clean、LF、无旧账本或其他活跃范围重叠；foreign/held 路径排除。",
+    "sourceStatusAtFinalObservation": {
+      "changedWorktreeOnly": [
+        "zircon_runtime_interface/src/project/retired_asset_ref_migration/mod.rs",
+        "zircon_runtime_interface/src/project/retired_asset_ref_migration/budget.rs",
+        "zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs",
+        "zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs",
+        "zircon_runtime_interface/src/project/retired_asset_reference.rs",
+        "zircon_runtime_interface/src/project/persisted_asset_reference.rs"
+      ],
+      "unchangedAndClean": [
+        "zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs",
+        "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs"
+      ],
+      "stagedChanges": false,
+      "nativeReceipt": "functions.exec cell 182, nested native session 93099, exit 0"
+    }
+  },
+  "reviewSummary": {
+    "definitionsAndBoundaries": [
+      "批量迁移只将键恰为 uuid 和 url 的对象识别为旧引用；不匹配的对象保留字段并继续遍历其子值。单对象持久化迁移只接收根对象，不递归遍历且不执行批量预算。",
+      "预算预检用显式迭代遍历整棵 serde_json::Value：根节点深度为 0；根和每个子 Value 都计节点，对象键不计；仅按精确 uuid/url 键集合计引用，字段值尚未解析。上限为包含式，仅 found > max 拒绝。",
+      "有预算的批量入口先完成全树准入再改写；预算超限时 resolver 尚未调用。成功准入后，字段解析、resolver 或结果序列化仍可能失败，且此前 resolver 外部副作用不回滚。",
+      "RetiredAssetReference 只携带已解析的 AssetUuid 与 ResourceLocator；它不证明两者对应同一注册资产。资源 scheme 和身份匹配由调用方解析器负责。",
+      "无上下文规则要求项目定位符为 res://，将 assets/<path> 作为 RelPath 路径提示，并保留 locator label；它不读取文件、不查询注册表。builtin 定位符被转为独立持久化变体。",
+      "PersistedAssetReference 使用 kind 内部标签、snake_case 变体名并拒绝未知字段；project 的 AssetRef 通过 serde(flatten) 展开，builtin 持有独立 locator。手工 Deserialize 在 project 分支继续依赖 AssetRef 校验，在 builtin 分支复用 try_builtin 检查 scheme。",
+      "Runtime 的场景版本迁移使用无上下文 res:// 规则；资产迁移文档路径则通过 MigrationResolver::resolve 完成注册表/来源索引解析与移动路径修复。接口本身不授予准入、文件存在或资源身份真实性。"
+    ],
+    "tags": {
+      "existing": [],
+      "added": [],
+      "verifiedNoNewBugTodoSafetyMarkers": true
+    },
+    "macroTraitRegistrationFfi": {
+      "derivesAndAttributes": [
+        "RetiredAssetRefMigrationBudget derives Clone, Copy, Debug, PartialEq, Eq; its fields and constructor encode caller-provided limits.",
+        "RetiredAssetRefMigrationError derives Clone, Debug, PartialEq, Eq and implements Display plus std::error::Error; only Resolve exposes a source error.",
+        "RetiredAssetReference derives Clone, Debug, PartialEq, Eq; no Serialize/Deserialize, registry lookup, or FFI is present in scope.",
+        "PersistedAssetReferenceKind derives Serialize/Deserialize with serde(tag=\"kind\", rename_all=\"snake_case\", deny_unknown_fields); its project field uses serde(flatten). PersistedAssetReference itself implements Serialize/Deserialize manually.",
+        "Tests are compiled through zircon_runtime_interface/src/project/tests/mod.rs and the local #[path] test module; no runtime registration or FFI entry is in the assigned sources."
+      ],
+      "staticRegistration": "No static registration in assigned scope.",
+      "ffi": "No FFI entry in assigned scope.",
+      "macroExecution": "Serde derive expansion was not separately executed or claimed."
+    },
+    "sourceDelta": {
+      "addedLines": 136,
+      "deletedLines": 0,
+      "changedFiles": 6,
+      "unchangedTestFiles": 2,
+      "addedLinesKind": "all added lines are Rust line/doc comments or blank lines; /// and //! create compiler-facing doc attributes.",
+      "executableCodeChanged": false,
+      "signaturesOrApiChanged": false,
+      "serdeOrCfgAttributesChanged": false,
+      "stringConstantsAssertionsOrMacroInputsChanged": false,
+      "lineEndings": "All eight final source files and eight assignment pins are LF-only; CRLF count is 0."
+    },
+    "commentsPreserved": "Every baseline line, including all original comments, was retained byte-for-byte and in order. The first raw comparison found the existing comment in migrate.rs had been replaced; cell 160 restored it. Final raw comparison confirms every original line in all eight files is preserved.",
+    "reviewCorrectionHistory": "A later request proposed changing PersistedAssetReference::builtin docs at current line 69. Raw comparison with assignment HEAD showed the same sentence already existed at baseline line 56; the request was withdrawn, the original text was retained, and no source changed. The public method's visibility is established by its source signature; the baseline wording remains a usage note, not a visibility claim.",
+    "issues": "No complete, reproducible behavior defect requiring BUG was established. No TODO/BUG marker was added.",
+    "reviewedSourceFileCount": 8,
+    "reviewedDeclarationAndBlockCount": 60,
+    "reviewedChangedFileCount": 6
+  },
+  "sourceFiles": [
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/mod.rs",
+      "initialSha256": "518f5b9c0a046c8dd5f3a022a8b1f8bda24451791883e615005d235eb65535b6",
+      "finalSha256": "b5ca20f2b7a024e27ed8da7154c6720dea20f87d08926c50293b87edad6b1e73",
+      "finalBytes": 1268,
+      "finalLines": 28,
+      "eol": "LF",
+      "objects": [
+        {
+          "symbol": "retired_asset_ref_migration module",
+          "kind": "private compatibility module",
+          "docAction": "added Chinese module summary and boundaries",
+          "entry": "Callers submit a loaded JSON Value or one root reference object.",
+          "state": "Batch traversal identifies exact uuid/url shapes; budgeted batch APIs preflight the full tree; the single-object entry does not traverse containers.",
+          "effect": "Clarifies the difference between generic value rewriting and caller-owned identity resolution; the module performs no I/O or registry lookup."
+        },
+        {
+          "symbol": "budget/error/migrate/retired_asset_reference path modules",
+          "kind": "submodule wiring block",
+          "docAction": "reviewed; no code change",
+          "entry": "The private migration module is compiled.",
+          "state": "Four path declarations include the implementation modules and reference value type.",
+          "effect": "Keeps the implementation internal while the parent project module re-exports the public contract."
+        },
+        {
+          "symbol": "public re-export block",
+          "kind": "API wiring",
+          "docAction": "reviewed; no code change",
+          "entry": "A caller imports from project.",
+          "state": "Exports the budget, error, reference type and six migration functions.",
+          "effect": "Connects Runtime callers to this private implementation module."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/budget.rs",
+      "initialSha256": "e0e326df586c23115970966d954fc7be45031d23e7ce2e3ff9b9c919899b1b95",
+      "finalSha256": "feaacd83950add13ba745482084522fcaa4e1cbda0bbe5c043deecb01fe7ed65",
+      "finalBytes": 2161,
+      "finalLines": 58,
+      "eol": "LF",
+      "objects": [
+        {
+          "symbol": "MAX_RETIRED_ASSET_REF_MIGRATION_DEPTH",
+          "kind": "public constant",
+          "docAction": "added Chinese boundary explanation",
+          "entry": "The default budget is requested.",
+          "state": "Sets nested Value depth to 128 with root depth zero.",
+          "effect": "Depth equal to the limit is admitted; only a deeper child exceeds it."
+        },
+        {
+          "symbol": "MAX_RETIRED_ASSET_REF_MIGRATION_NODES",
+          "kind": "public constant",
+          "docAction": "added Chinese counting rule",
+          "entry": "The default budget is requested.",
+          "state": "Sets the node limit to 2,000,000 Value nodes.",
+          "effect": "Root and child values count; object key strings do not."
+        },
+        {
+          "symbol": "MAX_RETIRED_ASSET_REF_MIGRATION_REFERENCES",
+          "kind": "public constant",
+          "docAction": "added Chinese counting rule",
+          "entry": "The default budget is requested.",
+          "state": "Sets the exact retired-reference limit to 1,000,000.",
+          "effect": "Only the exact two-key uuid/url shape counts, before field value parsing."
+        },
+        {
+          "symbol": "RetiredAssetRefMigrationBudget",
+          "kind": "public value type and private fields",
+          "docAction": "added Chinese type boundary after the original English summary; reviewed all three stored fields",
+          "entry": "The caller chooses limits or standard defaults.",
+          "state": "Stores max_nodes, max_depth, max_references without public field mutation.",
+          "effect": "The value configures admission; the walker applies strict-greater-than rejection."
+        },
+        {
+          "symbol": "RetiredAssetRefMigrationBudget::new",
+          "kind": "const constructor",
+          "docAction": "added Parameters and Constraints sections",
+          "entry": "Caller supplies three usize limits.",
+          "state": "Copies values as-is and does not clamp to defaults.",
+          "effect": "Custom limits take effect only when a budgeted migration entrance performs the check."
+        },
+        {
+          "symbol": "RetiredAssetRefMigrationBudget::standard",
+          "kind": "const constructor",
+          "docAction": "reviewed; baseline summary sufficient",
+          "entry": "Default-budget API requests standard limits.",
+          "state": "Constructs the budget from the three public constants.",
+          "effect": "Keeps default batch limits in one shared definition."
+        },
+        {
+          "symbol": "max_nodes/max_depth/max_references accessors",
+          "kind": "three const accessors",
+          "docAction": "reviewed; no redundant field-name docs added",
+          "entry": "The migration walker borrows a budget value.",
+          "state": "Returns each stored usize by value.",
+          "effect": "Provides the limits used by admission without mutation."
+        },
+        {
+          "symbol": "budget derive",
+          "kind": "derive macro",
+          "docAction": "reviewed; no attribute change",
+          "entry": "The type is compiled with its derives.",
+          "state": "Derives value-copy and equality/debug traits.",
+          "effect": "No runtime registration, serialization, or external validation is added."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs",
+      "initialSha256": "44dbce81155529b9ecac68e68e5f95fe14d66547f14d9b81fefc9b13ff4b3946",
+      "finalSha256": "e51cb9b925e79687083e64eec7e5af6b42baf4c4ac5dd9f5531ac135f8154ddf",
+      "finalBytes": 1842,
+      "finalLines": 54,
+      "eol": "LF",
+      "objects": [
+        {
+          "symbol": "RetiredAssetRefMigrationError<E>",
+          "kind": "public generic error enum",
+          "docAction": "added Chinese summary and a type-level InvalidShape explanation after formatter review",
+          "entry": "A public migration API encounters shape, budget, resolver, or serialization failure.",
+          "state": "Carries InvalidShape, ResourceLimitExceeded, or Resolve(E).",
+          "effect": "Separates interface validation and budget failures from the caller's resolver error."
+        },
+        {
+          "symbol": "InvalidShape { message }",
+          "kind": "error variant",
+          "docAction": "documented at enum level to avoid rustfmt reshaping baseline variant syntax",
+          "entry": "Exact legacy fields cannot be decoded or output R cannot serialize to JSON.",
+          "state": "Stores a diagnostic String.",
+          "effect": "The operation returns no migrated result; earlier resolver side effects, if any, are not rolled back."
+        },
+        {
+          "symbol": "ResourceLimitExceeded { resource, max, found }",
+          "kind": "error variant and fields",
+          "docAction": "added Chinese boundary explanation",
+          "entry": "Admission finds a counted resource strictly above its configured maximum.",
+          "state": "Returns the resource name and observed/allowed values.",
+          "effect": "In batch APIs, rejection occurs before any resolver callback."
+        },
+        {
+          "symbol": "Resolve(E)",
+          "kind": "error variant",
+          "docAction": "added Chinese side-effect boundary",
+          "entry": "The caller-supplied resolver returns Err.",
+          "state": "Wraps its error value.",
+          "effect": "Previously completed resolver side effects are not rolled back."
+        },
+        {
+          "symbol": "Display::fmt",
+          "kind": "trait method implementation",
+          "docAction": "reviewed; no addition",
+          "entry": "A caller formats a migration error.",
+          "state": "Formats each existing variant with its current message.",
+          "effect": "Preserves current diagnostic text."
+        },
+        {
+          "symbol": "std::error::Error::source",
+          "kind": "trait method implementation",
+          "docAction": "reviewed; no addition",
+          "entry": "A caller traverses error sources.",
+          "state": "Returns Some only for Resolve(E).",
+          "effect": "Keeps shape and budget errors as local causes and exposes the underlying resolver cause."
+        },
+        {
+          "symbol": "error derives and trait bounds",
+          "kind": "derive/trait contract",
+          "docAction": "reviewed; no attribute change",
+          "entry": "The generic error is used with E.",
+          "state": "Clone/Debug/Eq derive; Display requires E: Display; Error/source requires E: Error + 'static.",
+          "effect": "No code generation input or error behavior changed."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs",
+      "initialSha256": "9d76e7aa391b1858f94e99904e2807e98cca5eabd1686ce5214dbd210abad1ab",
+      "finalSha256": "8ddf4f6da2e3a756b81e04528fccb99870c5ec3886a0d0e144e2b8a9b192c106",
+      "finalBytes": 16191,
+      "finalLines": 390,
+      "eol": "LF",
+      "objects": [
+        {
+          "symbol": "migrate_retired_asset_references_with",
+          "kind": "public generic function",
+          "docAction": "added timing, parameter, constraint, return, and resolver-side-effect docs",
+          "entry": "Caller provides a loaded Value and a resolver.",
+          "state": "Uses the standard budgeted entrance; non-exact objects remain and their child values are visited.",
+          "effect": "Returns a rewritten Value on success; later parse/resolver errors do not undo prior resolver side effects."
+        },
+        {
+          "symbol": "migrate_retired_asset_references_with_budget",
+          "kind": "public generic function",
+          "docAction": "added parameter, preflight ordering, limit and return docs",
+          "entry": "Caller provides Value, explicit budget, and FnMut resolver.",
+          "state": "Runs full-tree admission before iterative rewrite; exact shapes are parsed and sent to resolver.",
+          "effect": "Budget failure guarantees no callback in that call; later failures can follow earlier callbacks."
+        },
+        {
+          "symbol": "migrate_retired_asset_references",
+          "kind": "public context-free v0-to-v1 function",
+          "docAction": "added parameter, return, scheme, path-hint and error docs",
+          "entry": "A legacy project reference enters a Runtime scene format migration.",
+          "state": "Delegates to persisted-reference migration; project references require res:// and become AssetRef path hints under assets/; builtin references remain distinct.",
+          "effect": "Does not read files or query an asset registry; returned path is a hint, not proof of physical location."
+        },
+        {
+          "symbol": "migrate_retired_persisted_asset_references_with",
+          "kind": "public generic function",
+          "docAction": "added parameter, resolver selection, budget and return docs",
+          "entry": "Caller migrates a whole Value with a project resolver.",
+          "state": "Uses the standard budget; only non-builtin references invoke the resolver, while builtin references construct their own variant.",
+          "effect": "Returns persisted project/builtin JSON; callback side effects are not rolled back after later errors."
+        },
+        {
+          "symbol": "migrate_retired_persisted_asset_references_with_budget",
+          "kind": "public generic function",
+          "docAction": "added budget, resolver, preflight and return docs",
+          "entry": "Caller provides a Value, budget and project resolver.",
+          "state": "Preflights the full tree, converts builtin directly and sends other exact references to the callback.",
+          "effect": "Budget rejection precedes all resolver calls; after admission a later error can follow earlier resolver effects."
+        },
+        {
+          "symbol": "migrate_retired_persisted_asset_reference_with",
+          "kind": "public generic single-reference function",
+          "docAction": "added root-shape, parameter, no-traversal/no-budget and return docs",
+          "entry": "A format owner has a root object with flattened legacy fields and needs an identity resolver.",
+          "state": "Requires exactly uuid and url at the root; builtin becomes a builtin variant; other schemes go to the project resolver.",
+          "effect": "Does not visit child values or perform the batch resource budget."
+        },
+        {
+          "symbol": "migrate_value_with_budget preflight/rewrite block",
+          "kind": "private control-flow block",
+          "docAction": "added comments preserving the baseline preflight comment",
+          "entry": "All batch APIs pass an owned Value, a budget and a resolver.",
+          "state": "Calls admit_migration_value first, then walks the value using RewriteFrame; replaces exact legacy objects and iterates other containers.",
+          "effect": "Makes the no-callback-on-budget-failure boundary explicit and distinguishes it from later errors."
+        },
+        {
+          "symbol": "RewriteFrame and Visit/Array/Object",
+          "kind": "private traversal enum and variants",
+          "docAction": "added traversal rationale comment",
+          "entry": "The rewriting loop starts with a root mutable Value.",
+          "state": "Frames hold a value or an iterator over array/object child values and process depth-first.",
+          "effect": "Traversal uses an explicit heap-backed frame stack instead of Rust recursive calls."
+        },
+        {
+          "symbol": "admit_migration_value traversal",
+          "kind": "private preflight function and loop",
+          "docAction": "added preflight/counting comment",
+          "entry": "Batch migration supplies an immutable Value and budget.",
+          "state": "Starts root at depth zero; checked_add counts nodes/references; counts exact key shape before parsing; visits children with depth plus one; stops on first exceeded resource.",
+          "effect": "Completes resource admission before any resolver can run; keys are not Value nodes."
+        },
+        {
+          "symbol": "AdmissionFrame and Visit/Array/Object",
+          "kind": "private preflight enum and variants",
+          "docAction": "added depth/iteration explanation",
+          "entry": "Admission loop begins at the root.",
+          "state": "Stores immutable Value references or container iterators plus child depth.",
+          "effect": "Maintains explicit full-tree traversal state and root-zero depth."
+        },
+        {
+          "symbol": "ensure_resource_limit",
+          "kind": "private helper",
+          "docAction": "added inclusive-threshold comment",
+          "entry": "Preflight supplies one resource name, observed count and limit.",
+          "state": "Rejects only when found > max.",
+          "effect": "Equality is admitted for nodes, depth and references."
+        },
+        {
+          "symbol": "is_exact_retired_shape",
+          "kind": "private helper",
+          "docAction": "added shape-versus-value-parse boundary",
+          "entry": "Walker inspects an object map.",
+          "state": "Checks exactly two keys and requires uuid and url names.",
+          "effect": "Field types and GUID/locator syntax are deferred to migrate_reference."
+        },
+        {
+          "symbol": "migrate_reference",
+          "kind": "private parse/callback/serialization block",
+          "docAction": "added ordering and side-effect comment",
+          "entry": "The walker has extracted an exact uuid/url object.",
+          "state": "Reads both strings, parses AssetUuid and ResourceLocator, calls resolver, serializes its result to Value.",
+          "effect": "A parsing failure occurs before this reference callback; output serialization failure can occur after callback side effects."
+        },
+        {
+          "symbol": "take_string",
+          "kind": "private field helper",
+          "docAction": "reviewed; no extra comment needed",
+          "entry": "migrate_reference requests uuid or url.",
+          "state": "Removes the named field and returns it only if it is a JSON string.",
+          "effect": "Missing or non-string fields map to InvalidShape."
+        },
+        {
+          "symbol": "invalid_shape",
+          "kind": "private constructor helper",
+          "docAction": "reviewed; no addition needed",
+          "entry": "A field, parser, or serializer conversion fails.",
+          "state": "Constructs InvalidShape with the message.",
+          "effect": "Preserves the existing typed error route."
+        },
+        {
+          "symbol": "flatten_default_error",
+          "kind": "private context-free error adapter",
+          "docAction": "reviewed; no addition needed",
+          "entry": "The default migration returns RetiredAssetRefMigrationError<MigrateError>.",
+          "state": "Maps InvalidShape and resource limits into invalid-payload MigrateError and passes resolver MigrateError through.",
+          "effect": "Keeps the legacy context-free public error type."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_reference.rs",
+      "initialSha256": "003317edac86e1a99f79e1366297bb69fe61d7ef9bc34d801ebd1d3e6b8183a8",
+      "finalSha256": "e9421b8173eee0aa38b7ad16e41ccb8fde7151eba61cadb311c77129614379c0",
+      "finalBytes": 692,
+      "finalLines": 23,
+      "eol": "LF",
+      "objects": [
+        {
+          "symbol": "RetiredAssetReference",
+          "kind": "public parsed-reference value",
+          "docAction": "added Chinese qualification to existing English summary",
+          "entry": "A precise old object has passed UUID and locator parsing.",
+          "state": "Stores AssetUuid and ResourceLocator privately.",
+          "effect": "Parsing does not prove registry correspondence; scheme and asset identity are the resolver's responsibility."
+        },
+        {
+          "symbol": "guid and locator fields",
+          "kind": "private fields",
+          "docAction": "reviewed under type-level boundary; no repetitive field docs",
+          "entry": "The exact old shape is parsed.",
+          "state": "Retains typed identifier and locator.",
+          "effect": "Provides the resolver's input without claiming authenticity."
+        },
+        {
+          "symbol": "RetiredAssetReference::new",
+          "kind": "private constructor",
+          "docAction": "reviewed; no addition",
+          "entry": "Migration parsing has produced typed values.",
+          "state": "Stores both inputs without lookup.",
+          "effect": "Does not perform registry or file-system validation."
+        },
+        {
+          "symbol": "guid/locator accessors",
+          "kind": "public accessors",
+          "docAction": "reviewed; names and types are sufficient",
+          "entry": "Caller receives parsed reference.",
+          "state": "Returns copied GUID or borrowed locator.",
+          "effect": "No mutation or identity check occurs."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/persisted_asset_reference.rs",
+      "initialSha256": "9b771178a2bc4ed2e556e170e2c2b1c82e441260aed847273b1ee9b422dacebc",
+      "finalSha256": "ffd2890519c2bad4d41eff5fa0c8bfbd4f74fb4e1b3f192f01f3bd298e19a301",
+      "finalBytes": 4212,
+      "finalLines": 117,
+      "eol": "LF",
+      "objects": [
+        {
+          "symbol": "PersistedAssetReference",
+          "kind": "public newtype",
+          "docAction": "reviewed existing bilingual contract; no duplicate docs",
+          "entry": "A project or builtin reference is constructed for persistence.",
+          "state": "Wraps a private PersistedAssetReferenceKind.",
+          "effect": "Distinguishes durable project data from runtime-only locators."
+        },
+        {
+          "symbol": "PersistedAssetReferenceKind",
+          "kind": "private Serde-tagged enum",
+          "docAction": "added Chinese wire-shape and builtin-validation summary",
+          "entry": "Serde serializes or deserializes a persisted reference.",
+          "state": "Uses kind internal tag, snake_case variants and deny_unknown_fields.",
+          "effect": "Documents the stable project/builtin representation and builtin scheme guard."
+        },
+        {
+          "symbol": "PersistedAssetReferenceKind::Project",
+          "kind": "Serde variant with flattened AssetRef",
+          "docAction": "added variant note",
+          "entry": "A project reference is represented in wire data.",
+          "state": "Flattens AssetRef fields beside the kind tag; AssetRef handles its own deserialization validation.",
+          "effect": "A locator payload does not satisfy this project shape."
+        },
+        {
+          "symbol": "PersistedAssetReferenceKind::Builtin",
+          "kind": "Serde variant",
+          "docAction": "scheme note moved to enum docs for formatter stability",
+          "entry": "A builtin reference is represented in wire data.",
+          "state": "Stores ResourceLocator and manual Deserialize rechecks it through try_builtin.",
+          "effect": "Only builtin:// is accepted."
+        },
+        {
+          "symbol": "PersistedAssetReferenceError",
+          "kind": "public error struct and private locator field",
+          "docAction": "added one-sentence Chinese summary after existing derive",
+          "entry": "try_builtin receives a non-builtin scheme.",
+          "state": "Retains the original ResourceLocator for Display diagnostics.",
+          "effect": "The error preserves the rejected input context."
+        },
+        {
+          "symbol": "Display::fmt and std::error::Error",
+          "kind": "error trait implementations",
+          "docAction": "reviewed; no addition",
+          "entry": "A caller displays or chains the error.",
+          "state": "Formats the rejected locator and implements Error.",
+          "effect": "Preserves existing diagnostic behavior."
+        },
+        {
+          "symbol": "PersistedAssetReference::project",
+          "kind": "public constructor",
+          "docAction": "reviewed; typed AssetRef input makes behavior clear",
+          "entry": "Caller supplies AssetRef.",
+          "state": "Wraps it as Project without extra lookup.",
+          "effect": "The wrapper does not prove the asset exists on disk."
+        },
+        {
+          "symbol": "PersistedAssetReference::try_builtin",
+          "kind": "public fallible constructor",
+          "docAction": "added Parameters and Returns sections",
+          "entry": "Caller supplies ResourceLocator.",
+          "state": "Accepts Builtin scheme; on mismatch returns an error owning the original locator.",
+          "effect": "Ensures the builtin variant is not constructed from a project locator."
+        },
+        {
+          "symbol": "PersistedAssetReference::builtin",
+          "kind": "public asserting constructor",
+          "docAction": "existing Chinese panic/precondition docs retained",
+          "entry": "Trusted internal caller supplies a locator already known to be builtin.",
+          "state": "Delegates to try_builtin and expect.",
+          "effect": "Panics for another scheme; no baseline doc was rewritten."
+        },
+        {
+          "symbol": "project_ref/builtin_locator",
+          "kind": "two public accessors",
+          "docAction": "reviewed; no redundant field-return docs",
+          "entry": "Caller examines a persisted reference.",
+          "state": "Returns Some for its matching variant and None for the other.",
+          "effect": "Borrows the project AssetRef or locator without mutation."
+        },
+        {
+          "symbol": "Serialize::serialize",
+          "kind": "manual trait implementation",
+          "docAction": "reviewed; no addition",
+          "entry": "Serde serializes the wrapper.",
+          "state": "Delegates to the inner tagged enum.",
+          "effect": "Uses the enum wire contract."
+        },
+        {
+          "symbol": "Deserialize::deserialize",
+          "kind": "manual trait implementation with preserved baseline ordinary comment",
+          "docAction": "reviewed; added no replacement comment",
+          "entry": "Serde first deserializes the tagged enum.",
+          "state": "Project returns the flattened AssetRef; builtin routes through try_builtin and maps its error.",
+          "effect": "Applies scheme validation at the wrapper boundary as well as the tagged shape."
+        },
+        {
+          "symbol": "persisted_asset_reference test path module",
+          "kind": "cfg(test) wiring",
+          "docAction": "reviewed; no code change",
+          "entry": "Unit tests are enabled.",
+          "state": "Includes tests/persisted_asset_reference.rs by path.",
+          "effect": "Keeps the two serialized-variant rejection contracts attached to this module."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs",
+      "initialSha256": "2d81afc69e16ef261fd8b3d4a325041330d5a7cc8df85df816b1507e05c4dabf",
+      "finalSha256": "2d81afc69e16ef261fd8b3d4a325041330d5a7cc8df85df816b1507e05c4dabf",
+      "finalBytes": 4449,
+      "finalLines": 160,
+      "eol": "LF",
+      "commentDecision": "No new per-test docs; existing names and assertions already describe each boundary.",
+      "objects": [
+        {
+          "symbol": "exact_retired_reference_shape_uses_the_supplied_resolver",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Nested exact uuid/url object is passed to the generic resolver.",
+          "state": "Resolver sees parsed locator; migrated output uses returned AssetRef fields.",
+          "effect": "Proves exact shape is rewritten through the supplied identity mapping."
+        },
+        {
+          "symbol": "retired_builtin_reference_uses_the_distinct_builtin_contract",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Exact old object has builtin locator.",
+          "state": "Uses context-free migration.",
+          "effect": "Proves builtin becomes distinct tagged persisted data."
+        },
+        {
+          "symbol": "lookalike_objects_are_not_guessed_as_retired_references",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Object contains uuid/url plus an extra label key.",
+          "state": "Resolver panics if called; migration returns object unchanged.",
+          "effect": "Proves exact-key recognition and continued no-guess behavior."
+        },
+        {
+          "symbol": "malformed_exact_shape_returns_a_typed_shape_error",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Exact key set contains a non-string uuid.",
+          "state": "Resolver panics if called; API returns InvalidShape.",
+          "effect": "Proves malformed field values are rejected before this reference reaches the callback."
+        },
+        {
+          "symbol": "programmatic_value_depth_is_rejected_before_the_resolver_runs",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "In-memory Value is nested past default depth 128.",
+          "state": "Resolver panics if invoked; error reports depth max 128 and found 129.",
+          "effect": "Proves default budget checks programmatically built values before callback."
+        },
+        {
+          "symbol": "caller_budget_rejects_nodes_before_the_resolver_runs",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Root array has two null child values and max_nodes=2.",
+          "state": "Error reports found 3; resolver panics if called.",
+          "effect": "Proves root value counts and node budget precedes resolver."
+        },
+        {
+          "symbol": "caller_budget_rejects_reference_count_before_the_resolver_runs",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Two exact references are supplied with max_references=1.",
+          "state": "Error reports found 2; resolver panics if called.",
+          "effect": "Proves exact-shape reference budget is checked before callbacks."
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs",
+      "initialSha256": "bb33dadbf334fa19c97a9eae283fbbb99ce1e45b2908cdce25ef0731b651e8a4",
+      "finalSha256": "bb33dadbf334fa19c97a9eae283fbbb99ce1e45b2908cdce25ef0731b651e8a4",
+      "finalBytes": 651,
+      "finalLines": 18,
+      "eol": "LF",
+      "commentDecision": "No new per-test docs; each test name and expected error state its contract.",
+      "objects": [
+        {
+          "symbol": "serde_rejects_non_builtin_locator_for_builtin_variant",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Serialized builtin variant carries a res:// locator.",
+          "state": "Deserialize returns an error mentioning builtin://.",
+          "effect": "Proves wrapper-level builtin scheme revalidation."
+        },
+        {
+          "symbol": "serde_rejects_locator_payload_for_project_variant",
+          "kind": "test function",
+          "docAction": "no addition needed",
+          "entry": "Serialized project variant contains locator instead of flattened AssetRef fields.",
+          "state": "Deserialize rejects the payload.",
+          "effect": "Proves project flattened shape is distinct from builtin locator representation."
+        }
+      ]
+    }
+  ],
+  "callerEvidence": [
+    {
+      "id": "CALL-01",
+      "path": "zircon_runtime_interface/src/project/mod.rs",
+      "sha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+      "status": "clean at observation",
+      "symbols": "private path module wiring and project:: re-exports at lines 36-37, 84-89",
+      "relationship": "The implementation remains behind the project API; Runtime imports the public functions through zircon_runtime_interface::project."
+    },
+    {
+      "id": "CALL-02",
+      "path": "zircon_runtime_interface/src/project/tests/mod.rs",
+      "sha256": "12cecad134d6d6c0a5cedcebb4d5498e71d652be3e26b0bfa61e380caac9f256",
+      "status": "clean at observation",
+      "symbols": "retired_asset_ref_migration test path module",
+      "relationship": "Wires the assigned migration test file into project tests."
+    },
+    {
+      "id": "CALL-03",
+      "path": "zircon_runtime/src/scene/reflect/json_document/migration.rs",
+      "sha256": "f173b48045ea2d7d20fd2f9e5f1fa8004f592e7cd535e61974dbe980c229dbd2",
+      "status": "clean at observation",
+      "symbols": "migrate_reflected_json_v0_to_v1",
+      "relationship": "Calls migrate_retired_asset_references before wrapping the result as ReflectedValue::Json; this is the context-free res:// path."
+    },
+    {
+      "id": "CALL-04",
+      "path": "zircon_runtime/src/scene/dynamic/document/migration/mod.rs",
+      "sha256": "c8090daf30e7052754c96103df6cf8e7ace350cfd3fb769e4f94bc3ee60acb88",
+      "status": "clean at observation",
+      "symbols": "migrate_dynamic_scene_v0_to_v1",
+      "relationship": "Migrates an old project-world value, then applies migrate_retired_asset_references before later version transformations."
+    },
+    {
+      "id": "CALL-05",
+      "path": "zircon_runtime/src/asset/migration/document.rs",
+      "sha256": "b2d6d6cab655be2c47373e306dfc8c05d839fc0dbc564393909beafd347954bb",
+      "status": "clean at observation",
+      "symbols": "migrate_one_reference; migrate_retired_references; migrate_material_references",
+      "relationship": "The TOML document migration uses migrate_retired_persisted_asset_reference_with and supplies a callback to MigrationResolver::resolve; flattened material fields use the single-object entry."
+    },
+    {
+      "id": "CALL-06",
+      "path": "zircon_runtime/src/asset/migration/resolver.rs",
+      "sha256": "4fe3dc069615c201823c3e121b5752fe03e5cf82931d8cea65845301b7e64577",
+      "status": "clean at observation",
+      "symbols": "MigrationResolver::resolve",
+      "relationship": "Performs scheme and registry/source-index resolution, repairs moved path hints, and enforces GUID/subasset identity contracts outside the interface migration helper."
+    },
+    {
+      "id": "CALL-07",
+      "path": "zircon_runtime/src/asset/migration/tests/resolver.rs",
+      "sha256": "46c67cc8725ecb2f1bdbf19f6768129a6ab9bc3d74a73c391d46beb8a92240d0",
+      "status": "clean at observation",
+      "symbols": "retired_migration_never_downgrades_missing_labeled_subasset_to_parent; retired_migration_uses_a_matching_guid_to_repair_a_moved_source; retired_migration_rejects_parent_guid_subasset_conflicts; retired_migration_repairs_moved_subasset_hint_without_changing_identity",
+      "relationship": "Four integration contracts exercise the caller-owned resolver through the exact single-reference persisted migration API."
+    },
+    {
+      "id": "CALL-08",
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "sha256": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+      "status": "clean at observation",
+      "symbols": "reflected JSON persistence static source contract",
+      "relationship": "Asserts that reflected JSON migration delegates retired AssetRef migration to the Runtime Interface project API."
+    }
+  ],
+  "writeReceipts": [
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/mod.rs",
+      "writer": "/root/public_project",
+      "receipt": "functions.exec cell 151 tools.apply_patch returned {}; added module summary and boundaries."
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/budget.rs",
+      "writer": "/root/public_project",
+      "receipt": "functions.exec cell 151 tools.apply_patch returned {}; added limit counting explanations and constructor contract."
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs",
+      "writer": "/root/public_project",
+      "receipt": "functions.exec cell 151 added variant docs; functions.exec cell 178 moved the InvalidShape explanation to enum-level docs after rustfmt identified a code-shape formatting difference; both successful apply_patch calls returned {}."
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs",
+      "writer": "/root/public_project",
+      "receipt": "functions.exec cells 155, 157, 158, 159 returned {}; cell 160 returned {} and restored the pre-existing inline comment exactly after a first raw comparison caught its replacement."
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_reference.rs",
+      "writer": "/root/public_project",
+      "receipt": "functions.exec cell 151 tools.apply_patch returned {}; added the parsed-value versus identity-resolution boundary."
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/persisted_asset_reference.rs",
+      "writer": "/root/public_project",
+      "receipt": "functions.exec cell 151 returned {}; cell 178 returned {} and moved the new Builtin scheme note into the enum-level docs after rustfmt identified a code-shape formatting difference. Existing ordinary Deserialize comment was retained."
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs",
+      "writer": "/root/public_project",
+      "receipt": "No write; complete existing tests were reviewed and left unchanged."
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs",
+      "writer": "/root/public_project",
+      "receipt": "No write; both existing Serde tests were reviewed and left unchanged."
+    },
+    {
+      "path": "source write attempt",
+      "writer": "/root/public_project",
+      "receipt": "functions.exec cell 150 apply_patch failed patch verification before writing; no bytes changed."
+    }
+  ],
+  "baselineAndPatchCheck": {
+    "assignmentBase": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+    "rawBaselineNativeReceipt": {
+      "outerCell": "182",
+      "childSession": "93099",
+      "exit": 0,
+      "note": "Read-only Python command compared every current file against git show raw blobs, checked line-ending counts, HEAD and exact-scope porcelain."
+    },
+    "rawBaselineResult": "All 8/8 assignment blobs matched their expected initialSha256. Every original line was preserved byte-for-byte and in order; the unified-zero-context diff has no removed lines. Both unmodified test files match their baseline hashes. All final sources are LF-only.",
+    "patch": {
+      "nativeReceipt": "functions.exec cell 185, exit 0",
+      "changedFiles": 6,
+      "addedLines": 136,
+      "deletedLines": 0,
+      "allChangedLinesCommentsOrBlank": true,
+      "sha256": "306449970daa840943c54fb57f03be4a714053e3dde11bc008eb5c7725c3e135",
+      "note": "Git emitted LF-to-CRLF autocrlf warnings for six changed files; independent raw byte and EOL counts confirm no physical conversion."
+    },
+    "sourceStatusNativeReceipt": {
+      "nativeReceipt": "functions.exec cell 182, nested native session 93099, exit 0",
+      "status": "Six assigned source files are worktree-only M; two assigned test files are clean; no staged change."
+    }
+  },
+  "validation": {
+    "status": "pending-independent-review",
+    "rustfmt": {
+      "status": "passed",
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact 8 source paths>",
+      "initialAttempt": {
+        "nativeReceipt": "functions.exec cell 167",
+        "exit": 1,
+        "result": "New variant-level docs caused rustfmt to request single-line formatting for baseline InvalidShape and Builtin struct variants; no source code was reformatted."
+      },
+      "baselineStdoutComparison": {
+        "nativeReceipt": "functions.exec cell 173, exit 0",
+        "result": "For both HEAD raw blobs, rustfmt --emit stdout returned byte-identical input. On the two then-current files it emitted 13 fewer bytes, corresponding to folding each struct variant after the newly attached variant docs; this isolated the trigger to the new docs, not baseline formatting."
+      },
+      "correction": "Moved only this batch's InvalidShape and Builtin explanations into their enum type-level docs; preserved baseline code and comments.",
+      "finalReceipt": "functions.exec cell 179",
+      "exit": 0,
+      "note": "Exact eight files, Edition 2021, skip_children=true; read-only check."
+    },
+    "diffWhitespace": {
+      "status": "passed",
+      "command": "git --no-optional-locks diff --check -- <exact 8 source paths>",
+      "nativeReceipt": "functions.exec cell 179",
+      "exit": 0,
+      "note": "Git printed LF-to-CRLF autocrlf warnings; raw source hashes confirm LF-only physical bytes."
+    },
+    "structuralDiff": {
+      "status": "passed",
+      "nativeReceipt": "functions.exec cell 185",
+      "exit": 0,
+      "result": "136 additions, zero deletions, changed lines are comments or blank lines only; patch SHA is recorded in baselineAndPatchCheck.patch."
+    },
+    "changeGuard": {
+      "status": "passed",
+      "command": "python .codex/skills/zircon-change-guard/scripts/change_guard.py --json patch --git --base d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef --path <repeat for exact 8 assigned sources>",
+      "nativeReceipt": "functions.exec cell 184",
+      "exit": 0,
+      "toolSha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+      "patchDigest": "09e9747106bf63e1e4b3623833ffa945f8c764671eb629d5661a5f13b75ae67e",
+      "declaredPaths": 8,
+      "changedFiles": 6,
+      "writeGrantCheck": true,
+      "contributorMode": false,
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0,
+      "markersOpened": 0,
+      "markersClosed": 0,
+      "markersMoved": 0
+    },
+    "scopedCommentParserAcceptance": {
+      "status": "pending-independent-review",
+      "reason": "Rustfmt parsing/format and structural checks pass, but the coordinator/root source-comment acceptance review remains pending. No rustdoc link resolution or macro expansion is claimed."
+    },
+    "cargoBuildTestsDoc": {
+      "status": "not-required-and-not-run",
+      "reason": "This is comment/doc-attribute review. No Cargo build/test, rustdoc, or macro execution was run."
+    },
+    "earlierToolInvocation": {
+      "nativeReceipt": "functions.exec cell 168",
+      "exit": 1,
+      "result": "First change-guard CLI invocation supplied multiple --path values without repeating the flag and was rejected by argparse. The corrected exact-path invocation passed at cell 184."
+    }
+  },
+  "crossBatchDependencies": [
+    {
+      "batchId": "none",
+      "dependency": "No assigned source or evidence from project-template-pack-007, project-identity-008, or other earlier batches was modified. Runtime callers were read-only and pinned in CALL-03 through CALL-08."
+    }
+  ],
+  "limitations": [
+    "No Rustdoc link resolution, Serde derive expansion, Cargo build/tests, or Jenkins acceptance was executed or claimed.",
+    "The interface migration helpers consume already-loaded values; file reads, registry mapping, source path repair and admission decisions remain caller responsibilities.",
+    "Caller pins are read-only point-in-time observations and do not change caller ownership."
+  ]
+}

@@ -6,7 +6,7 @@ use serde::Serialize;
 use crate::settings::HubLanguage;
 use crate::state::{HubActionRecord, HubActionStatus, HubSnapshot};
 
-use super::{path_text_en, relative_time, HubTextBundle};
+use super::{HubTextBundle, path_text_en, relative_time};
 
 /// 跨端历史项的显示协议；稳定分类供页面筛选，已渲染文本供当前语言界面使用。
 #[derive(Debug, Clone, Serialize)]

@@ -62,7 +62,9 @@ fn first_build_uses_the_managed_default_and_current_tool_entry() {
     let output_arg = command.args.iter().position(|arg| arg == "--out").unwrap() + 1;
     let output = PathBuf::from(&command.args[output_arg]);
     assert!(output.starts_with(PathBuf::from("E:/cargo-targets")));
-    assert!(command
-        .capture_dir
-        .starts_with(PathBuf::from("E:/cargo-targets")));
+    assert!(
+        command
+            .capture_dir
+            .starts_with(PathBuf::from("E:/cargo-targets"))
+    );
 }

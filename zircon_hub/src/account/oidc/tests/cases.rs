@@ -1,10 +1,10 @@
 use super::*;
 use axum::{
+    Json, Router,
     extract::Form,
     routing::{get, post},
-    Json, Router,
 };
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
@@ -12,7 +12,7 @@ use std::{
 
 #[test]
 fn refresh_transport_errors_preserve_session_and_only_invalid_grant_expires_it() {
-    use openidconnect::{core::CoreErrorResponseType, RequestTokenError, StandardErrorResponse};
+    use openidconnect::{RequestTokenError, StandardErrorResponse, core::CoreErrorResponseType};
     assert!(matches!(
         refresh_error(RequestTokenError::Request(
             AccountError::ProviderUnavailable

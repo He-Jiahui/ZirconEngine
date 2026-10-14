@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 #[cfg(windows)]
 use zircon_runtime_interface::project::session_lock::windows_project_session_mutex_name;
 use zircon_runtime_interface::project::session_lock::{
-    decode_project_session_admission_record, project_session_lock_path,
     ProjectSessionAdmissionLifecycleV1, ProjectSessionAdmissionRecordV1,
+    decode_project_session_admission_record, project_session_lock_path,
 };
 
 use crate::error::HubError;

@@ -106,6 +106,7 @@ pub unsafe fn validate_runtime_host_api_v1_pointer(
     }
 
     // 此处只证明了非空与对齐；可读且已初始化的完整表由调用方的 unsafe 契约提供。
+    // SAFETY: 非空和对齐已检查；完整可读且已初始化的表及借用期间有效性由本 unsafe 入口的契约和调用方保证。
     let host = unsafe { &*host };
     validate_runtime_host_api_v1_shape(host)?;
     Ok(())

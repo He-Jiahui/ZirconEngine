@@ -11,9 +11,10 @@
     "userStatement": "旧聊天已结束，核对证据后由本聊天续办",
     "previousOwnerThreadId": "01a13045-75e3-7dd2-86d8-de54d914c232",
     "newOwnerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
-    "state": "authorized; per-file current hash, attribution and evidence reconciliation pending",
+    "state": "user authorized; first9 independently reconciled at finalSHA; remaining old97 still require per-file attribution/review",
     "nativeOperationTerminationInferred": false,
-    "historicalMetadataPolicy": "retain originals; register reconciled transfer and final review evidence in continuation ledger"
+    "historicalMetadataPolicy": "retain originals; register reconciled transfer and final review evidence in continuation ledger",
+    "reconciledFiles": 9
   },
   "standard": "docs/tests/source-comment-review-standard.md",
   "plan": "docs/plans/02-whole-source-comment-review-continuation.md",
@@ -36,9 +37,9 @@
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "708f5798c3e31a20a2a06f0a359a4cb39cdf9cf8dd7580960173f4d530abfaa5",
-      "currentSha256": "708f5798c3e31a20a2a06f0a359a4cb39cdf9cf8dd7580960173f4d530abfaa5",
+      "currentSha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
       "reviewedSha256": null,
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
       "objectEvidence": [],
@@ -55,16 +56,17 @@
         "status": "pending",
         "sha": null
       },
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/schema_id.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "b2eea54a5f1b47ff47cd2c9a07746ce8621b38e264735d5e6ca19f02ae303082",
-      "currentSha256": "b2eea54a5f1b47ff47cd2c9a07746ce8621b38e264735d5e6ca19f02ae303082",
+      "currentSha256": "24db4fd7d2a41b25bafbbe18d6f2a7c4c7030e50689a930e6e77829ef59a4dff",
       "reviewedSha256": null,
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
       "objectEvidence": [],
@@ -81,16 +83,17 @@
         "status": "pending",
         "sha": null
       },
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/payload_header.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "d3cf22421fb7f10d1ebc22724a8a88e705e26d2b300e264cc71c957ff1c72fff",
-      "currentSha256": "d3cf22421fb7f10d1ebc22724a8a88e705e26d2b300e264cc71c957ff1c72fff",
+      "currentSha256": "24de8fdb868a92f7176e78d154636d52361d2e6621626f31f5bc5e7a004882da",
       "reviewedSha256": null,
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
       "objectEvidence": [],
@@ -107,14 +110,15 @@
         "status": "pending",
         "sha": null
       },
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/versioned_schema.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "fdf06e96d6d70d17aff539e867d5661532b974ee49f71cee78334545b4e25bfd",
-      "currentSha256": "fdf06e96d6d70d17aff539e867d5661532b974ee49f71cee78334545b4e25bfd",
+      "currentSha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
       "reviewedSha256": null,
       "objectEvidence": [],
       "callerEvidence": [],
@@ -130,17 +134,18 @@
         "status": "pending",
         "sha": null
       },
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/loaded.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "cc8aafb1a033201b4e22e889b29708444aa4597be3d9260eb8bb1f2266e2b68d",
-      "currentSha256": "cc8aafb1a033201b4e22e889b29708444aa4597be3d9260eb8bb1f2266e2b68d",
+      "currentSha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
       "reviewedSha256": null,
       "objectEvidence": [],
       "callerEvidence": [],
@@ -156,17 +161,18 @@
         "status": "pending",
         "sha": null
       },
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/load.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "5ab8c59220c83748a40d2d02970069a587b7431c3a1a8b3ed56bc9b8503e6d0c",
-      "currentSha256": "5ab8c59220c83748a40d2d02970069a587b7431c3a1a8b3ed56bc9b8503e6d0c",
+      "currentSha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
       "reviewedSha256": null,
       "objectEvidence": [],
       "callerEvidence": [],
@@ -182,19 +188,20 @@
         "status": "pending",
         "sha": null
       },
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/tests/schema_id_contract.rs",
       "language": "rust",
       "classification": "first-party test source",
       "initialSha256": "ba55df16e8620daa7815b72a1c51e99ff683bde3f093f02a9933cefbb410c961",
-      "currentSha256": "ba55df16e8620daa7815b72a1c51e99ff683bde3f093f02a9933cefbb410c961",
+      "currentSha256": "6e02f95f42352ce0b17af82a7b49b1d5b594aca35fda557dda406dc47b25bc58",
       "reviewedSha256": null,
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
       "objectEvidence": [],
@@ -211,14 +218,15 @@
         "status": "pending",
         "sha": null
       },
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
       "language": "rust",
       "classification": "first-party test source",
       "initialSha256": "8899c0423611e6e26550f320781a5fc329419f3b8144cb272925fc8472ce00ab",
-      "currentSha256": "8899c0423611e6e26550f320781a5fc329419f3b8144cb272925fc8472ce00ab",
+      "currentSha256": "8c15c7910534bbaef2357b0beef35e837e552ed680aab3ff25fc3f15134683fa",
       "reviewedSha256": null,
       "objectEvidence": [],
       "callerEvidence": [],
@@ -234,17 +242,18 @@
         "status": "pending",
         "sha": null
       },
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
       "language": "rust",
       "classification": "first-party test source",
       "initialSha256": "db06b246ca6879ddb78bb20cfee5c89096aeb3127bb0a72236548a67c87c53cd",
-      "currentSha256": "db06b246ca6879ddb78bb20cfee5c89096aeb3127bb0a72236548a67c87c53cd",
+      "currentSha256": "6f639acc69f3e9a8bd9a638bd5ee300d3ed76be6359106512a59c5ea90c0b76a",
       "reviewedSha256": null,
       "objectEvidence": [],
       "callerEvidence": [],
@@ -260,17 +269,18 @@
         "status": "pending",
         "sha": null
       },
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/tests/binary_contract.rs",
       "language": "rust",
       "classification": "first-party test source",
       "initialSha256": "d249746407172a6bf3f70713c2442ca6b0ab4b0b7bb5f3db46fc2580a86ba498",
-      "currentSha256": "d249746407172a6bf3f70713c2442ca6b0ab4b0b7bb5f3db46fc2580a86ba498",
+      "currentSha256": "a54fa257552598bcbb9c5f02621056754644618484f2658286f1d753fa0363bd",
       "reviewedSha256": null,
       "objectEvidence": [],
       "callerEvidence": [],
@@ -286,10 +296,11 @@
         "status": "pending",
         "sha": null
       },
-      "state": "assigned",
+      "state": "waiting-native-terminal",
       "owner": "/root/public_serialization",
       "batchId": "serialization-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "agent inspection pending",
+      "waitReason": "old EOL operation native identity/EOF unresolved; all ten source writes paused; independent disjoint positional batch continues"
     },
     {
       "path": "zircon_runtime_interface/src/plugin_api.rs",
@@ -298,8 +309,20 @@
       "initialSha256": "c18c61b30a589fc1cc6d12750db7288efa2ed61e443e01ee885af04571735d8e",
       "currentSha256": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f",
       "reviewedSha256": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f",
-      "objectEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "files/plugin_api.rs; contractGroups PCG-01..15"}],
-      "callerEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "callerEvidence"}],
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "files/plugin_api.rs; contractGroups PCG-01..15"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
@@ -325,8 +348,20 @@
       "initialSha256": "9f5c351cadf84e2dc8422768724955500000a8b9f0a9597d0739f1bb60f705ba",
       "currentSha256": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79",
       "reviewedSha256": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79",
-      "objectEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "files/plugin_events.rs; contractGroups PCG-16..17"}],
-      "callerEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "callerEvidence"}],
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "files/plugin_events.rs; contractGroups PCG-16..17"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
@@ -352,8 +387,20 @@
       "initialSha256": "bc71c12a6477049a6e22eca78a2d69ea5ae71737eafb1d851ed9c995abf945a4",
       "currentSha256": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
       "reviewedSha256": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
-      "objectEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "files/plugin_diagnostics.rs; contractGroups PCG-18..19"}],
-      "callerEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "callerEvidence"}],
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "files/plugin_diagnostics.rs; contractGroups PCG-18..19"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
@@ -379,8 +426,20 @@
       "initialSha256": "f91991802231ac406553f427a6b17c71c851cd4e0f78732de1a1bf7801cb994e",
       "currentSha256": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
       "reviewedSha256": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
-      "objectEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "files/tests/plugin_api_contracts.rs; contractGroups PCG-20"}],
-      "callerEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "callerEvidence"}],
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "files/tests/plugin_api_contracts.rs; contractGroups PCG-20"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
@@ -406,8 +465,20 @@
       "initialSha256": "bf7b6964f79ddd6f7ce1cbe64fabe7028ce6c7ec0ce64d76f3d6e2eaa5997623",
       "currentSha256": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72",
       "reviewedSha256": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72",
-      "objectEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "files/tests/plugin_diagnostics.rs; contractGroups PCG-21"}],
-      "callerEvidence": [{"path": "docs/tests/source-comment-review-evidence-plugin-core-005.json", "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0", "section": "callerEvidence"}],
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "files/tests/plugin_diagnostics.rs; contractGroups PCG-21"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+          "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
@@ -639,328 +710,1794 @@
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "41addd6a747103a111633b78d8df0f5b3be51c7462141a8ad458b28c3702c6ab",
-      "currentSha256": "41addd6a747103a111633b78d8df0f5b3be51c7462141a8ad458b28c3702c6ab",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+      "reviewedSha256": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-002"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-04",
+          "CALL-06",
+          "CALL-07",
+          "CALL-09"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "b6294f438635a05c81bb4a374c7bf758158961cd268967396f2ba32c4c7dc875",
-      "currentSha256": "b6294f438635a05c81bb4a374c7bf758158961cd268967396f2ba32c4c7dc875",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+      "reviewedSha256": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-003"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-04",
+          "CALL-05",
+          "CALL-09"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "c479d66433dc8cdeea4108cb5ea0e967c70e5eb272b6eb7105f060abf391c4dd",
-      "currentSha256": "c479d66433dc8cdeea4108cb5ea0e967c70e5eb272b6eb7105f060abf391c4dd",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+      "reviewedSha256": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-006"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-04",
+          "CALL-06",
+          "CALL-07"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "951f32f2961e78ccae557d0d7d96f50b5b651214fe8919dfc182652956dd5519",
-      "currentSha256": "951f32f2961e78ccae557d0d7d96f50b5b651214fe8919dfc182652956dd5519",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21",
+      "reviewedSha256": "25227be869e81d9939af3d0c4e75dd0c2d59af5f5d5c65edcc796f5a6634de21",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-004"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-05",
+          "CALL-09"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/engine_compatibility/error.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "385612ca3f52e76d0e303978abc506682dee84eafe172e9c7bf16a859c98e532",
-      "currentSha256": "385612ca3f52e76d0e303978abc506682dee84eafe172e9c7bf16a859c98e532",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+      "reviewedSha256": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-005"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-04",
+          "CALL-06",
+          "CALL-07"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/engine_compatibility/mod.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "9c3ec597207598738a8ccd5ed42ca68f5945bcbe36f979033254b7a02dba3c61",
-      "currentSha256": "9c3ec597207598738a8ccd5ed42ca68f5945bcbe36f979033254b7a02dba3c61",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+      "reviewedSha256": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-001"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-02"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/engine_compatibility/version.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "9cfbb0e9e1cf35b73182c805466e0569afb7d4b8e0a7238f23e5fbc7395e48e2",
-      "currentSha256": "9cfbb0e9e1cf35b73182c805466e0569afb7d4b8e0a7238f23e5fbc7395e48e2",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+      "reviewedSha256": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-007"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-05",
+          "CALL-09"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "57a293798df385dfe6c249bdde6480013f8e7ff7d07864f86bf559a35d3730f6",
-      "currentSha256": "57a293798df385dfe6c249bdde6480013f8e7ff7d07864f86bf559a35d3730f6",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+      "reviewedSha256": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-008"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-05",
+          "CALL-09"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
       "language": "rust",
       "classification": "first-party test source",
       "initialSha256": "5b15f17701c8b9db6958092a8622eb362b483e9811ae598fffc9a31e439e0eca",
-      "currentSha256": "5b15f17701c8b9db6958092a8622eb362b483e9811ae598fffc9a31e439e0eca",
-      "reviewedSha256": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+      "reviewedSha256": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-009"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "CALL-04",
+          "CALL-06",
+          "CALL-07",
+          "CALL-09"
+        ]
+      },
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
       },
       "validation": {
-        "status": "pending"
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
       },
       "commit": {
-        "status": "pending",
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
         "sha": null
       },
-      "state": "assigned",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
-      "existingIssueTagsStatus": "agent inspection pending"
+      "existingIssueTagsStatus": "root/agent exact scope checked; none"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/positional.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "870a25e1eb20480ac16a96548f2d9ff9a980987fed3aeb2c748545672cda391f",
-      "currentSha256": "870a25e1eb20480ac16a96548f2d9ff9a980987fed3aeb2c748545672cda391f",
-      "reviewedSha256": null,
-      "state": "pending",
-      "owner": null,
-      "batchId": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "7d5a42f1fa3ac1fa44ca0537014473ede9f314a03624522da5df8c02391e4105",
+      "reviewedSha256": "7d5a42f1fa3ac1fa44ca0537014473ede9f314a03624522da5df8c02391e4105",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_serialization",
+      "batchId": "positional-codec-006",
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-positional-codec-006.json",
+          "sha256": "90b1f28fce8f52d4e02cd46f669df616a3a56510e8c2f47b9443dfd7d28a5e5a",
+          "section": "files/zircon_runtime_interface/src/serialization/positional.rs/objectEvidence"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+          "sha256": "a1c777417352acec7649dc226a296e759ed923e19f8ae6452de2f45af3e9e86c",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed; actual coordinator pending",
+        "path": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+        "sha256": "a1c777417352acec7649dc226a296e759ed923e19f8ae6452de2f45af3e9e86c"
       },
       "validation": {
-        "status": "pending"
+        "status": "scoped local format/diff/lexical/change-guard passed; actual registered coordinator stages pending"
       },
       "commit": {
         "status": "pending",
         "sha": null
       },
-      "assignmentNote": "Initial discovery candidate; no write grant issued; deferred to later positional batch"
+      "assignmentNote": "Root cell57 verifies current pins and clean status; not in original106. Three pending discovery candidates now assigned.",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact source path; Chinese comment insertions only, preserve original bytes/EOL; separate from ten paused serialization-005 paths",
+      "existingIssueTagsStatus": "inspected; no tags"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/positional/bounded_decode.rs",
       "language": "rust",
       "classification": "first-party source",
       "initialSha256": "c3f0b74c8345857820fbcbeee9f7b1536108648b692e49645745621c16fda661",
-      "currentSha256": "c3f0b74c8345857820fbcbeee9f7b1536108648b692e49645745621c16fda661",
-      "reviewedSha256": null,
-      "state": "pending",
-      "owner": null,
-      "batchId": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "0c99f5bc2feec2cafed62d6096a8af1a4bc828f14a041d940d97fb17135e71c8",
+      "reviewedSha256": "0c99f5bc2feec2cafed62d6096a8af1a4bc828f14a041d940d97fb17135e71c8",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_serialization",
+      "batchId": "positional-codec-006",
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-positional-codec-006.json",
+          "sha256": "90b1f28fce8f52d4e02cd46f669df616a3a56510e8c2f47b9443dfd7d28a5e5a",
+          "section": "files/zircon_runtime_interface/src/serialization/positional/bounded_decode.rs/objectEvidence"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+          "sha256": "a1c777417352acec7649dc226a296e759ed923e19f8ae6452de2f45af3e9e86c",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed; actual coordinator pending",
+        "path": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+        "sha256": "a1c777417352acec7649dc226a296e759ed923e19f8ae6452de2f45af3e9e86c"
       },
       "validation": {
-        "status": "pending"
+        "status": "scoped local format/diff/lexical/change-guard passed; actual registered coordinator stages pending"
       },
       "commit": {
         "status": "pending",
         "sha": null
       },
-      "assignmentNote": "Initial discovery candidate; no write grant issued; deferred to later positional batch"
+      "assignmentNote": "Root cell57 verifies current pins and clean status; not in original106. Three pending discovery candidates now assigned.",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact source path; Chinese comment insertions only, preserve original bytes/EOL; separate from ten paused serialization-005 paths",
+      "existingIssueTagsStatus": "inspected; no tags"
     },
     {
       "path": "zircon_runtime_interface/src/serialization/tests/positional.rs",
       "language": "rust",
       "classification": "first-party test source",
       "initialSha256": "8bd7a97fbfe6736587d45c22087c2d4b34ddf0fa01646a07225f729fcc21534f",
-      "currentSha256": "8bd7a97fbfe6736587d45c22087c2d4b34ddf0fa01646a07225f729fcc21534f",
-      "reviewedSha256": null,
-      "state": "pending",
-      "owner": null,
-      "batchId": null,
-      "objectEvidence": [],
-      "callerEvidence": [],
+      "currentSha256": "aeea17c7c2b43500703b5fe88b33ff4d73d43b2d47c53de2e16c0a7d51719b2a",
+      "reviewedSha256": "aeea17c7c2b43500703b5fe88b33ff4d73d43b2d47c53de2e16c0a7d51719b2a",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_serialization",
+      "batchId": "positional-codec-006",
+      "objectEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-evidence-positional-codec-006.json",
+          "sha256": "90b1f28fce8f52d4e02cd46f669df616a3a56510e8c2f47b9443dfd7d28a5e5a",
+          "section": "files/zircon_runtime_interface/src/serialization/tests/positional.rs/objectEvidence"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "path": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+          "sha256": "a1c777417352acec7649dc226a296e759ed923e19f8ae6452de2f45af3e9e86c",
+          "section": "callerEvidence"
+        }
+      ],
       "existingIssueTags": [],
       "issueIds": [],
       "independentReview": {
-        "status": "pending"
+        "status": "passed; actual coordinator pending",
+        "path": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+        "sha256": "a1c777417352acec7649dc226a296e759ed923e19f8ae6452de2f45af3e9e86c"
       },
       "validation": {
-        "status": "pending"
+        "status": "scoped local format/diff/lexical/change-guard passed; actual registered coordinator stages pending"
       },
       "commit": {
         "status": "pending",
         "sha": null
       },
-      "assignmentNote": "Initial discovery candidate; no write grant issued; deferred to later positional batch"
+      "assignmentNote": "Root cell57 verifies current pins and clean status; not in original106. Three pending discovery candidates now assigned.",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact source path; Chinese comment insertions only, preserve original bytes/EOL; separate from ten paused serialization-005 paths",
+      "existingIssueTagsStatus": "inspected; no tags"
     },
     {
       "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
       "language": "rust",
       "classification": "first-party test source",
       "initialSha256": "10fd4caac570863568a901ba388b8cfca1779b794e1acef149e383796740e9d4",
-      "currentSha256": "10fd4caac570863568a901ba388b8cfca1779b794e1acef149e383796740e9d4",
-      "reviewedSha256": null,
-      "state": "assigned",
+      "currentSha256": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09",
+      "reviewedSha256": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09",
+      "state": "reviewed-awaiting-coordinator",
       "owner": "/root/public_project",
       "batchId": "project-compatibility-005",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": [
+          "PROJ05-010"
+        ]
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+        "sha256": "4f76f9809fad0d73aa7135eec3115adbd02381804c0513a831bfe984f68a1288",
+        "refs": []
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent exact scope checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed",
+        "path": "docs/tests/source-comment-review-independent-project-compatibility-005.json",
+        "sha256": "fec04c20389816cfd021138e8987f60bfca9e6a28f92b4d1319dd43a9f8b4105",
+        "formalAcceptance": false,
+        "currentDependencySupplement": {
+          "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+          "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2",
+          "status": "CALL-03 parse.rs current doc-only drift reconciled; original proof retained"
+        }
+      },
+      "validation": {
+        "localFormatDiffPhysicalGuards": "passed at frozen final pins",
+        "formalCoordinator": "pending",
+        "documentationAttributes": "semantic classification; registered actual flow gate pending"
+      },
+      "commit": {
+        "status": "pending scoped coordinator reconciliation; source may already be externally committed",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/admission.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "075b50c4db71adc540998b5b9997298922b9f31588ec361e4c4e35439d207dd6",
+      "currentSha256": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+      "reviewedSha256": "54b01ff412c8a97fa260ea6370211f29c9a6d87e505cdc4bbefa58ff6e07bbb3",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-002"
+      ],
+      "callerEvidence": [
+        "CALL-05",
+        "CALL-10"
+      ],
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/error.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "f149fc4680848d83dd1ce998c1c425cacfe94bbc4c8a555c9b22c0f8c903f8e2",
+      "currentSha256": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+      "reviewedSha256": "0a37eb7ec67396b71d7c2ee42b53a56b695b8ef1d46e9135ec42f9fcfb721d4d",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-004"
+      ],
+      "callerEvidence": [
+        "CALL-07",
+        "CALL-10",
+        "CALL-11",
+        "CALL-17"
+      ],
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/limits.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "24af40946ebf4d6031eb15b0dcf43e60dd27cc2bbd8e40f0b1d06ba596b61efe",
+      "currentSha256": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+      "reviewedSha256": "fb496a486ffb4ceac782d52ce7291fee596d4ba9cf49295bee5c6db11772a9cc",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-003"
+      ],
+      "callerEvidence": [
+        "CALL-07",
+        "CALL-10",
+        "CALL-12",
+        "CALL-22",
+        "CALL-23"
+      ],
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "215ccd0c3b6868b8e91df50672750646697ffe853fe3ac0d79d5dc4bc0b3646b",
+      "currentSha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "reviewedSha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-005"
+      ],
+      "callerEvidence": [
+        "CALL-03",
+        "CALL-04",
+        "CALL-05",
+        "CALL-06",
+        "CALL-07",
+        "CALL-13",
+        "CALL-14",
+        "CALL-15",
+        "CALL-17"
+      ],
+      "existingIssueTags": [
+        "CR-PROJECT-0003"
+      ],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/mod.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "currentSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "reviewedSha256": "cb24b782025caa6bbd33862b77f4ff696d61ee0388727b2c6bee2172bb5d5aef",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-001"
+      ],
+      "callerEvidence": [
+        "CALL-01",
+        "CALL-02"
+      ],
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "88ddd9f9c55c2811cf74c8f67c879c74805ad3ca1b46c21072acb9d28157a239",
+      "currentSha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+      "reviewedSha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-006"
+      ],
+      "callerEvidence": [
+        "CALL-02",
+        "CALL-07",
+        "CALL-08",
+        "CALL-11",
+        "CALL-12",
+        "CALL-13",
+        "CALL-14",
+        "CALL-15",
+        "CALL-17"
+      ],
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/summary.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "2d5adf83ef2a407396accf393cd693a7731c8380ad8a4afda970d3080cb131d1",
+      "currentSha256": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+      "reviewedSha256": "c7a4f3be8d9af6a248d51ed7bf374d483669112d55b0d9c630fd7ae7f5a76cd4",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-007"
+      ],
+      "callerEvidence": [
+        "CALL-01",
+        "CALL-02",
+        "CALL-13",
+        "CALL-18",
+        "CALL-19",
+        "CALL-20",
+        "CALL-21",
+        "CALL-24",
+        "CALL-25",
+        "CALL-26"
+      ],
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/manifest_summary.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "7ecbcd4b4c5ecda9c598ecc3afd3848a7b48c33f89310a5fabb1fc8752a44b16",
+      "currentSha256": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989",
+      "reviewedSha256": "53f4b33ed51a93a7ad59a025f661f92428758aed925492e03fd8c8ac63c5a989",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root/public_project",
+      "batchId": "manifest-summary-006",
+      "assignmentHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "writeGrant": "exact path; only evidence-based Chinese comment insertions; preserve original bytes/lines and stop on foreign hash change",
+      "objectEvidence": [
+        "PROJ06-008"
+      ],
+      "callerEvidence": [
+        "CALL-10",
+        "CALL-11",
+        "CALL-17",
+        "CALL-24"
+      ],
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root reviewed; pre-existing markers retained",
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-at-final-source-pin",
+        "evidence": "docs/tests/source-comment-review-independent-manifest-summary-006.json",
+        "sha256": "211c8ca4c06032a524f2cabb21cab278cfc3137e068a28b33de1c89cd79a80a2"
+      },
+      "validation": {
+        "format": "passed-at-final-source-pin",
+        "commentDiff": "171 standalone insertions across batch; non-doc tokens equal; original bytes preserved",
+        "changeGuard": "passed-exact8",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending exact owned remaining delta; external 1041-path commit is not audit acceptance",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+      "currentSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "reviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "core-session-003",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/camera.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-001",
+          "SES-OBJ-007",
+          "SES-OBJ-015"
+        ],
+        "historicalFileEntryCount": 3,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+      "currentSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "reviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "core-session-003",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-002",
+          "SES-OBJ-008",
+          "SES-OBJ-009",
+          "SES-OBJ-016",
+          "SES-OBJ-017",
+          "SES-OBJ-018",
+          "SES-OBJ-019",
+          "SES-OBJ-020"
+        ],
+        "historicalFileEntryCount": 8,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+      "currentSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "reviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "core-session-003",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session_identity.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-003",
+          "SES-OBJ-010",
+          "SES-OBJ-021",
+          "SES-OBJ-022",
+          "SES-OBJ-023",
+          "SES-OBJ-024",
+          "SES-OBJ-025",
+          "SES-OBJ-026"
+        ],
+        "historicalFileEntryCount": 8,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+      "currentSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "reviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "core-session-003",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/viewport.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-004",
+          "SES-OBJ-011",
+          "SES-OBJ-012",
+          "SES-OBJ-013",
+          "SES-OBJ-014",
+          "SES-OBJ-027",
+          "SES-OBJ-028",
+          "SES-OBJ-029",
+          "SES-OBJ-030",
+          "SES-OBJ-031"
+        ],
+        "historicalFileEntryCount": 10,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+      "currentSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "reviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "core-session-003",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/mod.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-005",
+          "SES-OBJ-033",
+          "SES-OBJ-034",
+          "SES-OBJ-035",
+          "SES-OBJ-036",
+          "SES-OBJ-037",
+          "SES-OBJ-038",
+          "SES-OBJ-039",
+          "SES-OBJ-040",
+          "SES-OBJ-041",
+          "SES-OBJ-042",
+          "SES-OBJ-043",
+          "SES-OBJ-044",
+          "SES-OBJ-045",
+          "SES-OBJ-046"
+        ],
+        "historicalFileEntryCount": 15,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+      "currentSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "reviewedSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "core-session-003",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-006",
+          "SES-OBJ-032"
+        ],
+        "historicalFileEntryCount": 2,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+      "currentSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "reviewedSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "reflect-budget-002",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+        "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+        "selector": "files[path=zircon_runtime_interface/src/reflect/value_budget.rs].objectEvidence",
+        "refs": [
+          "module value_budget",
+          "ReflectValueBudget",
+          "ReflectValueBudget.max_depth",
+          "ReflectValueBudget.max_nodes",
+          "ReflectValueBudget.max_string_bytes",
+          "ReflectValueBudget.max_container_entries",
+          "impl ReflectValueBudget",
+          "ReflectValueBudget::new",
+          "ReflectValueBudget::max_depth",
+          "ReflectValueBudget::max_nodes",
+          "ReflectValueBudget::max_string_bytes",
+          "ReflectValueBudget::max_container_entries",
+          "ReflectValueFloatKind",
+          "ReflectValueFloatKind::Scalar",
+          "ReflectValueFloatKind::Vec2",
+          "ReflectValueFloatKind::Vec3",
+          "ReflectValueFloatKind::Vec4",
+          "ReflectValueFloatKind::Quaternion",
+          "ReflectValueBudgetDimension",
+          "ReflectValueBudgetDimension::Depth",
+          "ReflectValueBudgetDimension::Nodes",
+          "ReflectValueBudgetDimension::StringBytes",
+          "ReflectValueValidationError",
+          "ReflectValueValidationError::BudgetArithmeticOverflow { dimension }",
+          "ReflectValueValidationError::DepthExceeded { actual, maximum }",
+          "ReflectValueValidationError::NodeBudgetExceeded { actual, maximum }",
+          "ReflectValueValidationError::StringBudgetExceeded { actual, maximum }",
+          "ReflectValueValidationError::ContainerEntriesExceeded { actual, maximum }",
+          "ReflectValueValidationError::NonFiniteFloat { kind, component }",
+          "use serde::{Deserialize, Serialize};",
+          "use thiserror::Error;"
+        ],
+        "historicalFileEntryCount": 31,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_validation.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+      "currentSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "reviewedSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "reflect-budget-002",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+        "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+        "selector": "files[path=zircon_runtime_interface/src/reflect/value_validation.rs].objectEvidence",
+        "refs": [
+          "module value_validation",
+          "PendingValue<'a>",
+          "PendingValue::Reflected { value, depth }",
+          "PendingValue::Reflected.value",
+          "PendingValue::Reflected.depth",
+          "PendingValue::Json { value, depth }",
+          "PendingValue::Json.value",
+          "PendingValue::Json.depth",
+          "impl ReflectedValue",
+          "ReflectedValue::validate_with_budget",
+          "validator local state and stack initialization",
+          "validator while-pop loop and PendingValue dispatch",
+          "validate_reflected<'a>",
+          "validate_reflected: Scalar, Vec2, Vec3, Vec4, Quaternion",
+          "validate_reflected: String, Enum, Resource",
+          "validate_reflected: List",
+          "validate_reflected: Map",
+          "validate_reflected: Json",
+          "validate_reflected: Null, Bool, Integer, Unsigned, Entity",
+          "validate_json<'a>",
+          "validate_json: String",
+          "validate_json: Array",
+          "validate_json: Object",
+          "validate_json: Null, Bool, Number",
+          "ValidationState",
+          "ValidationState.nodes",
+          "ValidationState.string_bytes",
+          "impl ValidationState",
+          "ValidationState::visit",
+          "visit depth comparison branch",
+          "visit checked_add/overflow branch",
+          "visit max_nodes comparison branch",
+          "visit node commit",
+          "ValidationState::add_string",
+          "add_string checked_add/overflow branch",
+          "add_string maximum comparison branch",
+          "add_string commit",
+          "validate_container",
+          "validate_container over-limit/success branches",
+          "child_depth",
+          "child_depth overflow branch",
+          "child_depth max-depth branch",
+          "validate_finite",
+          "use serde_json::Value;",
+          "use super::{ReflectValueBudget, ReflectValueBudgetDimension, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue};"
+        ],
+        "historicalFileEntryCount": 45,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+      "currentSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "reviewedSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "state": "reviewed-awaiting-coordinator",
+      "owner": "/root",
+      "batchId": "legacy-core-transfer-006",
+      "originalBatchId": "reflect-budget-002",
+      "ownershipTransfer": "user explicitly authorized; root hash/attribution/contracts evidence reconciled; source still readonly/frozen",
+      "sourceWriteGrant": false,
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+        "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+        "selector": "files[path=zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs].objectEvidence",
+        "refs": [
+          "module reflect_value_budget_contracts",
+          "use std::collections::BTreeMap",
+          "use crate::reflect::{ReflectValueBudget, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue}",
+          "budget",
+          "budget parameters and return",
+          "reflected_value_budget_exposes_caller_owned_limits()",
+          "reflected_value_budget_counts_reflected_and_embedded_json_graphs()",
+          "reflected_value_budget_rejects_each_bounded_dimension()",
+          "depth subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "node subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "string subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "container subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "reflected_value_budget_rejects_non_finite_vector_components()",
+          "embedded_json_root_is_a_child_of_the_reflected_json_wrapper()"
+        ],
+        "historicalFileEntryCount": 14,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "existingIssueTagsStatus": "root/agent checked; none",
+      "issueIds": [],
+      "independentReview": {
+        "status": "passed-current-transfer",
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "formalAcceptance": false
+      },
+      "validation": {
+        "localSameShaScopedChecks": "passed/reused",
+        "formalCoordinator": "pending actual semantic flow source-owner/operator contract"
+      },
+      "commit": {
+        "status": "external bytes present; scoped audit acceptance/notification pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "73bf4e3c281a7faf1b16ed4f7c16046d7a38033cbd456a37a4825bfcc2db7748",
+      "currentSha256": "73bf4e3c281a7faf1b16ed4f7c16046d7a38033cbd456a37a4825bfcc2db7748",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "core_contracts-001-clear11",
+        "owner": "core_contracts",
+        "state": "stale",
+        "initialSha256": "2cde4d3035febc16e0932c38638b8999b247d66536c9b66022d00dddb6bd899f",
+        "reviewedSha256": "8ee41b220f2ee4789faa3b434af9d65f88758e013d6e3eaa26e11527206125cb",
+        "currentSha256": "25ec481385105f648d984572cc6b1cfc57b287d5af89392b6648bd28c3bfa62d"
+      },
       "objectEvidence": [],
       "callerEvidence": [],
       "existingIssueTags": [],
-      "existingIssueTagsStatus": "agent inspection pending",
       "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "639850825e610339ba44b25cce9c670a0245cbd6730bb2b0cb8cb64602b13526",
+      "currentSha256": "639850825e610339ba44b25cce9c670a0245cbd6730bb2b0cb8cb64602b13526",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "core_contracts-001-clear11",
+        "owner": "core_contracts",
+        "state": "stale",
+        "initialSha256": "fe68da90bae75cfd151fc014aa64ffa3a64518beaec4b5db009b1af94c580369",
+        "reviewedSha256": "fa2d76cdaedce3762ccaf63a0d937246b28eb9a050b0e1b9b5fbc6997c86b555",
+        "currentSha256": "f37d7dd8869e951b62a3c69c075ed6c551d8bcb6d1469b5d6f5e421e3ead0c0a"
+      },
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "00dffe19520f92f7f92a1b81110b17d47a64956e8b26929c332203c43fe6004a",
+      "currentSha256": "00dffe19520f92f7f92a1b81110b17d47a64956e8b26929c332203c43fe6004a",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "core_contracts-001-clear11",
+        "owner": "core_contracts",
+        "state": "stale",
+        "initialSha256": "520b0f3fb481865c69195339b46771c7570d8592683cd8b8b9c7bb8aa59c1793",
+        "reviewedSha256": "05b0ca372fa5911cea13eb04437b36cdaa1d45b71b5cc3410cb87852855bda32",
+        "currentSha256": "cdb0c43c101bb0d2ff2b05b86870d7c770c6a5f15bb27245bc93b1ea322321a1"
+      },
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "0e71d0727da6657b67d173146865ec34194f9238eee8a93ce5bcc5866ff284c7",
+      "currentSha256": "0e71d0727da6657b67d173146865ec34194f9238eee8a93ce5bcc5866ff284c7",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "core_contracts-001-clear11",
+        "owner": "core_contracts",
+        "state": "stale",
+        "initialSha256": "2276690b903fd368f523f4dc6b49b8b0db5dcc4eaf61262bb3e4d6f5d3f790e5",
+        "reviewedSha256": "3d92b8a3e73ab084125199d0070342c8e48a5493bbb660e9a71e6c086eb2eb59",
+        "currentSha256": "11a427de6770ac08f563b2d07a29730d709f62ddf1afe4f666e911ff9b102fe5"
+      },
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4",
+      "currentSha256": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "core_contracts-001-clear11",
+        "owner": "core_contracts",
+        "state": "stale",
+        "initialSha256": "b094a9a20504ca1c91d784d256aca74ef5dea0a3750173eaf1e62f42f929fb39",
+        "reviewedSha256": "2f1728a66e5d7363247a35e93215a044faab502e899a23ef71aee757a3802ada",
+        "currentSha256": "6f37e0d1a914cc2faa8c9c157f6ee8e465b505cd670d89dfe6a01bb55447ae08"
+      },
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "currentSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "host_review-001",
+        "owner": "host_review",
+        "state": "stale",
+        "initialSha256": "35031cb444dc0a5e059caded00936978b859b7d21410fd8bda099cb42885cdc2",
+        "reviewedSha256": null,
+        "currentSha256": "95cca9ac23a0b2da2ddd2b3843bad116c0c0f75c46be3d516e6634f9cacb1b84"
+      },
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/error.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "7b2dd7608e0a6674abb17a97b4a1d41be73bb9a6e3be5192a6bd90bb89afb66e",
+      "currentSha256": "7b2dd7608e0a6674abb17a97b4a1d41be73bb9a6e3be5192a6bd90bb89afb66e",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "host_review-001",
+        "owner": "host_review",
+        "state": "stale",
+        "initialSha256": "2a2e7a93ed4fb846fea5f638f5b4ed7a87805eba02cf93b3c790f4891cf11f29",
+        "reviewedSha256": null,
+        "currentSha256": "1e33b0c54a7bd313d8b7f1dac3dd59eb508b62d8b05ca8bf422e5ebc0be7a1f2"
+      },
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "ff51a7201b8b1579a325cfd2262112ba35db08c82d13afee20bc9ce073045a88",
+      "currentSha256": "ff51a7201b8b1579a325cfd2262112ba35db08c82d13afee20bc9ce073045a88",
+      "reviewedSha256": null,
+      "state": "assigned-read-only-reconciliation",
+      "owner": "/root/core_review",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "writeOwnership": "source read-only; exact evidence path only after root registration",
+      "legacyRecord": {
+        "batchId": "host_review-001",
+        "owner": "host_review",
+        "state": "stale",
+        "initialSha256": "2773848a2426649d7bbe659ee90eb7e86bc56f30edb6d951768be88b7bbd1b78",
+        "reviewedSha256": null,
+        "currentSha256": "868fc5f71a1b41e9f0be58f5ade8f03bc9d35a371f193141216840eebce9a3b5"
+      },
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending; old native gaps preserved"
+      },
+      "commit": {
+        "status": "pending acceptance reconciliation; no duplicate commit",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "6f8ff52e973d2de3d9931dbb80ead297198f5db29ec452450ad79a872b5fa10c",
+      "currentSha256": "6f8ff52e973d2de3d9931dbb80ead297198f5db29ec452450ad79a872b5fa10c",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
       "independentReview": {
         "status": "pending"
       },
@@ -970,21 +2507,885 @@
       "commit": {
         "status": "pending",
         "sha": null
-      }
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/receipt.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "2308a0d5b502a9ba09089d4ce012ec989374271c714d48fdf68af6972a665927",
+      "currentSha256": "2308a0d5b502a9ba09089d4ce012ec989374271c714d48fdf68af6972a665927",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+      "currentSha256": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/embedded.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "97a2efc516a008f949f746aa690f2a1eb624f08406efa199855f9ac545aa4405",
+      "currentSha256": "97a2efc516a008f949f746aa690f2a1eb624f08406efa199855f9ac545aa4405",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/rendered_template.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "55b24533ba2f8c12efb2eba8cb210129388d9c9e4c62344782efcca6fb58e6d1",
+      "currentSha256": "55b24533ba2f8c12efb2eba8cb210129388d9c9e4c62344782efcca6fb58e6d1",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/rendered_entry.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "e9d1d80e798427a2d6e0d55f57b6f57d7d949374c7ebca21f82736ef85285555",
+      "currentSha256": "e9d1d80e798427a2d6e0d55f57b6f57d7d949374c7ebca21f82736ef85285555",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/tests/render.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "9fcb22747a000962023de6bc4e6c51273a9c4ddaeb13cba731b9fbed13ef68a5",
+      "currentSha256": "9fcb22747a000962023de6bc4e6c51273a9c4ddaeb13cba731b9fbed13ef68a5",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "2adb4709300a4c5131660c9fe70624518586bea9e5d931a0c298c645142de5cc",
+      "currentSha256": "2adb4709300a4c5131660c9fe70624518586bea9e5d931a0c298c645142de5cc",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_project",
+      "batchId": "project-template-pack-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "tracked exact paths clean; root cell89 physical pins matched; denied global Git ignore remains recorded enumeration limitation",
+      "bytePreservation": "LF physical bytes; preserve all existing comments/EOL; no source copy"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "228e93961895eae999462b040528d9cbe2ffc00c6fde3805563d723a2a987f59",
+      "currentSha256": "228e93961895eae999462b040528d9cbe2ffc00c6fde3805563d723a2a987f59",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_assets",
+      "batchId": "ui-template-tests-006",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "root native d07375 raw SHA matched; scoped tracked status 04c802 exit0 empty; old/current ledgers and historical18foreign paths exclude candidates",
+      "bytePreservation": "all current physical LF; preserve existing comments, code lines and EOL"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/evaluator.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "4296cde7e0a82f3abe91dbb6a5423be8c0dca599c945d8398472d7bed0be24e5",
+      "currentSha256": "4296cde7e0a82f3abe91dbb6a5423be8c0dca599c945d8398472d7bed0be24e5",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_assets",
+      "batchId": "ui-template-tests-006",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "root native d07375 raw SHA matched; scoped tracked status 04c802 exit0 empty; old/current ledgers and historical18foreign paths exclude candidates",
+      "bytePreservation": "all current physical LF; preserve existing comments, code lines and EOL"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/tests/diagnostic.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "7d62fa7b3ce06bb42ce4d644ff22dff4ae21ad7e23e7cf15d2fafa712f2b4dd5",
+      "currentSha256": "7d62fa7b3ce06bb42ce4d644ff22dff4ae21ad7e23e7cf15d2fafa712f2b4dd5",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_assets",
+      "batchId": "ui-template-tests-006",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "root native d07375 raw SHA matched; scoped tracked status 04c802 exit0 empty; old/current ledgers and historical18foreign paths exclude candidates",
+      "bytePreservation": "all current physical LF; preserve existing comments, code lines and EOL"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "6d15469518f616fea96516838629d142cafeedefe545167a9678470a99722e08",
+      "currentSha256": "6d15469518f616fea96516838629d142cafeedefe545167a9678470a99722e08",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_assets",
+      "batchId": "ui-template-tests-006",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "root native d07375 raw SHA matched; scoped tracked status 04c802 exit0 empty; old/current ledgers and historical18foreign paths exclude candidates",
+      "bytePreservation": "all current physical LF; preserve existing comments, code lines and EOL"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "69f070fbd47abb5ddcba085cccc56fa090ce23a4ce9ec840f20f343c2f9bcc6e",
+      "currentSha256": "69f070fbd47abb5ddcba085cccc56fa090ce23a4ce9ec840f20f343c2f9bcc6e",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_assets",
+      "batchId": "ui-template-tests-006",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "root native d07375 raw SHA matched; scoped tracked status 04c802 exit0 empty; old/current ledgers and historical18foreign paths exclude candidates",
+      "bytePreservation": "all current physical LF; preserve existing comments, code lines and EOL"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "9b89fe4d2d1d852396725649a27af9837e447f52ebe4b77fcf9d3f2c85cf7042",
+      "currentSha256": "9b89fe4d2d1d852396725649a27af9837e447f52ebe4b77fcf9d3f2c85cf7042",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_assets",
+      "batchId": "ui-template-tests-006",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "root native d07375 raw SHA matched; scoped tracked status 04c802 exit0 empty; old/current ledgers and historical18foreign paths exclude candidates",
+      "bytePreservation": "all current physical LF; preserve existing comments, code lines and EOL"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d",
+      "currentSha256": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_assets",
+      "batchId": "ui-template-tests-006",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceStatusAtAssignment": "root native d07375 raw SHA matched; scoped tracked status 04c802 exit0 empty; old/current ledgers and historical18foreign paths exclude candidates",
+      "bytePreservation": "all current physical LF; preserve existing comments, code lines and EOL"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/mod.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "fed9f5c0e11430dc398cdbc702262c9afc6de5dc734cbfac1b569f7f66ace87c",
+      "currentSha256": "fed9f5c0e11430dc398cdbc702262c9afc6de5dc734cbfac1b569f7f66ace87c",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_serialization",
+      "batchId": "binary-envelope-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": true,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/envelope.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "6ce9d9fd24b7762e5969f8ece4ca211dfcf5ec1695e4d8651b97c1c30e0ce080",
+      "currentSha256": "6ce9d9fd24b7762e5969f8ece4ca211dfcf5ec1695e4d8651b97c1c30e0ce080",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_serialization",
+      "batchId": "binary-envelope-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": true,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/wire.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "ede1385469408fe9f8b9f8cb7720a37b8259d62b828e9a6308a33d431079b8cb",
+      "currentSha256": "ede1385469408fe9f8b9f8cb7720a37b8259d62b828e9a6308a33d431079b8cb",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_serialization",
+      "batchId": "binary-envelope-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": true,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/encode.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "018afa6757cb55fa26f0c815b5feec1806afc0169d7e10e7fdebdc99bab4299c",
+      "currentSha256": "018afa6757cb55fa26f0c815b5feec1806afc0169d7e10e7fdebdc99bab4299c",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_serialization",
+      "batchId": "binary-envelope-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": true,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/decode.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "d4557f4482260256e11c048a8ab1ec9765c30ed330c445a904e99bfaeb3f2ea1",
+      "currentSha256": "d4557f4482260256e11c048a8ab1ec9765c30ed330c445a904e99bfaeb3f2ea1",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_serialization",
+      "batchId": "binary-envelope-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": true,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "89de10069762b8cbcad7804a6df52a0105e65d83706ea160ddcf0557e2b831a2",
+      "currentSha256": "89de10069762b8cbcad7804a6df52a0105e65d83706ea160ddcf0557e2b831a2",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_serialization",
+      "batchId": "binary-envelope-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": true,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "bb574c0738d068cb3e1e275894b3a0e425595a7665bedf57500a8032ac49e51f",
+      "currentSha256": "bb574c0738d068cb3e1e275894b3a0e425595a7665bedf57500a8032ac49e51f",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/public_serialization",
+      "batchId": "binary-envelope-007",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": true,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "786df97278052acb5e67b63706ec4a488a73ed0b9721f6f3f486a8e76f3390fb",
+      "currentSha256": "786df97278052acb5e67b63706ec4a488a73ed0b9721f6f3f486a8e76f3390fb",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/core_review",
+      "batchId": "runtime-session-registry-008",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": false,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "3156b029a64e5c1265318e3dd84524b1180b695ec8736d6ea8214f243a1f18c1",
+      "currentSha256": "3156b029a64e5c1265318e3dd84524b1180b695ec8736d6ea8214f243a1f18c1",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/core_review",
+      "batchId": "runtime-session-registry-008",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": false,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "b98f76c4911d19dbc7fa1c2c1e29f0c674ad923d269490bfa3bd837b42b852be",
+      "currentSha256": "b98f76c4911d19dbc7fa1c2c1e29f0c674ad923d269490bfa3bd837b42b852be",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/core_review",
+      "batchId": "runtime-session-registry-008",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": false,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "0953acd0c8c9539b72c3c16a310b589e3ee55e9610151161e11206048ebaa241",
+      "currentSha256": "0953acd0c8c9539b72c3c16a310b589e3ee55e9610151161e11206048ebaa241",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/core_review",
+      "batchId": "runtime-session-registry-008",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": false,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+      "currentSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/core_review",
+      "batchId": "runtime-session-registry-008",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": false,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "94023c1ef7923e7c7e16ac4285b9dd22b5ce2422bfea70ccab2339256055947a",
+      "currentSha256": "94023c1ef7923e7c7e16ac4285b9dd22b5ce2422bfea70ccab2339256055947a",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/core_review",
+      "batchId": "runtime-session-registry-008",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": false,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+      "language": "rust",
+      "classification": "first-party source",
+      "initialSha256": "7a465f25d8b4ae31dabea7f4162f44dae2f2043f269f847de4a28d723322a74e",
+      "currentSha256": "7a465f25d8b4ae31dabea7f4162f44dae2f2043f269f847de4a28d723322a74e",
+      "reviewedSha256": null,
+      "state": "assigned",
+      "owner": "/root/core_review",
+      "batchId": "runtime-session-registry-008",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "existingIssueTagsStatus": "agent inspection pending",
+      "independentReview": {
+        "status": "pending"
+      },
+      "validation": {
+        "status": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "sourceGrantActivated": false,
+      "sourceStatusAtAssignment": "root988438 exact14 tracked status clean and physicalSHA; original106/current76/foreign18 exclude each; denied global Git ignore remains recorded",
+      "bytePreservation": "LF physical bytes; preserve all baseline code/comments/EOL; no source copies"
     }
   ],
   "evidenceFiles": {
     "serialization-005": "docs/tests/source-comment-review-evidence-serialization-005.json",
     "plugin-core-005": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
     "ui-template-005": "docs/tests/source-comment-review-evidence-ui-template-005.json",
-    "project-compatibility-005": "docs/tests/source-comment-review-evidence-project-compatibility-005.json"
+    "project-compatibility-005": "docs/tests/source-comment-review-evidence-project-compatibility-005.json",
+    "manifest-summary-006": "docs/tests/source-comment-review-evidence-manifest-summary-006.json",
+    "positional-codec-006": {
+      "path": "docs/tests/source-comment-review-evidence-positional-codec-006.json",
+      "sha256": "90b1f28fce8f52d4e02cd46f669df616a3a56510e8c2f47b9443dfd7d28a5e5a",
+      "independentProof": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+      "independentProofSha256": "a1c777417352acec7649dc226a296e759ed923e19f8ae6452de2f45af3e9e86c",
+      "state": "reviewed-awaiting-coordinator"
+    },
+    "legacy-core-transfer-006": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+    "legacy-runtime-abi-transfer-007": {
+      "path": "docs/tests/source-comment-review-evidence-legacy-runtime-abi-transfer-007.json",
+      "state": "pending agent freeze",
+      "sha256": null
+    },
+    "project-template-pack-007": {
+      "path": "docs/tests/source-comment-review-evidence-project-template-pack-007.json",
+      "state": "pending agent review",
+      "sha256": null
+    },
+    "ui-template-tests-006": {
+      "path": "docs/tests/source-comment-review-evidence-ui-template-tests-006.json",
+      "state": "registered; await previous batch corrections before source grant activated",
+      "sha256": null
+    },
+    "binary-envelope-007": {
+      "path": "docs/tests/source-comment-review-evidence-binary-envelope-007.json",
+      "state": "source grant active",
+      "sha256": null
+    },
+    "runtime-session-registry-008": {
+      "path": "docs/tests/source-comment-review-evidence-runtime-session-registry-008.json",
+      "state": "registered; wait root007 freeze before source activation",
+      "sha256": null
+    }
   },
   "formalCoordinator": {
     "requestId": "source-comment-audit-20261012",
     "attempt": 1,
     "buildNumber": 25,
-    "status": "pending",
-    "formalAcceptance": false
+    "status": "pending actual supported source-owner/current-source recipe and language/semantic-flow acceptance; ordinary records acknowledgement is not formal acceptance",
+    "formalAcceptance": false,
+    "latestFiniteGapResponse": {
+      "path": ".jenkins/state/records-queue/archive/c100f4162ce6db2ddf65cb53dd630c9242971d6cd04c9b21bb76bd1cf8a1594d/source-comment-audit-20261012-supported-owner-input-required-01a13487.response.json",
+      "sha256": "ece7aa07255b1339d3d7600701d6262807e25b703c1d0a786b88f0d23a708418",
+      "bytes": 56349,
+      "rootReadChunks": [
+        "143668",
+        "19d9d2",
+        "09d0ec"
+      ],
+      "originalRequestId": "source-comment-audit-20261012",
+      "attempt": 1,
+      "originalInventoryDigest": "51f6a3ed4b173d248c32e3d5bac7a36fc48f3210207d6e8f493a7cad78e20c8b",
+      "intakeAccepted": false,
+      "sourceEntryAdmission": "refused-before-creation-of-native-request",
+      "missingSupportedContractIds": [
+        "GENUINE-HISTORICAL-PREIMAGE-OWNER",
+        "INTERFACE-COMPILER-INPUT-PROVENANCE",
+        "ACTUAL-SCOPED-FLOW-STAGE-RECEIPTS",
+        "CANONICAL-COVERAGE-AND-ORIGINAL-MANIFEST-RECIPE",
+        "ORIGINAL-NATIVE-IDENTITY-AND-TERMINATION",
+        "ATTRIBUTABLE-STAGE-COMMIT-AND-NOTIFICATION",
+        "ACTUAL-OPERATOR-DELIVERY"
+      ],
+      "actualTargetChatDeliveryReceipt": null,
+      "actualNativeOperatorDeliveryReceipt": null,
+      "formalAcceptance": false,
+      "actualCommitReceipt": null,
+      "actualWeComReceipt": null,
+      "note": "This is an actual metadata/archive response. It does not prove target chat/operator delivery, native execution, source preparation, inventory generation, stage commit or notification."
+    }
   },
   "wholeRepositoryComplete": false,
   "assignmentRevisions": [
@@ -1001,6 +3402,236 @@
       "assignedFiles": 33,
       "pendingDiscoveryFiles": 3,
       "sourceStatusAtAssignment": "added path clean and physical before hash independently matched"
+    },
+    {
+      "revision": 4,
+      "observedAtUtc": "2026-10-13T14:21:31.296214+00:00",
+      "batchId": "manifest-summary-006",
+      "assignedFiles": 8,
+      "sourceStatusAtAssignment": "exact eight source paths clean, current physical pins match, absent from original106 and prior36; shared HEAD separately recorded",
+      "evidenceWriteGrant": "only docs/tests/source-comment-review-evidence-manifest-summary-006.json",
+      "callerDependencyNote": "parse.rs is caller evidence for frozen project-compatibility-005; new comments must trigger current caller drift reconciliation without overwriting its old evidence"
+    },
+    {
+      "revision": 5,
+      "batchId": "positional-codec-006",
+      "owner": "/root/public_serialization",
+      "sourceFiles": 3,
+      "sourceStatusAtAssignment": "root cell57 physical SHA match, clean exact scope, absent legacy106 and disjoint from paused native EOL10",
+      "evidenceWriteGrant": "only docs/tests/source-comment-review-evidence-positional-codec-006.json",
+      "observedAtUtc": "2026-10-13T14:32:19.979576+00:00"
+    },
+    {
+      "revision": 6,
+      "observedAtUtc": "2026-10-13T15:40:49.597252+00:00",
+      "batchId": "legacy-runtime-abi-transfer-007",
+      "owner": "/root/core_review",
+      "sourceMode": "read-only continuation; no source edit grant",
+      "pathsAndInitialPins": {
+        "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs": "73bf4e3c281a7faf1b16ed4f7c16046d7a38033cbd456a37a4825bfcc2db7748",
+        "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs": "639850825e610339ba44b25cce9c670a0245cbd6730bb2b0cb8cb64602b13526",
+        "zircon_runtime_interface/src/runtime_api/abi/mod.rs": "00dffe19520f92f7f92a1b81110b17d47a64956e8b26929c332203c43fe6004a",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs": "0e71d0727da6657b67d173146865ec34194f9238eee8a93ce5bcc5866ff284c7",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs": "e65aa060d4cd232f108cd16f630e6dfc414ee8e1bf8a091579d459b1ccdf6bc4",
+        "zircon_runtime_host/src/foreign_output/state.rs": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+        "zircon_runtime_host/src/foreign_output/error.rs": "7b2dd7608e0a6674abb17a97b4a1d41be73bb9a6e3be5192a6bd90bb89afb66e",
+        "zircon_runtime_host/src/foreign_output/owned_buffer.rs": "ff51a7201b8b1579a325cfd2262112ba35db08c82d13afee20bc9ce073045a88"
+      },
+      "evidencePath": "docs/tests/source-comment-review-evidence-legacy-runtime-abi-transfer-007.json",
+      "rootCurrentPhysicalPinsMatched": 8,
+      "previousCoverageRecords": 53,
+      "newCoverageRecords": 61,
+      "userTransferAuthorization": "old chat ended; verify evidence and continue",
+      "historicalAcceptanceInherited": false
+    },
+    {
+      "revision": 7,
+      "observedAtUtc": "2026-10-13T16:55:55.884088+00:00",
+      "batchId": "project-template-pack-007",
+      "owner": "/root/public_project",
+      "sourceMode": "exact8 source comment edits after agent receives root grant",
+      "pathsAndInitialPins": {
+        "zircon_runtime_interface/src/project/template_pack/descriptor.rs": "6f8ff52e973d2de3d9931dbb80ead297198f5db29ec452450ad79a872b5fa10c",
+        "zircon_runtime_interface/src/project/template_pack/receipt.rs": "2308a0d5b502a9ba09089d4ce012ec989374271c714d48fdf68af6972a665927",
+        "zircon_runtime_interface/src/project/template_pack/render.rs": "08d9f3b1a2db864bb1111a847b31de5973a3d67a64fa25657907af9db1df603f",
+        "zircon_runtime_interface/src/project/template_pack/embedded.rs": "97a2efc516a008f949f746aa690f2a1eb624f08406efa199855f9ac545aa4405",
+        "zircon_runtime_interface/src/project/template_pack/rendered_template.rs": "55b24533ba2f8c12efb2eba8cb210129388d9c9e4c62344782efcca6fb58e6d1",
+        "zircon_runtime_interface/src/project/template_pack/rendered_entry.rs": "e9d1d80e798427a2d6e0d55f57b6f57d7d949374c7ebca21f82736ef85285555",
+        "zircon_runtime_interface/src/project/template_pack/tests/render.rs": "9fcb22747a000962023de6bc4e6c51273a9c4ddaeb13cba731b9fbed13ef68a5",
+        "zircon_runtime_interface/src/project/template_pack/tests/receipt.rs": "2adb4709300a4c5131660c9fe70624518586bea9e5d931a0c298c645142de5cc"
+      },
+      "sourceStatusAtAssignment": "root cell89 exact8 tracked status empty; raw physical pins match; neither legacy106 nor continuation61 includes candidates",
+      "evidencePath": "docs/tests/source-comment-review-evidence-project-template-pack-007.json",
+      "previousCoverageRecords": 61,
+      "newCoverageRecords": 69,
+      "excludedHistoryOwnedPath": "zircon_runtime_interface/src/project/tests/template_pack.rs remains read-only regardless of clean status",
+      "callerDependencyNote": "render.rs is frozen manifest-summary-006 CALL-21; later final doc-only drift must be reconciled in a new root supplement, not by overwriting frozen proof"
+    },
+    {
+      "revision": 8,
+      "observedAtUtc": "2026-10-14T03:39:49.481920+00:00",
+      "batchId": "ui-template-tests-006",
+      "owner": "/root/public_assets",
+      "pathsAndInitialPins": {
+        "zircon_runtime_interface/src/ui/template/asset/binding/tests/schema.rs": "228e93961895eae999462b040528d9cbe2ffc00c6fde3805563d723a2a987f59",
+        "zircon_runtime_interface/src/ui/template/asset/binding/tests/evaluator.rs": "4296cde7e0a82f3abe91dbb6a5423be8c0dca599c945d8398472d7bed0be24e5",
+        "zircon_runtime_interface/src/ui/template/asset/binding/tests/diagnostic.rs": "7d62fa7b3ce06bb42ce4d644ff22dff4ae21ad7e23e7cf15d2fafa712f2b4dd5",
+        "zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs": "6d15469518f616fea96516838629d142cafeedefe545167a9678470a99722e08",
+        "zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs": "69f070fbd47abb5ddcba085cccc56fa090ce23a4ce9ec840f20f343c2f9bcc6e",
+        "zircon_runtime_interface/src/tests/contracts/selector.rs": "9b89fe4d2d1d852396725649a27af9837e447f52ebe4b77fcf9d3f2c85cf7042",
+        "zircon_runtime_interface/src/tests/mod.rs": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d"
+      },
+      "sourceMode": "no editing until root followup after ui-template-005 evidence correction; exact7 source comment write grant only then",
+      "evidencePath": "docs/tests/source-comment-review-evidence-ui-template-tests-006.json",
+      "previousCoverageRecords": 69,
+      "newCoverageRecords": 76,
+      "sourceStatusAtAssignment": "exact7 tracked clean, physical hashes independently match, absent legacy106/continuation69/historical18foreign",
+      "heldDependencies": [
+        "zircon_runtime_interface/src/ui/template/asset/binding/tests/expression.rs",
+        "zircon_runtime_interface/src/tests/contracts.rs"
+      ],
+      "dependencyPolicy": "005 source/metadata frozen except explicitly authorized feedback; any later 006 caller doc drift gets a new current root supplement, never overwrites historical proof"
+    },
+    {
+      "revision": 9,
+      "observedAtUtc": "2026-10-14T04:53:49.760068+00:00",
+      "batchId": "binary-envelope-007",
+      "owner": "/root/public_serialization",
+      "sourceFiles": 7,
+      "sourceGrantActivated": true,
+      "evidenceWriteGrant": "docs/tests/source-comment-review-evidence-binary-envelope-007.json",
+      "nativeReadChunk": "988438",
+      "sourceStatusAtAssignment": "exact14 tracked status clean; pins read; no old106/current76/foreign18 overlaps",
+      "initialPins": [
+        {
+          "path": "zircon_runtime_interface/src/serialization/binary/mod.rs",
+          "initialSha256": "fed9f5c0e11430dc398cdbc702262c9afc6de5dc734cbfac1b569f7f66ace87c"
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/binary/envelope.rs",
+          "initialSha256": "6ce9d9fd24b7762e5969f8ece4ca211dfcf5ec1695e4d8651b97c1c30e0ce080"
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/binary/wire.rs",
+          "initialSha256": "ede1385469408fe9f8b9f8cb7720a37b8259d62b828e9a6308a33d431079b8cb"
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/binary/encode.rs",
+          "initialSha256": "018afa6757cb55fa26f0c815b5feec1806afc0169d7e10e7fdebdc99bab4299c"
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/binary/decode.rs",
+          "initialSha256": "d4557f4482260256e11c048a8ab1ec9765c30ed330c445a904e99bfaeb3f2ea1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs",
+          "initialSha256": "89de10069762b8cbcad7804a6df52a0105e65d83706ea160ddcf0557e2b831a2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+          "initialSha256": "bb574c0738d068cb3e1e275894b3a0e425595a7665bedf57500a8032ac49e51f"
+        }
+      ],
+      "callerDependencyNote": "Keep earlier frozen pins; reconcile documentation-only caller drift with a new supplement."
+    },
+    {
+      "revision": 10,
+      "observedAtUtc": "2026-10-14T04:53:49.760068+00:00",
+      "batchId": "runtime-session-registry-008",
+      "owner": "/root/core_review",
+      "sourceFiles": 7,
+      "sourceGrantActivated": false,
+      "evidenceWriteGrant": "docs/tests/source-comment-review-evidence-runtime-session-registry-008.json",
+      "nativeReadChunk": "988438",
+      "sourceStatusAtAssignment": "exact14 tracked status clean; pins read; no old106/current76/foreign18 overlaps",
+      "initialPins": [
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
+          "initialSha256": "786df97278052acb5e67b63706ec4a488a73ed0b9721f6f3f486a8e76f3390fb"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
+          "initialSha256": "3156b029a64e5c1265318e3dd84524b1180b695ec8736d6ea8214f243a1f18c1"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/action_guard.rs",
+          "initialSha256": "b98f76c4911d19dbc7fa1c2c1e29f0c674ad923d269490bfa3bd837b42b852be"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_slot.rs",
+          "initialSha256": "0953acd0c8c9539b72c3c16a310b589e3ee55e9610151161e11206048ebaa241"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+          "initialSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+          "initialSha256": "94023c1ef7923e7c7e16ac4285b9dd22b5ce2422bfea70ccab2339256055947a"
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/tests/store_handle_alloc.rs",
+          "initialSha256": "7a465f25d8b4ae31dabea7f4162f44dae2f2043f269f847de4a28d723322a74e"
+        }
+      ],
+      "callerDependencyNote": "Keep earlier frozen pins; reconcile documentation-only caller drift with a new supplement."
+    }
+  ],
+  "sharedCheckoutObservations": [
+    {
+      "observedAtUtc": "2026-10-13T14:21:31.296214+00:00",
+      "rootNativeReadEvidence": [
+        "48/49",
+        "52:ec250e",
+        "54:3139ff"
+      ],
+      "assignmentBaseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "observedHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "changedPathCount": 1041,
+      "ownedSourcePathsIncluded": 33,
+      "rootGitWrites": false,
+      "attribution": "external shared-checkout commit; preserve it and do not substitute it for this audit scoped stage commit or formal acceptance",
+      "ownSourcePhysicalPins": "31/33 equal external index at prior read; UI document/expression had this chat ongoing comment corrections",
+      "indexLockObservation": "absent at historical read only; must diagnose again before any authorized commit",
+      "selectedRuntimeUpgradeInferred": false
+    },
+    {
+      "observedAtUtc": "2026-10-14T03:58:21.865812+00:00",
+      "previousHead": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+      "head": "d588b90c0e3ca36503ac6b4f2c5d2d96ba7acfef",
+      "rootNativeChunk": "51a3eb",
+      "commitSubject": "fix(jenkins): correct stale frontend gate assertions",
+      "changedPaths": [
+        "tools/jenkins/tests/test_frontend.py"
+      ],
+      "touchesRegisteredSources": false,
+      "touchesAuditMetadata": false,
+      "rootGitWrites": 0,
+      "auditStageCommitAccepted": false,
+      "note": "External unrelated single-file commit retained; observed HEAD fields of frozen proofs stay historical."
+    }
+  ],
+  "validationInterpretation": {
+    "sourceComments": "No routine Cargo build/test/doc for comment-only slices. Required language parser/format, scoped diff and actual coordinator receipts remain pending.",
+    "documentationAttributes": "Rust doc comments become compiler-visible attributes. Static first-party macro tracing is supplemental evidence; no forced comments_only classification and no invented cargo-doc/macro execution gate.",
+    "historicalPendingWording": "Preserve frozen evidence containing formalDocMacroValidation pending; this continuation interpretation narrows that phrase to the actually required workflow checks.",
+    "actualDeployedClassifier": "The selected driver classification labels new doc comments semantic. Do not force comments_only; required bounded checks selected by actual admitted semantic flow remain pending. This is distinct from self-invented Cargo doc/macro tests."
+  },
+  "metadataWriteObservations": [
+    {
+      "nativeChunk": "c999c9",
+      "exitCode": 1,
+      "operation": "canonical coverage Path.write_bytes",
+      "failure": "OSError Errno22 Invalid argument; cause unknown, not classified sandbox denial",
+      "followupReadChunk": "c02d60",
+      "originalCoverageShaUnchanged": true,
+      "rootProofCreated": "docs/tests/source-comment-review-independent-positional-codec-006.json",
+      "authorization": "Existing docs/tests explicit grant; no permission/ACL/attribute/config changes; normal canonical apply_patch retry."
+    },
+    {
+      "operation": "normal apply_patch authored metadata",
+      "failure": "numeric unified-diff hunk header treated as context; verification failed before write",
+      "correction": "emit tool-native @@ headers; source and authority unchanged"
     }
   ]
 }

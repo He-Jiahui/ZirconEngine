@@ -14,7 +14,10 @@ pub struct PersistedAssetReference(PersistedAssetReferenceKind);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+/// Serde 的带标签表示；project 将 AssetRef 字段平铺在 kind 旁，builtin 单独保存 locator。
+/// builtin 变体仅接受 `builtin://`；手工反序列化入口会复用 `try_builtin` 校验 scheme。
 enum PersistedAssetReferenceKind {
+    /// 以当前项目引用字段承载，AssetRef 反序列化继续执行其词法校验。
     Project {
         #[serde(flatten)]
         reference: AssetRef,
@@ -25,6 +28,7 @@ enum PersistedAssetReferenceKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// try_builtin 遇到非 builtin scheme 时保留原定位符以供错误诊断。
 pub struct PersistedAssetReferenceError {
     locator: ResourceLocator,
 }
@@ -46,6 +50,15 @@ impl PersistedAssetReference {
         Self(PersistedAssetReferenceKind::Project { reference })
     }
 
+    /// 将定位符包装为 builtin 持久化变体并验证 scheme。
+    ///
+    /// # 参数
+    ///
+    /// `locator` 是调用方提供的资源定位符。
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回 builtin 变体；其他 scheme 返回包含原定位符的错误。
     pub fn try_builtin(locator: ResourceLocator) -> Result<Self, PersistedAssetReferenceError> {
         if locator.scheme() != ResourceScheme::Builtin {
             return Err(PersistedAssetReferenceError { locator });
@@ -89,6 +102,7 @@ impl<'de> Deserialize<'de> for PersistedAssetReference {
     where
         D: Deserializer<'de>,
     {
+        // project 分支由 AssetRef 复核字段形状；builtin 分支在这里复用 try_builtin 校验 scheme。
         match PersistedAssetReferenceKind::deserialize(deserializer)? {
             PersistedAssetReferenceKind::Project { reference } => Ok(Self::project(reference)),
             PersistedAssetReferenceKind::Builtin { locator } => {

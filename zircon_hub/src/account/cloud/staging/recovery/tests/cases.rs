@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use super::super::tests::{fixture, stage, STAGE};
+use super::super::tests::{STAGE, fixture, stage};
 use super::super::{next_publish_temporary_path, persist_publication_artifact};
 use super::*;
 
