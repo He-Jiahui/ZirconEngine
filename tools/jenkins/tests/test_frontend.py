@@ -56,11 +56,18 @@ class FrontendTests(unittest.TestCase):
                 "sourceRef": "source", "sourceDigest": "a" * 64,
                 "coverageRef": "coverage", "coverageDigest": "b" * 64}
 
-    def test_gate_keeps_local_path_before_m8(self):
+    def test_gate_routes_to_ordinary_capability_before_m8(self):
+        """A closed M8 gate selects ordinary capability, not a caller-local path.
+
+        The pre-M8 local escape was retired: every entry now goes through the
+        ordinary management capability, so an absent identity is refused rather
+        than waved through on a caller-supplied result.
+        """
         root = self._root(False)
-        result = dispatch_or_local(repo_root=root, state=None, identity=None, local_result={"exit": 0})
-        self.assertEqual("local", result["mode"])
-        self.assertFalse(result["formalAcceptance"])
+        self.assertFalse(sole_entry_enforced(root))
+        with self.assertRaises(JenkinsError) as raised:
+            dispatch_or_local(repo_root=root, state=None, identity=None)
+        self.assertEqual("ordinary_identity_pending", raised.exception.code)
 
     def test_active_gate_requires_identity(self):
         root = self._root(True)
@@ -375,16 +382,27 @@ class FrontendTests(unittest.TestCase):
                 self.assertEqual([], state.list("jenkins_submission"))
 
     def test_inventory_or_acceptance_alone_cannot_activate_sole_entry(self):
+        """Both records must agree before callers are routed through the M8 gate.
+
+        A half-activated gate stays open, so the observable evidence is ordinary
+        routing rather than a dedicated pre-M8 refusal: the retired
+        ``sole_entry_not_active`` error is gone, and an open gate never reaches
+        the registered-entry checks that would need coordination State.
+        """
         for inventory, acceptance in ((False, True), (True, False)):
             with self.subTest(inventory=inventory, acceptance=acceptance):
                 root = self._root(inventory)
                 path = root / ".jenkins/state/deployment/acceptance.json"
                 path.write_text(json.dumps({"m8Accepted": acceptance, "soleEntryEnforcementApplied": acceptance}), encoding="utf-8")
                 self.assertFalse(sole_entry_enforced(root))
-                self.assertIsNone(entry_from_environment(root, transport=lambda _: self.fail("unexpected HTTP")))
+                with self.assertRaises(JenkinsError) as raised:
+                    entry_from_environment(root, transport=lambda _: self.fail("unexpected HTTP"))
+                self.assertTrue(raised.exception.code.startswith("ordinary_"),
+                                f"open gate must route to ordinary capability, got {raised.exception.code}")
                 with self.assertRaises(JenkinsError) as raised:
                     submit_entry(State(root / ".jenkins/state/coordination.sqlite3"), identity=self._identity(), repo_root=root)
-                self.assertEqual("sole_entry_not_active", raised.exception.code)
+                self.assertTrue(raised.exception.code.startswith("ordinary_"),
+                                f"open gate must route to ordinary capability, got {raised.exception.code}")
 
     def _functional_runtime(self, root: Path):
         from tools.jenkins.deployment.driver import verify_driver
