@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "repositoryRoot": "E:/Git/ZirconEngine",
+  "authorization": {
+    "source": "user",
+    "instruction": "请你帮我修复，不要做什么哈希对账验证了，提交权限放宽松",
+    "scope": "Standing permission for Jenkins to make local commits of explicitly selected task files in this checkout"
+  },
+  "requireSessionGrant": false,
+  "requireSourceDigest": false,
+  "requireFormalAcceptance": false,
+  "controlFiles": [".codex/config.toml"],
+  "pushAllowed": false,
+  "notificationAllowed": false
+}
