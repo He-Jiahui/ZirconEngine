@@ -39,7 +39,7 @@ def main():
     helper.write_json(output / 'artifacts.json', manifest)
     fixtures.mkdir()
     environment = dict(os.environ, ZR_COMMIT_TEST_ROOT=str(fixtures), TEMP=str(fixtures), TMP=str(fixtures),
-                       TMPDIR=str(fixtures), PYTHONDONTWRITEBYTECODE='1')
+                       TMPDIR=str(fixtures), PYTHONDONTWRITEBYTECODE='1', ZR_COMMIT_NATIVE='1')
     start = time.time()
     command = [sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tools/jenkins-management/tests/test_checkout_commit.py')]
     if args.suite == 'support':

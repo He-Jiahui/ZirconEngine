@@ -8,14 +8,17 @@ from __future__ import annotations
 import argparse
 import base64
 from contextlib import contextmanager
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shutil
 import sqlite3
 import stat
 import subprocess
 import sys
+import threading
 import time
 import tomllib
 import urllib.parse
@@ -132,12 +135,78 @@ def selected_paths(repo, paths, policy, grants):
     return result
 
 
+def native_processes():
+    """Reuse the deployed runtime's atomic Windows Job launcher."""
+    selected = read_json(ROOT / ".jenkins/state/deployment/driver.json")
+    driver = physical(ROOT / ".jenkins/runtime/drivers" / selected["driverDigest"])
+    path = physical(driver / "tools/jenkins/processes/native.py")
+    spec = importlib.util.spec_from_file_location("checkout_commit_native", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def run_native_command(command, repo, environment, timeout=120):
+    """Wait for the complete owned tree and close it on timeout or interruption."""
+    native = native_processes()
+    process, handle = native.create_atomic_kill_on_close_process(tuple(command), cwd=repo, env=environment)
+    output = ["", ""]
+    failures = []
+
+    def drain(index, stream):
+        try:
+            output[index] = stream.read()
+        except Exception as error:
+            failures.append(str(error))
+
+    readers = [threading.Thread(target=drain, args=(i, stream), daemon=True)
+               for i, stream in enumerate((process.stdout, process.stderr))]
+    try:
+        for reader in readers:
+            reader.start()
+        native.resume_popen_process(process)
+        try:
+            code = process.wait(timeout=timeout)
+            native.wait_for_process_job_terminal(handle, timeout_seconds=10)
+        except BaseException:
+            native.terminate_process_job(handle, timeout_seconds=10)
+            process.wait(timeout=10)
+            raise
+        for reader in readers:
+            reader.join(timeout=10)
+        if any(reader.is_alive() for reader in readers) or failures:
+            raise ValueError("Native Git streams did not terminate cleanly")
+        return subprocess.CompletedProcess(command, code, output[0].encode("utf-8"), output[1].encode("utf-8"))
+    finally:
+        # Closing this retained handle kills only this command's owned Job.
+        native.close_process_job(handle)
+        for reader in readers:
+            if reader.ident:
+                reader.join(timeout=10)
+        process.close()
+
+
 def git(repo, *args, check=True):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     environment.update(GIT_LITERAL_PATHSPECS="1", GIT_TERMINAL_PROMPT="0",
                        GIT_OPTIONAL_LOCKS="0")
-    result = subprocess.run(["git", "-c", "core.quotepath=false", *args], cwd=repo,
-                            env=environment, capture_output=True, timeout=120)
+    executable = Path(shutil.which("git") or "git")
+    if os.name == "nt" and executable.parent.name.casefold() == "cmd":
+        actual = executable.parent.parent / "mingw64/bin/git.exe"
+        if actual.is_file():
+            executable = physical(actual)
+    trace = os.environ.get("ZR_COMMIT_TRACE")
+    if trace:
+        trace_path = physical(trace)
+        if not trace_path.is_relative_to(physical(Path("E:/cargo-targets/zircon-local/reports/jenkins-commit-audit-20261017"))):
+            raise ValueError("Git trace output escaped its task report root")
+        environment["GIT_TRACE2_EVENT"] = trace_path.as_posix()
+    command = [str(executable), "-c", "core.quotepath=false", *args]
+    if os.name == "nt" and os.environ.get("ZR_COMMIT_NATIVE") == "1":
+        result = run_native_command(command, repo, environment)
+    else:
+        result = subprocess.run(command, cwd=repo, env=environment, stdin=subprocess.DEVNULL,
+                                capture_output=True, timeout=120)
     if check and result.returncode:
         raise ValueError(result.stderr.decode("utf-8", "replace")[-2500:].strip()
                          or "Git command failed")
@@ -355,6 +424,9 @@ def main(argv=None):
                     raise ValueError("Commit request differs from authoritative Jenkins parameters")
             if payload.get("observationOnly", False) != (os.environ.get("ZR_COMMIT_QUERY", "false").lower() == "true"):
                 raise ValueError("Commit query flag differs from Jenkins parameters")
+            os.environ["ZR_COMMIT_NATIVE"] = "1"
+            os.environ["ZR_COMMIT_TRACE"] = str(Path("E:/cargo-targets/zircon-local/reports/jenkins-commit-audit-20261017") /
+                ("native-git-" + payload["operationId"] + "." + os.environ.get("BUILD_NUMBER", "unknown") + ".jsonl"))
             with git_lock(repo / ".jenkins/state/locks/management-git.lock"):
                 result = execute(repo, payload)
         else:

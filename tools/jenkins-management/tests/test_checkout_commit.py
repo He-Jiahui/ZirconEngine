@@ -6,6 +6,8 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
@@ -153,6 +155,13 @@ class CheckoutCommitTests(unittest.TestCase):
 
 
 class CommitEntrySupportTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows Job lifecycle regression")
+    def test_native_timeout_terminates_root_and_descendant_without_hanging(self):
+        with tempfile.TemporaryDirectory(dir=os.environ["ZR_COMMIT_TEST_ROOT"]) as directory:
+            program = "import subprocess,sys,time;subprocess.Popen([sys.executable,'-c','import time;time.sleep(300)']);time.sleep(300)"
+            with self.assertRaises(subprocess.TimeoutExpired):
+                commit.run_native_command([sys.executable, "-B", "-c", program], Path(directory), dict(os.environ), timeout=1)
+
     def test_shared_git_lock_excludes_another_owner_and_releases_on_exit(self):
         with tempfile.TemporaryDirectory(dir=os.environ["ZR_COMMIT_TEST_ROOT"]) as directory:
             lock = Path(directory) / "management-git.lock"
