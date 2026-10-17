@@ -1,3 +1,6 @@
+//! 用固定源和小限值检查硬行窗口、同键源验证、淘汰与旁路报告。
+//! 窗口断言采用源 UTF-8 字节偏移；不覆盖访问号饱和、并发或内存峰值。
+
 use std::{mem::size_of, sync::Arc};
 
 use super::{HardLineIndexCache, HardLineIndexEntry, TextDocumentKey};
