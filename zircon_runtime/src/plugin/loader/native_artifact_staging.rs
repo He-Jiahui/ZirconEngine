@@ -10,6 +10,7 @@ use super::{
     NativePluginArtifactAdmissionError, NativePluginArtifactDependency, NativePluginArtifactDigest,
 };
 
+#[path = "native_artifact_staging/ownership.rs"]
 mod ownership;
 
 #[cfg(all(test, windows))]

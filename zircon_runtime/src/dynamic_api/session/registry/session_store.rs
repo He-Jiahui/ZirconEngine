@@ -615,7 +615,7 @@ fn dispatch_session_action<R: Send>(
         )),
         Err(super::session_owner::OwnerDispatchError::AdmissionIncomplete) => {
             Err(crate::dynamic_api::session::status::error_status(
-                b"runtime session command admission timed out",
+                "runtime session command admission timed out",
             ))
         }
         Err(_) => Err(not_found(b"runtime session not found")),
