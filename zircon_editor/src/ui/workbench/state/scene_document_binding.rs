@@ -15,6 +15,15 @@ impl EditorState {
         self.active_scene_document = None;
     }
 
+    /// Project saving persists the authoring world, even while commands target a Play world.
+    pub(in crate::ui) fn authoring_scene_history_context(
+        &self,
+    ) -> Result<HistoryContextId, EditorStateOperationError> {
+        self.active_scene_document
+            .map(HistoryContextId::Document)
+            .ok_or(EditorStateOperationError::SceneDocumentNotActive)
+    }
+
     /// Edit使用已提交文档，Play仅使用活跃Play domain；切换未完成时不借用旧编辑历史。
     pub(crate) fn active_scene_history_context(&self) -> Option<HistoryContextId> {
         if self.is_playing() {
@@ -38,3 +47,7 @@ impl EditorState {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "tests/project_save_history.rs"]
+mod tests;

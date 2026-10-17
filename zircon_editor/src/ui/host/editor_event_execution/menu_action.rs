@@ -23,11 +23,19 @@ use super::error::MenuActionExecutionError;
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_menu_action(
     controller: &EditorHostEventController,
-    shell: &mut WorkbenchShellStateData,
     action: &MenuAction,
+) -> Result<ExecutionOutcome, MenuActionExecutionError> {
+    execute_menu_action_with_save_authorization(controller, action, None)
+}
+
+pub(super) fn execute_menu_action_with_save_authorization(
+    controller: &EditorHostEventController,
+    action: &MenuAction,
+    overwrite: Option<crate::core::document::OverwriteLease>,
 ) -> Result<ExecutionOutcome, MenuActionExecutionError> {
     match action {
         MenuAction::OpenProject => {
+            let mut shell = controller.shell().lock();
             shell
                 .state
                 .set_status_line("Open an existing project or create a renderable empty project.");
@@ -57,8 +65,10 @@ pub(super) fn execute_menu_action(
             ],
         }),
         MenuAction::SaveProject => {
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
             let path = PathBuf::from(shell.state.snapshot().project_path);
-            let history_context = shell.state.scene_history_context()?;
+            let history_context = shell.state.authoring_scene_history_context()?;
             let transactions = shell.state.transactions();
             let pre_save_dirty = transactions.is_dirty(history_context).map_err(|source| {
                 MenuActionExecutionError::Transaction {
@@ -110,13 +120,12 @@ pub(super) fn execute_menu_action(
                     return Err(MenuActionExecutionError::NoProjectOpen);
                 }
             };
-            let live_scene_views = shell
-                .manager
+            let live_scene_views = manager
                 .view_instance_ids_for_descriptor_key("editor.scene")
                 .into_iter()
                 .map(|instance_id| crate::core::editor_event::ViewInstanceId::new(instance_id.0))
                 .collect::<std::collections::BTreeSet<_>>();
-            let mut workspace = shell.manager.project_workspace();
+            let mut workspace = manager.project_workspace();
             workspace.scene_viewport_sessions = shell
                 .state
                 .viewport_controller
@@ -129,30 +138,33 @@ pub(super) fn execute_menu_action(
                     )
                 })
                 .collect();
-            if let Err(source) = shell
-                .manager
-                .save_active_scene_with_workspace(&path, &scene, &workspace)
-            {
-                emit_project_save_log(
-                    controller.context().logs(),
-                    LogSeverity::Error,
-                    project_save_failed_diagnostic(&path, "persist", &source),
-                );
-                return Err(source.into());
-            }
-            let save_mark = match transactions.mark_saved_if_unchanged(history_context, save_token)
+            let outcome = match manager
+                .save_scene_with_workspace_authorized(&path, &scene, &workspace, overwrite)
             {
                 Ok(outcome) => outcome,
                 Err(source) => {
                     emit_project_save_log(
                         controller.context().logs(),
                         LogSeverity::Error,
-                        project_save_failed_diagnostic(&path, "mark_saved", &source),
+                        project_save_failed_diagnostic(&path, "persist", &source),
                     );
-                    return Err(MenuActionExecutionError::Transaction {
-                        phase: "mark saved",
-                        source,
-                    });
+                    return Err(source.into());
+                }
+            };
+            let save_mark = match super::complete_scene_save_checkpoint(
+                &outcome,
+                &transactions,
+                history_context,
+                save_token,
+            ) {
+                Ok(outcome) => outcome,
+                Err(source) => {
+                    emit_project_save_log(
+                        controller.context().logs(),
+                        LogSeverity::Error,
+                        project_save_failed_diagnostic(&path, "complete_persisted_save", &source),
+                    );
+                    return Err(source);
                 }
             };
             let persisted_generation = transactions
@@ -200,7 +212,9 @@ pub(super) fn execute_menu_action(
             ],
         }),
         MenuAction::SaveLayout => {
-            shell.manager.save_global_default_layout()?;
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
+            manager.save_global_default_layout()?;
             shell.state.set_status_line("Saved global default layout");
             Ok(ExecutionOutcome {
                 changed: false,
@@ -211,9 +225,9 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::ResetLayout => {
-            let changed = shell
-                .manager
-                .apply_layout_command(LayoutCommand::ResetToDefault)?;
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
+            let changed = manager.apply_layout_command(LayoutCommand::ResetToDefault)?;
             shell.state.set_status_line("Reset layout");
             Ok(ExecutionOutcome {
                 changed,
@@ -225,6 +239,7 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::ClearConsole => {
+            let mut shell = controller.shell().lock();
             let cleared_logs = controller.context().logs().clear();
             let cleared_legacy_output = shell.state.clear_console_history();
             let changed = cleared_logs != 0 || cleared_legacy_output;
@@ -234,6 +249,7 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::SetConsoleMessageFilter(filter) => {
+            let mut shell = controller.shell().lock();
             let changed = shell.set_console_message_filter(*filter);
             Ok(ExecutionOutcome {
                 changed,
@@ -241,6 +257,7 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::SetConsoleSourceFilter(filter) => {
+            let mut shell = controller.shell().lock();
             let changed = shell.set_console_source_filter(*filter);
             Ok(ExecutionOutcome {
                 changed,
@@ -248,6 +265,7 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::SelectPlayMode(kind) => {
+            let mut shell = controller.shell().lock();
             let changed = controller.play_sessions().set_preferred_kind(*kind);
             let label = match kind {
                 PlayKind::Play => "Play In Editor",
@@ -265,6 +283,12 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::EnterPlayMode => {
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
+            let enabled_capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
             let project_root = project_root_path(&shell.state.snapshot().project_path).ok();
             let scene = shell
                 .state
@@ -294,11 +318,6 @@ pub(super) fn execute_menu_action(
                             .state
                             .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
                         if backend_attachable {
-                            let enabled_capabilities = shell
-                                .manager
-                                .capability_snapshot()
-                                .enabled_capabilities()
-                                .to_vec();
                             if let Err(source) = controller
                                 .begin_runtime_event_consumers_with_capabilities(
                                     &enabled_capabilities,
@@ -324,7 +343,7 @@ pub(super) fn execute_menu_action(
                                     );
                                 }
                                 if let Err(detach) =
-                                    controller.detach_terminal_play_gateway_with_shell(shell)
+                                    controller.detach_terminal_play_gateway_with_shell(&mut shell)
                                 {
                                     return Err(MenuActionExecutionError::RuntimeConsumerStartGatewayDetachFailed {
                                         source,
@@ -366,7 +385,7 @@ pub(super) fn execute_menu_action(
                         }
                         let preview_focus_error =
                             if backend_attachable && play_kind == PlayKind::Play {
-                                shell.focus_play_preview_view().err()
+                                shell.focus_play_preview_view(&manager).err()
                             } else {
                                 None
                             };
@@ -418,6 +437,8 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::ExitPlayMode => {
+            let preview_manager = controller.enter_editor_manager();
+            let mut shell = controller.shell().lock();
             let trace_sequence = next_play_stop_trace_sequence();
             trace_play_stop_stage(trace_sequence, "stop_menu_entry", None, None);
             let consumer_shutdown_started =
@@ -477,7 +498,7 @@ pub(super) fn execute_menu_action(
             };
             let gateway_detach_started =
                 trace_play_stop_stage(trace_sequence, "gateway_detach_enter", None, None);
-            if let Err(source) = controller.detach_terminal_play_gateway_with_shell(shell) {
+            if let Err(source) = controller.detach_terminal_play_gateway_with_shell(&mut shell) {
                 trace_play_stop_stage(
                     trace_sequence,
                     "gateway_detach_return",
@@ -522,7 +543,13 @@ pub(super) fn execute_menu_action(
                 ));
                 MenuActionExecutionError::PlayStopRestoreStateFailed { source }
             })?;
-            let preview_restore_error = shell.restore_pre_play_view().err();
+            let preview_restore_error = match preview_manager.as_ref() {
+                Ok(manager) => shell
+                    .restore_pre_play_view(manager)
+                    .err()
+                    .map(|error| error.to_string()),
+                Err(error) => Some(error.to_string()),
+            };
             controller.reconcile_pending_play_decision_from_controller()?;
             let report = transition.activation.clone();
             let is_clean = report.is_clean();
@@ -576,35 +603,54 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::KeepPlayChanges => {
+            let mut shell = controller.shell().lock();
             let changed = shell.state.keep_play_changes()?;
             Ok(ExecutionOutcome {
                 changed,
                 effects: scene_effects(),
             })
         }
-        MenuAction::Undo => replay_focused_history_or_scene(shell, true),
-        MenuAction::Redo => replay_focused_history_or_scene(shell, false),
-        MenuAction::CreateNode(kind) => Ok(scene_intent_event(
-            shell,
-            EditorIntent::CreateNode(kind.clone()),
-        )?),
+        MenuAction::Undo => {
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
+            replay_focused_history_or_scene(&mut shell, &manager, true)
+        }
+        MenuAction::Redo => {
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
+            replay_focused_history_or_scene(&mut shell, &manager, false)
+        }
+        MenuAction::CreateNode(kind) => {
+            let mut shell = controller.shell().lock();
+            Ok(scene_intent_event(
+                &mut shell,
+                EditorIntent::CreateNode(kind.clone()),
+            )?)
+        }
         MenuAction::DeleteSelected => {
+            let mut shell = controller.shell().lock();
             let changed = shell.state.delete_selected()?;
             Ok(ExecutionOutcome {
                 changed,
                 effects: scene_effects(),
             })
         }
-        MenuAction::OpenView(descriptor_id) => Ok(open_view(
-            shell,
-            descriptor_id.0.as_str(),
-            &format!("Opened view {}", descriptor_id.0),
-        )?),
+        MenuAction::OpenView(descriptor_id) => {
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
+            Ok(open_view(
+                &mut shell,
+                &manager,
+                descriptor_id.0.as_str(),
+                &format!("Opened view {}", descriptor_id.0),
+            )?)
+        }
     }
 }
 
 fn replay_focused_history_or_scene(
     shell: &mut WorkbenchShellStateData,
+    manager: &crate::ui::host::EditorManager,
     undo: bool,
 ) -> Result<ExecutionOutcome, MenuActionExecutionError> {
     // Play mode freezes both scene and document authoring. Preserve the shared guard before
@@ -619,10 +665,7 @@ fn replay_focused_history_or_scene(
             },
         )?);
     }
-    let Some(changed) = shell
-        .manager
-        .replay_focused_animation_document_history(undo)?
-    else {
+    let Some(changed) = manager.replay_focused_animation_document_history(undo)? else {
         return Ok(scene_intent_event(
             shell,
             if undo {
