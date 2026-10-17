@@ -1,6 +1,7 @@
 /target/
 /target-codex-runtime-check/
 /zircon_plugins/target/
+/stage/
 **/*.rs.bk
 .idea/
 .vscode/

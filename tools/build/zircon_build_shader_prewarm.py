@@ -428,6 +428,8 @@ def write_generated_shader_permutation_registry(config) -> Path | None:
     registry_path = generated_shader_permutation_registry_path(config)
     if registry_path is None:
         return None
+    if not registry_path.is_absolute():
+        raise ValueError("shader permutation registry output must be absolute, not CWD-relative")
     registry_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         document = generated_shader_permutation_registry_document(config)

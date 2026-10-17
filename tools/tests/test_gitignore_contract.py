@@ -4,17 +4,16 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-# Removed with L4; these exact historical outputs do not allow other caches.
-LEGACY_OUTPUTS = {
-    "zircon_plugins/rendering/features/contact_shadow/runtime/.zircon-cache/shader_variants/v1/11/1171588ec74b24db4d0fa1713feaa266d70f856d5a50466b4d91de94ae01a58e.meta",
-    "zircon_plugins/rendering/features/contact_shadow/runtime/.zircon-cache/shader_variants/v1/11/1171588ec74b24db4d0fa1713feaa266d70f856d5a50466b4d91de94ae01a58e.wgsl.zst",
-}
 
 
 class GitignoreContractTests(unittest.TestCase):
     def test_tracked_files_are_not_ignored(self):
         paths = subprocess.check_output(["git", "ls-files", "-ci", "--exclude-standard", "-z"], cwd=ROOT)
-        self.assertEqual(set(paths.decode().split("\0")) - {""} - LEGACY_OUTPUTS, set())
+        self.assertEqual(set(paths.decode().split("\0")) - {""}, set())
+
+    def test_generated_stage_and_shader_caches_are_not_tracked(self):
+        paths = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
+        self.assertEqual([p for p in paths if p.startswith("stage/") or "/.zircon-cache/" in p], [])
 
     def test_new_sources_are_visible(self):
         for path in ("tools/tests/new_test.py", ".codex/skills/new/SKILL.md", "examples/woc/new.rs", "examples/vampire/new.txt", "third_party/new/CMakeLists.txt", "docs/layout/new.zui"):

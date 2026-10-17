@@ -103,3 +103,10 @@ explicit evidence below says otherwise. No build outputs are created here.
   add a repository guard against unlabeled constant allocation evidence. Repair
   stale moved-fixture reads in those contracts. 14 focused tests pass; static
   comparison confirms timing fields are unchanged. No performance run is claimed.
+- L4: Remove the staged registry and two contact-shadow shader-cache outputs.
+  The prewarm success test reproduced the exact custom-ID registry through its
+  shared relative `stage/` fake; it now owns a temporary output. The writer rejects
+  relative destinations before any mkdir. Ignore generated stage output and guard
+  against tracking stage/shader caches, removing the M2 allowance. Contact-shadow
+  tests already use the physical-output-checked project helper. Seven focused
+  Python tests pass with subprocesses mocked; no compiler was invoked.
