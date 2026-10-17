@@ -428,6 +428,17 @@ TERMINAL = {"complete", "no-changes"}
 QUEUE_PENDING = {"pending", "dispatching", "submitted", "delivery-unknown", "waiting"}
 
 
+def commit_failure(error):
+    # run_native_command terminates and waits for its owned Job before
+    # propagating TimeoutExpired. The next attempt first recovers any commit
+    # already written under this operation ID, rather than losing delivery.
+    retryable = isinstance(error, (CommitBusy, subprocess.TimeoutExpired))
+    return {"status": "waiting" if retryable else "failed",
+            "reasonCode": ("native_git_timeout" if isinstance(error, subprocess.TimeoutExpired)
+                           else getattr(error, "code", "scoped_commit_failed")),
+            "message": str(error)}
+
+
 def queue_record_path(repo, operation_id):
     if not isinstance(operation_id, str) or not ID.fullmatch(operation_id):
         raise ValueError("Invalid operationId")
@@ -467,6 +478,11 @@ def queue_intake(repo, request, *, claim_delivery=False):
             value["deliveryAttemptedAt"] = time.time()
         elif previous and previous["status"] == "failed":
             value.pop("deliveryAttemptedAt", None)
+        if previous and previous["status"] == "failed":
+            value["previousFailures"] = [*previous.get("previousFailures", []),
+                {k: previous.get(k) for k in ("updatedAt", "reasonCode", "message")}]
+            for key in ("message", "reasonCode", "lastDeliveryError"):
+                value.pop(key, None)
         write_json(path, value)
         return value, True
 
@@ -484,6 +500,9 @@ def queue_update(repo, request, result, *, create=False):
         value = {**(previous or {"schemaVersion": 1, "createdAt": time.time()}),
                  **result, "request": request, "updatedAt": time.time(), "formalAcceptance": False,
                  "pushPerformed": False, "notificationPerformed": False}
+        if value["status"] in TERMINAL:
+            for key in ("message", "reasonCode", "lastDeliveryError"):
+                value.pop(key, None)
         write_json(path, value)
         return value
 
@@ -538,8 +557,7 @@ def process_pending(repo, *, limit=12, budget_seconds=120):
                 with git_lock(repo / ".jenkins/state/locks/management-git.lock"):
                     result = execute(repo, request)
             except Exception as error:
-                result = {"status": "waiting" if isinstance(error, CommitBusy) else "failed",
-                          "reasonCode": getattr(error, "code", "scoped_commit_failed"), "message": str(error)}
+                result = commit_failure(error)
             updated = queue_update(repo, request, result)
             results.append({"operationId": request["operationId"], "status": updated["status"],
                             "commit": updated.get("commit"), "reasonCode": updated.get("reasonCode")})
@@ -721,6 +739,8 @@ def main(argv=None):
             if os.environ.get("JOB_NAME") != "zircon-git-followup" or os.environ.get("NODE_NAME") != "zircon-windows-agent":
                 raise ValueError("Git followup requires its Jenkins job and fixed agent")
             os.environ["ZR_COMMIT_NATIVE"] = "1"
+            os.environ["ZR_COMMIT_TRACE"] = str(Path("E:/cargo-targets/zircon-local/reports/jenkins-commit-audit-20261017") /
+                ("native-git-followup-" + os.environ.get("BUILD_NUMBER", "unknown") + ".jsonl"))
             result = process_pending(repo)
         elif args.command == "run":
             if os.environ.get("JOB_NAME") != "zircon-management" or os.environ.get("NODE_NAME") != "zircon-windows-agent":
@@ -789,9 +809,7 @@ def main(argv=None):
             return 3
         return 0 if result["status"] not in {"failed", "unknown", "waiting"} else 1
     except Exception as error:
-        result = {"status": "waiting" if getattr(error, "code", None) == "management_git_busy" else "failed",
-                  "reasonCode": getattr(error, "code", "scoped_commit_failed"),
-                  "message": str(error), "formalAcceptance": False, "pushPerformed": False}
+        result = {**commit_failure(error), "formalAcceptance": False, "pushPerformed": False}
         if args.command == "run" and payload and payload.get("observationOnly") is not True:
             try:
                 request, _ = commit_request(repo, payload)

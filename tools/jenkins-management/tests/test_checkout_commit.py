@@ -356,7 +356,26 @@ class CommitQueueTests(unittest.TestCase):
             self.assertTrue(accepted)
             self.assertEqual(value["status"], "pending")
             self.assertNotIn("deliveryAttemptedAt", value)
+            self.assertNotIn("message", value)
+            self.assertEqual(value["previousFailures"][-1]["message"], "temporary failure")
             self.assertEqual(commit.process_pending(repo)["requests"][0]["status"], "no-changes")
+
+    def test_native_git_timeout_retains_original_request_for_automatic_followup(self):
+        with self.fixture() as f:
+            repo, _, _, request = f
+            (repo / "owned.txt").write_text("ready fix\n", encoding="utf-8")
+            commit.queue_intake(repo, request)
+            with patch.object(commit, "execute", side_effect=subprocess.TimeoutExpired(["git", "commit"], 120)):
+                first = commit.process_pending(repo)
+            self.assertEqual(first["requests"][0]["status"], "waiting")
+            self.assertEqual(first["requests"][0]["reasonCode"], "native_git_timeout")
+            self.assertEqual(first["failedRequests"], [])
+            second = commit.process_pending(repo)
+            self.assertEqual(second["requests"][0]["status"], "complete")
+            observed = commit.queue_observation(repo, request)
+            self.assertEqual(observed["request"], request)
+            self.assertNotIn("message", commit.read_json(commit.queue_record_path(repo, request["operationId"])))
+            self.assertEqual(commit.git(repo, "rev-list", "--count", "HEAD").stdout.strip(), b"2")
 
 
 class CommitEntrySupportTests(unittest.TestCase):

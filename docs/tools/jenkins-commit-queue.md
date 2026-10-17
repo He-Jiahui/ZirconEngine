@@ -25,7 +25,7 @@
 
 入口先把精确请求保存到 `.jenkins/state/management/checkout-queue/<操作ID>.json`，再投递 Jenkins。即时构建与 `zircon-git-followup` 共用原操作 ID 和 Git 锁。定时任务每五分钟接续等待锁、活动读取或 HTTP 回执不明的请求，每轮最多十二条。它只处理已交付的文件清单，保留其他文件的暂存内容和工作区改动。
 
-需要下一次轮询提交时，加 `-DeferCommit`，或 Python 入口加 `--defer`。确定的输入错误标为 `failed` 并保持告警，修复原因后显式使用相同请求重试。请求交付不明时查询原操作，不能换 ID 重放。
+需要下一次轮询提交时，加 `-DeferCommit`，或 Python 入口加 `--defer`。原生 Git 命令超过时限时，先终止并等待本次拥有的进程树，再以 `waiting/native_git_timeout` 自动接续；如果提交已经写入，下一次恢复同一操作的实际提交号。确定的输入错误标为 `failed` 并保持告警，修复原因后显式使用相同请求重试。请求交付不明时查询原操作，不能换 ID 重放。
 
 查询使用同一命令加 `-QueryOnly`，或 Python 入口加 `--query-only`；查询直接读取原回执，不新建 Jenkins 构建。回执位于 `.jenkins/state/management/checkout-commits/<操作ID>.json` 和 Jenkins 构建归档。只有实际 `commit` 才表示已经提交；`queued`、`waiting`、验证成功或收件成功都不是提交完成。
 
