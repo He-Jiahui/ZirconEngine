@@ -14,6 +14,9 @@ use super::manifest_sync::{
 };
 use super::validate::{validate_native_artifact, validate_plugin_manifest};
 
+#[path = "check/catalog.rs"]
+mod catalog;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PluginCheckReport {
     pub checked_manifests: usize,
@@ -41,8 +44,9 @@ pub fn check_plugin_workspace_with_artifact_root(
         .filter_map(Value::as_str)
         .map(ToOwned::to_owned)
         .collect::<HashSet<_>>();
-    let runtime_catalog_source =
-        fs::read_to_string(plugin_root.join("first_party_runtime_catalog/src/lib.rs"))?;
+    let runtime_catalog_path = plugin_root.join("first_party_runtime_catalog/src/lib.rs");
+    let runtime_catalog_source = fs::read_to_string(&runtime_catalog_path)?;
+    let runtime_manifest_paths = catalog::manifest_includes(&runtime_catalog_path)?;
     let runtime_catalog_cargo: Value = toml::from_str(&fs::read_to_string(
         plugin_root.join("first_party_runtime_catalog/Cargo.toml"),
     )?)?;
@@ -94,9 +98,7 @@ pub fn check_plugin_workspace_with_artifact_root(
                 ));
             }
         }
-        let package_relative = relative_path(&plugin_root, package_root);
-        let expected_include = format!("../../{package_relative}/plugin.toml");
-        if !runtime_catalog_source.contains(&expected_include) {
+        if !runtime_manifest_paths.contains(&manifest_path.canonicalize()?) {
             diagnostics.push(PluginDiagnostic::new(
                 "plugin.catalog.manifest.missing",
                 format!("{display_path}: runtime catalog does not include this manifest"),
@@ -412,6 +414,12 @@ impl From<std::io::Error> for PluginCheckError {
 
 impl From<toml::de::Error> for PluginCheckError {
     fn from(error: toml::de::Error) -> Self {
+        Self::new(error.to_string())
+    }
+}
+
+impl From<syn::Error> for PluginCheckError {
+    fn from(error: syn::Error) -> Self {
         Self::new(error.to_string())
     }
 }

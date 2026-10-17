@@ -23,7 +23,7 @@ JOB = "zircon-merge-queue"
 CRON = "H/15 * * * *"
 MODE = "branch-commit-then-scheduled-merge"
 DELIVERY_SHA256 = "1ba94073123567a57563aef0d9a8f23dd3aff028c4abcd970728fbf4f8b7d4bf"
-ROOT = Path("E:/Git/ZirconEngine")
+ROOT = Path(__file__).resolve().parents[2]
 BEGIN = "// BEGIN ZIRCON BRANCH QUEUE"
 END = "// END ZIRCON BRANCH QUEUE"
 

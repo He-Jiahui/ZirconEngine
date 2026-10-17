@@ -140,3 +140,11 @@ explicit evidence below says otherwise. No build outputs are created here.
   checks pass; compiled concurrency tests remain pending the guarded Rust lane.
   Follow-up review fixes the completion regression's Send capture by moving its
   receiver and borrowed output into the callback.
+- L9 (tooling): Parse actual include_str! literal arguments through the linked
+  catalog module tree, resolve exact manifest paths, and ignore comments, fake
+  code strings, backup filenames and orphan modules. Add Rust regressions for
+  these cases and the current split manifest table. Derive the Jenkins default
+  root from its driver path; its focused Python test passes. Remove 17 nonexistent
+  saved documentation grants and add the six current owners. Canonical TOML and
+  source checks pass; preserve Linux overlay bytes through the index. Compiled
+  catalog tests remain pending. WebSocket wakeups and RPC poison handling follow.

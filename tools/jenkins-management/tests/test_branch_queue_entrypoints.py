@@ -11,6 +11,9 @@ d, queue = regression.d, regression.queue
 
 
 class EntryPointTests(unittest.TestCase):
+    def test_default_repository_follows_the_checkout_containing_the_driver(self):
+        self.assertEqual(queue.ROOT, Path(queue.__file__).resolve().parents[2])
+
     def test_historical_owner_cannot_authorize_a_current_driver_commit(self):
         with regression.BranchQueueTests().fixture() as f:
             (f[1] / "owned.py").write_text("value = 2\n")
