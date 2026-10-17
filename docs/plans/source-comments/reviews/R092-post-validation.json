@@ -1,0 +1,4578 @@
+{
+  "schema": "zircon-source-comment-root-validation-v2",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R092",
+  "owner": "root",
+  "created_at_utc": "2026-10-17T07:19:14.995013+00:00",
+  "formal_acceptance": false,
+  "child_review_record": {
+    "path": "docs/plans/source-comments/reviews/R092.json",
+    "sha256": "9a35267004c89a490865a07293a3b71a41e9b936704a2061b1f067dff4d2dd60",
+    "bytes": 79025
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "sha256": "99fd424a36330dbbe1ec6a6061e88de5cbd427b2a2ef2e836e610088ae429879",
+      "bytes": 15617,
+      "lines": 386,
+      "before_sha256": "679e2850d3a7db903925fff5e7abe23c0b928afa6e4a476c9dc02348b53c27a0",
+      "before_bytes": 11112,
+      "before_lines": 325,
+      "stage0_blob": "8708a63369b010e5940dc060ef831b37247504bf",
+      "inserted_groups": 19,
+      "inserted_bytes": 4505,
+      "inserted_lines": 61,
+      "deleted_lines": 0,
+      "original_bytes_inverse_equals_raw_HEAD": true,
+      "raw_reader_operands": [
+        {
+          "term": "SdfAtlasBakePlanView",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "with_sdf_test_backends",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "measure_sdf_glyph",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "sdf_text_decoration_metrics",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "editor",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "legacy",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "server",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "sha256": "b5608f1cf992cf30f38a3f293bf052c9cf7f90eb6932f64cd0a669fa4fd2546b",
+      "bytes": 19103,
+      "lines": 480,
+      "before_sha256": "1b40868e9942af86298b7cb884904aede9d21a4e7131ba0a09fb864b7c234581",
+      "before_bytes": 13491,
+      "before_lines": 407,
+      "stage0_blob": "2818fd81765f41c6b52383039f0658d08159c904",
+      "inserted_groups": 24,
+      "inserted_bytes": 5612,
+      "inserted_lines": 73,
+      "deleted_lines": 0,
+      "original_bytes_inverse_equals_raw_HEAD": true,
+      "raw_reader_operands": [
+        {
+          "term": "SdfAtlasBakePlanView",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "with_sdf_test_backends",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "measure_sdf_glyph",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "sdf_text_decoration_metrics",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "editor",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "legacy",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        },
+        {
+          "term": "server",
+          "before": 0,
+          "current": 0,
+          "new": 0
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "files": 2,
+    "declarations": 19,
+    "functions": 50,
+    "members": 50,
+    "enum_variants": 2,
+    "enum_payload_slots": 3,
+    "semantic_function_blocks": 77,
+    "derive_sites": 7,
+    "impl_blocks": 7,
+    "gapfree_declaration_partitions": 19,
+    "inserted_groups": 43,
+    "inserted_lines": 134,
+    "inserted_bytes": 10117,
+    "deleted_lines": 0,
+    "context_normal_tests": 17,
+    "context_ignored_tests": 0,
+    "context_assertion_sites": 108,
+    "tests_executed": 0,
+    "new_issues": 0,
+    "physical_ranges": 219
+  },
+  "ranges": {
+    "convention": "one-based inclusive LF byte slices; byte-offset insertions project all original lines; no source copies",
+    "proof": [
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "1",
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          1,
+          8
+        ],
+        "before_sha256": "44588507d1f0cda5fcc6050c814d436ccb7676eb176d41a8095e0e9dd1078c70",
+        "current_sha256": "fd07565691c1d5d9cfa27adedd0f661503aa39e5da603f880cd0d002e54570b8"
+      },
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "2",
+        "before": [
+          6,
+          7
+        ],
+        "current": [
+          9,
+          10
+        ],
+        "before_sha256": "e842350ad4fef15cb2c57905c276b793b46e92873297644dfcc208399b6d67bf",
+        "current_sha256": "e842350ad4fef15cb2c57905c276b793b46e92873297644dfcc208399b6d67bf"
+      },
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "3",
+        "before": [
+          8,
+          27
+        ],
+        "current": [
+          17,
+          36
+        ],
+        "before_sha256": "7dc9cf82af151527b0ff4122df5545dbb6c0ed1100b4c95bfc618ccc6da81e6f",
+        "current_sha256": "7dc9cf82af151527b0ff4122df5545dbb6c0ed1100b4c95bfc618ccc6da81e6f"
+      },
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "4",
+        "before": [
+          28,
+          35
+        ],
+        "current": [
+          38,
+          45
+        ],
+        "before_sha256": "54707adc906b57aa8b2bbaca9f6b9b6d157830e32ec4581646ffb6e994c724cc",
+        "current_sha256": "54707adc906b57aa8b2bbaca9f6b9b6d157830e32ec4581646ffb6e994c724cc"
+      },
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "5",
+        "before": [
+          36,
+          41
+        ],
+        "current": [
+          46,
+          51
+        ],
+        "before_sha256": "67f090d6852217151b0558e3247c6c3dd53b108307ab2e12155211197e74e26e",
+        "current_sha256": "67f090d6852217151b0558e3247c6c3dd53b108307ab2e12155211197e74e26e"
+      },
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "6",
+        "before": [
+          42,
+          50
+        ],
+        "current": [
+          52,
+          67
+        ],
+        "before_sha256": "116c6ff5a1799c56e2bf51c67369a4ce6752350dcfbbd0765aaef99654e939f5",
+        "current_sha256": "9b58fd8f11bea99b8c7f2489e6fc47de7f6e33b7938985ccecc607c00758bfe2"
+      },
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "7",
+        "before": [
+          51,
+          59
+        ],
+        "current": [
+          68,
+          76
+        ],
+        "before_sha256": "d808d36e90c2ba310e04040bb1f70a1369629f40e8c2c317f07a989054592921",
+        "current_sha256": "d808d36e90c2ba310e04040bb1f70a1369629f40e8c2c317f07a989054592921"
+      },
+      {
+        "source": "S1",
+        "kind": "continuous-declaration-partition",
+        "name": "8",
+        "before": [
+          60,
+          325
+        ],
+        "current": [
+          77,
+          386
+        ],
+        "before_sha256": "7f78a54351345f1c750e756bae28caf4d69203bbbd4aa4a2f96ed4fb5213c47f",
+        "current_sha256": "e150998e4705c8e2498a4a1c7f15406577d09f55048851feb13ea46d07c7be51"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "module/imports",
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          1,
+          8
+        ],
+        "before_sha256": "44588507d1f0cda5fcc6050c814d436ccb7676eb176d41a8095e0e9dd1078c70",
+        "current_sha256": "fd07565691c1d5d9cfa27adedd0f661503aa39e5da603f880cd0d002e54570b8"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "DEFAULT_TEXT_MEASURE_CACHE_CAPACITY",
+        "before": [
+          6,
+          7
+        ],
+        "current": [
+          9,
+          10
+        ],
+        "before_sha256": "e842350ad4fef15cb2c57905c276b793b46e92873297644dfcc208399b6d67bf",
+        "current_sha256": "e842350ad4fef15cb2c57905c276b793b46e92873297644dfcc208399b6d67bf"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "TextMeasureCacheReport",
+        "before": [
+          8,
+          27
+        ],
+        "current": [
+          17,
+          36
+        ],
+        "before_sha256": "7dc9cf82af151527b0ff4122df5545dbb6c0ed1100b4c95bfc618ccc6da81e6f",
+        "current_sha256": "7dc9cf82af151527b0ff4122df5545dbb6c0ed1100b4c95bfc618ccc6da81e6f"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.frame_index",
+        "before": [
+          10,
+          10
+        ],
+        "current": [
+          19,
+          19
+        ],
+        "before_sha256": "7a156eec1137581a3786bedbae1bdedfbe98a542306964b45d38c38dea0f7994",
+        "current_sha256": "7a156eec1137581a3786bedbae1bdedfbe98a542306964b45d38c38dea0f7994"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.capacity",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          20,
+          20
+        ],
+        "before_sha256": "81e28c8c0d37d3944a2c131fc27f2111cecfb34f3b13fdbeb70d4533ec6947db",
+        "current_sha256": "81e28c8c0d37d3944a2c131fc27f2111cecfb34f3b13fdbeb70d4533ec6947db"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.entry_count",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "95fc2f57ad41a103d5c63c9118b583dcd4c645439d5264df6ee79f423720d6d9",
+        "current_sha256": "95fc2f57ad41a103d5c63c9118b583dcd4c645439d5264df6ee79f423720d6d9"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.estimated_bytes",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          22,
+          22
+        ],
+        "before_sha256": "c20a15530134596c0b0bcecafc1818783a4796dc7fcd25b8410d4a408b2bcaa5",
+        "current_sha256": "c20a15530134596c0b0bcecafc1818783a4796dc7fcd25b8410d4a408b2bcaa5"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.peak_estimated_bytes",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          23,
+          23
+        ],
+        "before_sha256": "72395ebc84539c440a048dfebb7f3f402e6a8a65a572ec7bbc53da3f436218b8",
+        "current_sha256": "72395ebc84539c440a048dfebb7f3f402e6a8a65a572ec7bbc53da3f436218b8"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.hit_count",
+        "before": [
+          15,
+          15
+        ],
+        "current": [
+          24,
+          24
+        ],
+        "before_sha256": "aed151aa6e22d470c3c71f619221e9c8e8cd8e39d83dd6d8eed65e2abb075f0a",
+        "current_sha256": "aed151aa6e22d470c3c71f619221e9c8e8cd8e39d83dd6d8eed65e2abb075f0a"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.miss_count",
+        "before": [
+          16,
+          16
+        ],
+        "current": [
+          25,
+          25
+        ],
+        "before_sha256": "81010c9887182cb93f1f8e5d9b5c75783faf0b6b471cff3300ead6cbf1517f12",
+        "current_sha256": "81010c9887182cb93f1f8e5d9b5c75783faf0b6b471cff3300ead6cbf1517f12"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.collision_miss_count",
+        "before": [
+          17,
+          17
+        ],
+        "current": [
+          26,
+          26
+        ],
+        "before_sha256": "49ba7ffa627b01f65167a47813fd3195ec512fad381fcde75472a50593bdbead",
+        "current_sha256": "49ba7ffa627b01f65167a47813fd3195ec512fad381fcde75472a50593bdbead"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.lookup_candidate_count",
+        "before": [
+          18,
+          18
+        ],
+        "current": [
+          27,
+          27
+        ],
+        "before_sha256": "f7f0ba359d794989fbde3f7015f45ae9526312cb8b4682c0717c9b34c852afa2",
+        "current_sha256": "f7f0ba359d794989fbde3f7015f45ae9526312cb8b4682c0717c9b34c852afa2"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.eviction_scan_count",
+        "before": [
+          19,
+          19
+        ],
+        "current": [
+          28,
+          28
+        ],
+        "before_sha256": "28ac28578526e7d77f2f106bafd8e6f5d3819b97192cc5d3159caba2298eff7b",
+        "current_sha256": "28ac28578526e7d77f2f106bafd8e6f5d3819b97192cc5d3159caba2298eff7b"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.entry_move_count",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          29,
+          29
+        ],
+        "before_sha256": "8f8a4626c1f29b57070607af0f1c6a25d9ef52944b6755d0c02117674a895445",
+        "current_sha256": "8f8a4626c1f29b57070607af0f1c6a25d9ef52944b6755d0c02117674a895445"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.insert_count",
+        "before": [
+          21,
+          21
+        ],
+        "current": [
+          30,
+          30
+        ],
+        "before_sha256": "327f3410f28262337751d49beefc9b7b5c8c39d1285157eea92995237d5d5b0e",
+        "current_sha256": "327f3410f28262337751d49beefc9b7b5c8c39d1285157eea92995237d5d5b0e"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.update_count",
+        "before": [
+          22,
+          22
+        ],
+        "current": [
+          31,
+          31
+        ],
+        "before_sha256": "97ca26839e25a6260c2977271a1496778150573e172b2d209d2dbcddfd7ab944",
+        "current_sha256": "97ca26839e25a6260c2977271a1496778150573e172b2d209d2dbcddfd7ab944"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.evicted_count",
+        "before": [
+          23,
+          23
+        ],
+        "current": [
+          32,
+          32
+        ],
+        "before_sha256": "6be228eb039448c21a819584eaa4f1d0888243e5afce2f45d181870b38ce07d1",
+        "current_sha256": "6be228eb039448c21a819584eaa4f1d0888243e5afce2f45d181870b38ce07d1"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.trim_count",
+        "before": [
+          24,
+          24
+        ],
+        "current": [
+          33,
+          33
+        ],
+        "before_sha256": "d063a1ef295d226fae006d924a0f772fb24613904b078c85b15ac13438af17b5",
+        "current_sha256": "d063a1ef295d226fae006d924a0f772fb24613904b078c85b15ac13438af17b5"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheReport.clear_count",
+        "before": [
+          25,
+          25
+        ],
+        "current": [
+          34,
+          34
+        ],
+        "before_sha256": "591a0acdafcdd36a1270620929ff382fb6824f39612fabb9a3129ac7f0a7a8dd",
+        "current_sha256": "591a0acdafcdd36a1270620929ff382fb6824f39612fabb9a3129ac7f0a7a8dd"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "TextMeasureCacheEntry<K,V>",
+        "before": [
+          28,
+          35
+        ],
+        "current": [
+          38,
+          45
+        ],
+        "before_sha256": "54707adc906b57aa8b2bbaca9f6b9b6d157830e32ec4581646ffb6e994c724cc",
+        "current_sha256": "54707adc906b57aa8b2bbaca9f6b9b6d157830e32ec4581646ffb6e994c724cc"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheEntry<K,V>.key",
+        "before": [
+          30,
+          30
+        ],
+        "current": [
+          40,
+          40
+        ],
+        "before_sha256": "a1c7149c6f0ec06afdb4067e5badc3c9e85454119423775208584ffac158b9f4",
+        "current_sha256": "a1c7149c6f0ec06afdb4067e5badc3c9e85454119423775208584ffac158b9f4"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheEntry<K,V>.text",
+        "before": [
+          31,
+          31
+        ],
+        "current": [
+          41,
+          41
+        ],
+        "before_sha256": "689f4efdc72ca35c16656947f77c7e4803207a65e91a1e7571c8ec5ab042ba74",
+        "current_sha256": "689f4efdc72ca35c16656947f77c7e4803207a65e91a1e7571c8ec5ab042ba74"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheEntry<K,V>.value",
+        "before": [
+          32,
+          32
+        ],
+        "current": [
+          42,
+          42
+        ],
+        "before_sha256": "f16598371a7f54182f77b1bddbba8695dd1a47fba30cbfb27640669304686a7d",
+        "current_sha256": "f16598371a7f54182f77b1bddbba8695dd1a47fba30cbfb27640669304686a7d"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCacheEntry<K,V>.estimated_bytes",
+        "before": [
+          33,
+          33
+        ],
+        "current": [
+          43,
+          43
+        ],
+        "before_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550",
+        "current_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "IndexedTextCacheEntry<K> for TextMeasureCacheEntry<K,V>",
+        "before": [
+          36,
+          41
+        ],
+        "current": [
+          46,
+          51
+        ],
+        "before_sha256": "67f090d6852217151b0558e3247c6c3dd53b108307ab2e12155211197e74e26e",
+        "current_sha256": "67f090d6852217151b0558e3247c6c3dd53b108307ab2e12155211197e74e26e"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "TextMeasureCache<K,V>",
+        "before": [
+          42,
+          50
+        ],
+        "current": [
+          52,
+          67
+        ],
+        "before_sha256": "116c6ff5a1799c56e2bf51c67369a4ce6752350dcfbbd0765aaef99654e939f5",
+        "current_sha256": "9b58fd8f11bea99b8c7f2489e6fc47de7f6e33b7938985ccecc607c00758bfe2"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCache<K,V>.index",
+        "before": [
+          45,
+          45
+        ],
+        "current": [
+          62,
+          62
+        ],
+        "before_sha256": "79d914cf72121688ecaf39fa18f01f8d0cc98d605455443ff6a8fabf5618ff2f",
+        "current_sha256": "79d914cf72121688ecaf39fa18f01f8d0cc98d605455443ff6a8fabf5618ff2f"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCache<K,V>.capacity",
+        "before": [
+          46,
+          46
+        ],
+        "current": [
+          63,
+          63
+        ],
+        "before_sha256": "f1cdfb71276c4c8fa80a195b2a8e3130a7ff13ca5020a0cf1e8a93d20ccc9c21",
+        "current_sha256": "f1cdfb71276c4c8fa80a195b2a8e3130a7ff13ca5020a0cf1e8a93d20ccc9c21"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCache<K,V>.estimated_bytes",
+        "before": [
+          47,
+          47
+        ],
+        "current": [
+          64,
+          64
+        ],
+        "before_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550",
+        "current_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550"
+      },
+      {
+        "source": "S1",
+        "kind": "member",
+        "name": "TextMeasureCache<K,V>.frame_report",
+        "before": [
+          48,
+          48
+        ],
+        "current": [
+          65,
+          65
+        ],
+        "before_sha256": "58d80fbe622044193ea6236b890ea967e2ad7e90512f747a457ce3e91cd76733",
+        "current_sha256": "58d80fbe622044193ea6236b890ea967e2ad7e90512f747a457ce3e91cd76733"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "Default for TextMeasureCache<K,V>",
+        "before": [
+          51,
+          59
+        ],
+        "current": [
+          68,
+          76
+        ],
+        "before_sha256": "d808d36e90c2ba310e04040bb1f70a1369629f40e8c2c317f07a989054592921",
+        "current_sha256": "d808d36e90c2ba310e04040bb1f70a1369629f40e8c2c317f07a989054592921"
+      },
+      {
+        "source": "S1",
+        "kind": "declaration",
+        "name": "TextMeasureCache<K,V> inherent impl",
+        "before": [
+          60,
+          325
+        ],
+        "current": [
+          77,
+          386
+        ],
+        "before_sha256": "7f78a54351345f1c750e756bae28caf4d69203bbbd4aa4a2f96ed4fb5213c47f",
+        "current_sha256": "e150998e4705c8e2498a4a1c7f15406577d09f55048851feb13ea46d07c7be51"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "cache_key",
+        "before": [
+          37,
+          39
+        ],
+        "current": [
+          47,
+          49
+        ],
+        "before_sha256": "48481a5603851d09fcc837af3b06049dc738dc65b4a036d9e1cd61d6666283d9",
+        "current_sha256": "48481a5603851d09fcc837af3b06049dc738dc65b4a036d9e1cd61d6666283d9"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "cache_key#1",
+        "before": [
+          38,
+          38
+        ],
+        "current": [
+          48,
+          48
+        ],
+        "before_sha256": "2bf526c3d7b87554c9d015a783a840ecba0657116b998d33f0c07b86b3b8ea4e",
+        "current_sha256": "2bf526c3d7b87554c9d015a783a840ecba0657116b998d33f0c07b86b3b8ea4e"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "default",
+        "before": [
+          55,
+          57
+        ],
+        "current": [
+          72,
+          74
+        ],
+        "before_sha256": "478e2c6cef2a19b8a2c2ae35f02d0728d41fa1841de1e296649b5f0658edf770",
+        "current_sha256": "478e2c6cef2a19b8a2c2ae35f02d0728d41fa1841de1e296649b5f0658edf770"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "default#1",
+        "before": [
+          56,
+          56
+        ],
+        "current": [
+          73,
+          73
+        ],
+        "before_sha256": "84c1e3195ad346201431fd35e2652dde7e6d7123e24b048731494daf71261a75",
+        "current_sha256": "84c1e3195ad346201431fd35e2652dde7e6d7123e24b048731494daf71261a75"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "new",
+        "before": [
+          64,
+          66
+        ],
+        "current": [
+          81,
+          83
+        ],
+        "before_sha256": "92b9960a0c10805429ea0267f939f1d78b3839115abd6809e6eadc4e656d5524",
+        "current_sha256": "92b9960a0c10805429ea0267f939f1d78b3839115abd6809e6eadc4e656d5524"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "new#1",
+        "before": [
+          65,
+          65
+        ],
+        "current": [
+          82,
+          82
+        ],
+        "before_sha256": "e580b312d0b481159cc5ff141fe80e3d4cdb30e99b6763a400bb875dde98a2e1",
+        "current_sha256": "e580b312d0b481159cc5ff141fe80e3d4cdb30e99b6763a400bb875dde98a2e1"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "with_capacity",
+        "before": [
+          68,
+          78
+        ],
+        "current": [
+          89,
+          99
+        ],
+        "before_sha256": "ff8319d6043e09a4e20a58812ed3bfeaaeeeb6e06eb4ba26e2eb27ee1c7f5dd0",
+        "current_sha256": "ff8319d6043e09a4e20a58812ed3bfeaaeeeb6e06eb4ba26e2eb27ee1c7f5dd0"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "with_capacity#1",
+        "before": [
+          69,
+          77
+        ],
+        "current": [
+          90,
+          98
+        ],
+        "before_sha256": "a772b138a2addd20a345c09ab8eb305d7998da34224b552f75d648631f7574d9",
+        "current_sha256": "a772b138a2addd20a345c09ab8eb305d7998da34224b552f75d648631f7574d9"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "begin_frame",
+        "before": [
+          80,
+          89
+        ],
+        "current": [
+          104,
+          113
+        ],
+        "before_sha256": "638b6fb85cb676c4c097702bebec40f31ae959c769341554254106996dab7009",
+        "current_sha256": "638b6fb85cb676c4c097702bebec40f31ae959c769341554254106996dab7009"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "begin_frame#1",
+        "before": [
+          81,
+          88
+        ],
+        "current": [
+          105,
+          112
+        ],
+        "before_sha256": "9473c9d0cb08adbabeeceafda3ac88b404fc3930b54a43ab24238e0305aef4c0",
+        "current_sha256": "9473c9d0cb08adbabeeceafda3ac88b404fc3930b54a43ab24238e0305aef4c0"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "finish_frame",
+        "before": [
+          91,
+          93
+        ],
+        "current": [
+          116,
+          118
+        ],
+        "before_sha256": "0788e02db944f871811a7ff522d2fe11a08e437e99ae96ce1c806908209c0046",
+        "current_sha256": "0788e02db944f871811a7ff522d2fe11a08e437e99ae96ce1c806908209c0046"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "finish_frame#1",
+        "before": [
+          92,
+          92
+        ],
+        "current": [
+          117,
+          117
+        ],
+        "before_sha256": "dfeffc0f11700d4fdf0ba947c5cfd1a0d4eedf4075ed4e463c79ea0ff14173fc",
+        "current_sha256": "dfeffc0f11700d4fdf0ba947c5cfd1a0d4eedf4075ed4e463c79ea0ff14173fc"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "clear",
+        "before": [
+          95,
+          104
+        ],
+        "current": [
+          123,
+          132
+        ],
+        "before_sha256": "0ed2313a8c3e012fd563c2ed84426b6fa258492214fa9460b714034736029223",
+        "current_sha256": "0ed2313a8c3e012fd563c2ed84426b6fa258492214fa9460b714034736029223"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "clear#1",
+        "before": [
+          96,
+          100
+        ],
+        "current": [
+          124,
+          128
+        ],
+        "before_sha256": "b6dbf3a7ed483557dfc2c2b66e1c2420522b148db83ff86f255a728fe6536995",
+        "current_sha256": "b6dbf3a7ed483557dfc2c2b66e1c2420522b148db83ff86f255a728fe6536995"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "clear#2",
+        "before": [
+          101,
+          103
+        ],
+        "current": [
+          129,
+          131
+        ],
+        "before_sha256": "ac42b3888a057a1a12a688ae70e22bc3b10b6c8dd66d5202a6f2bc9168fbe254",
+        "current_sha256": "ac42b3888a057a1a12a688ae70e22bc3b10b6c8dd66d5202a6f2bc9168fbe254"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "len",
+        "before": [
+          106,
+          108
+        ],
+        "current": [
+          134,
+          136
+        ],
+        "before_sha256": "90e570a6f3e2f997610f599372223d3e7adc29c8d4e03e93b367deb028586a25",
+        "current_sha256": "90e570a6f3e2f997610f599372223d3e7adc29c8d4e03e93b367deb028586a25"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "len#1",
+        "before": [
+          107,
+          107
+        ],
+        "current": [
+          135,
+          135
+        ],
+        "before_sha256": "1cbc46e87928c13a9a0b70c7a3242eb9394d2fbcafd9cb2cdba365f66f6db803",
+        "current_sha256": "1cbc46e87928c13a9a0b70c7a3242eb9394d2fbcafd9cb2cdba365f66f6db803"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "is_empty",
+        "before": [
+          110,
+          112
+        ],
+        "current": [
+          138,
+          140
+        ],
+        "before_sha256": "fa2f2912d7291b1491d7a34ca20f5a1aa261e0a01d19c3ab7ce8050dca9eede7",
+        "current_sha256": "fa2f2912d7291b1491d7a34ca20f5a1aa261e0a01d19c3ab7ce8050dca9eede7"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "is_empty#1",
+        "before": [
+          111,
+          111
+        ],
+        "current": [
+          139,
+          139
+        ],
+        "before_sha256": "0ec1d6ea85bd4daa5f616409e2ec317ce426d3bde8ef590a7634b3fc254994bd",
+        "current_sha256": "0ec1d6ea85bd4daa5f616409e2ec317ce426d3bde8ef590a7634b3fc254994bd"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "report",
+        "before": [
+          114,
+          119
+        ],
+        "current": [
+          143,
+          148
+        ],
+        "before_sha256": "a9b76965c69fcd31f137822600f77029191153e41510e95347bed14c0cbec8b2",
+        "current_sha256": "a9b76965c69fcd31f137822600f77029191153e41510e95347bed14c0cbec8b2"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "report#1",
+        "before": [
+          115,
+          118
+        ],
+        "current": [
+          144,
+          147
+        ],
+        "before_sha256": "ea431a2c45857274841b37059780910645ee960b4010895736da439b06a7598a",
+        "current_sha256": "ea431a2c45857274841b37059780910645ee960b4010895736da439b06a7598a"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "contains_exact",
+        "before": [
+          121,
+          126
+        ],
+        "current": [
+          153,
+          158
+        ],
+        "before_sha256": "9b8209ac4a83d268c9509ce73a1e38e9ef9e0da65fdba7eeb7c2614068533d2c",
+        "current_sha256": "9b8209ac4a83d268c9509ce73a1e38e9ef9e0da65fdba7eeb7c2614068533d2c"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "contains_exact#1",
+        "before": [
+          122,
+          125
+        ],
+        "current": [
+          154,
+          157
+        ],
+        "before_sha256": "b9e4a8daf76937a4544be1ac9cf5d557bbc11f01a09f47357e99905fa6903dea",
+        "current_sha256": "b9e4a8daf76937a4544be1ac9cf5d557bbc11f01a09f47357e99905fa6903dea"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "get",
+        "before": [
+          128,
+          130
+        ],
+        "current": [
+          161,
+          163
+        ],
+        "before_sha256": "2dd62817ac5ee9d3c77cb6cbe8f5c94fb6897e949ae92bdb3151ce5b70c56795",
+        "current_sha256": "2dd62817ac5ee9d3c77cb6cbe8f5c94fb6897e949ae92bdb3151ce5b70c56795"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "get#1",
+        "before": [
+          129,
+          129
+        ],
+        "current": [
+          162,
+          162
+        ],
+        "before_sha256": "bfb904c2285ab0691139f89d435c80204e5eec9732c789902adb21a91ae90ef7",
+        "current_sha256": "bfb904c2285ab0691139f89d435c80204e5eec9732c789902adb21a91ae90ef7"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "get_with_stored_text",
+        "before": [
+          133,
+          138
+        ],
+        "current": [
+          170,
+          175
+        ],
+        "before_sha256": "2eefcea3de84a287ebc42b1c6da52d212d5737c8daa406b8709afbc017b1e91f",
+        "current_sha256": "2eefcea3de84a287ebc42b1c6da52d212d5737c8daa406b8709afbc017b1e91f"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "get_with_stored_text#1",
+        "before": [
+          134,
+          137
+        ],
+        "current": [
+          171,
+          174
+        ],
+        "before_sha256": "a3823db406cfd19e2f3ab91b8a0878d26f5009b8b8bcf7eebced07722b0b4b0f",
+        "current_sha256": "a3823db406cfd19e2f3ab91b8a0878d26f5009b8b8bcf7eebced07722b0b4b0f"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "insert",
+        "before": [
+          140,
+          142
+        ],
+        "current": [
+          180,
+          182
+        ],
+        "before_sha256": "e35f0c24d9d2192e2417f271423dbb8697e5db17715e672260d22c9824b0e527",
+        "current_sha256": "e35f0c24d9d2192e2417f271423dbb8697e5db17715e672260d22c9824b0e527"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "insert#1",
+        "before": [
+          141,
+          141
+        ],
+        "current": [
+          181,
+          181
+        ],
+        "before_sha256": "4b297eb39e052cb298ff06eacde6383958284162049b799fb60436dd7d1172b9",
+        "current_sha256": "4b297eb39e052cb298ff06eacde6383958284162049b799fb60436dd7d1172b9"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "insert_with_additional_heap_bytes",
+        "before": [
+          145,
+          194
+        ],
+        "current": [
+          193,
+          242
+        ],
+        "before_sha256": "edf3c32e16a28142a3e467fe5fdff133cab75aacdef8654d205bd5c7e8b3987c",
+        "current_sha256": "edf3c32e16a28142a3e467fe5fdff133cab75aacdef8654d205bd5c7e8b3987c"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#1",
+        "before": [
+          152,
+          155
+        ],
+        "current": [
+          200,
+          203
+        ],
+        "before_sha256": "ccf6269c2eb6dffd001db6b0a7dd3851896321a0c3777007b082c0b6a10cd8bc",
+        "current_sha256": "ccf6269c2eb6dffd001db6b0a7dd3851896321a0c3777007b082c0b6a10cd8bc"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#2",
+        "before": [
+          156,
+          164
+        ],
+        "current": [
+          204,
+          212
+        ],
+        "before_sha256": "5f8215711ca73d7ab7fbdb2dbfc742189d483337aade25087a9cf93dfb62b335",
+        "current_sha256": "5f8215711ca73d7ab7fbdb2dbfc742189d483337aade25087a9cf93dfb62b335"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#3",
+        "before": [
+          165,
+          172
+        ],
+        "current": [
+          213,
+          220
+        ],
+        "before_sha256": "909046c216de2546c000585f15ebb93b83c5addf16801c057e55f92f8121c543",
+        "current_sha256": "909046c216de2546c000585f15ebb93b83c5addf16801c057e55f92f8121c543"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#4",
+        "before": [
+          173,
+          187
+        ],
+        "current": [
+          221,
+          235
+        ],
+        "before_sha256": "80da6cd4f3518a3ca0daabcfbe6bd7913e048a4d0a0aac98ba72f7d928ea12ab",
+        "current_sha256": "80da6cd4f3518a3ca0daabcfbe6bd7913e048a4d0a0aac98ba72f7d928ea12ab"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#5",
+        "before": [
+          188,
+          193
+        ],
+        "current": [
+          236,
+          241
+        ],
+        "before_sha256": "84bafc4f2957fce1c9fa5002065315303c3157ab6ed23a2cb71cf9c7793496f4",
+        "current_sha256": "84bafc4f2957fce1c9fa5002065315303c3157ab6ed23a2cb71cf9c7793496f4"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "get_or_insert_with",
+        "before": [
+          196,
+          230
+        ],
+        "current": [
+          253,
+          287
+        ],
+        "before_sha256": "41976dbb3bd21d1d68d2ce7bb622df4efc99214b7be337b826e57449b51ef999",
+        "current_sha256": "41976dbb3bd21d1d68d2ce7bb622df4efc99214b7be337b826e57449b51ef999"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#1",
+        "before": [
+          202,
+          207
+        ],
+        "current": [
+          259,
+          264
+        ],
+        "before_sha256": "c0cdcf9e5a79e74528fbb4beb679362e7ccaa3cf97580fa4c4caf723c1676b57",
+        "current_sha256": "c0cdcf9e5a79e74528fbb4beb679362e7ccaa3cf97580fa4c4caf723c1676b57"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#2",
+        "before": [
+          208,
+          213
+        ],
+        "current": [
+          265,
+          270
+        ],
+        "before_sha256": "6b6117079639197f820080dd247a5805df42dce461ccf91f1a9223fab7479377",
+        "current_sha256": "6b6117079639197f820080dd247a5805df42dce461ccf91f1a9223fab7479377"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#3",
+        "before": [
+          214,
+          225
+        ],
+        "current": [
+          271,
+          282
+        ],
+        "before_sha256": "b92b34cb7e5c781e5178814eb2d1597f40063da32f141e0690ff426e83a31eec",
+        "current_sha256": "b92b34cb7e5c781e5178814eb2d1597f40063da32f141e0690ff426e83a31eec"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#4",
+        "before": [
+          226,
+          229
+        ],
+        "current": [
+          283,
+          286
+        ],
+        "before_sha256": "cdf41852453dfc7a5bc4a9123475a4401e74357fd0a00a62e965b30e181c1997",
+        "current_sha256": "cdf41852453dfc7a5bc4a9123475a4401e74357fd0a00a62e965b30e181c1997"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "find_slot",
+        "before": [
+          232,
+          255
+        ],
+        "current": [
+          290,
+          313
+        ],
+        "before_sha256": "8b67d489ba022d1fc79e1e73329e849314d91357f0158cc805d8edfddd595196",
+        "current_sha256": "8b67d489ba022d1fc79e1e73329e849314d91357f0158cc805d8edfddd595196"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "find_slot#1",
+        "before": [
+          233,
+          241
+        ],
+        "current": [
+          291,
+          299
+        ],
+        "before_sha256": "0162d0192bc41c4598d333f68c074212e4ee7ab360cb14b13e006820fc041117",
+        "current_sha256": "0162d0192bc41c4598d333f68c074212e4ee7ab360cb14b13e006820fc041117"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "find_slot#2",
+        "before": [
+          242,
+          250
+        ],
+        "current": [
+          300,
+          308
+        ],
+        "before_sha256": "0c99033f4a629282deef886380ee51a75fd9dd2b5720561701ec99beb15d5913",
+        "current_sha256": "0c99033f4a629282deef886380ee51a75fd9dd2b5720561701ec99beb15d5913"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "find_slot#3",
+        "before": [
+          252,
+          254
+        ],
+        "current": [
+          310,
+          312
+        ],
+        "before_sha256": "b24e27cc1cf19a0fed3657849757c0d547ae8ae047d1020aaea00c37fd7ab7ba",
+        "current_sha256": "b24e27cc1cf19a0fed3657849757c0d547ae8ae047d1020aaea00c37fd7ab7ba"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "trim_before_insert",
+        "before": [
+          257,
+          271
+        ],
+        "current": [
+          316,
+          330
+        ],
+        "before_sha256": "02e64fa27e244570853f2879fe337551b2bba1c1b61fef238c20d712f7833787",
+        "current_sha256": "02e64fa27e244570853f2879fe337551b2bba1c1b61fef238c20d712f7833787"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "trim_before_insert#1",
+        "before": [
+          258,
+          269
+        ],
+        "current": [
+          317,
+          328
+        ],
+        "before_sha256": "c6c394419d3e71abddd57685d039616c0d272443ba8cb3b85768e36c6f77f5b8",
+        "current_sha256": "c6c394419d3e71abddd57685d039616c0d272443ba8cb3b85768e36c6f77f5b8"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "trim_before_insert#2",
+        "before": [
+          270,
+          270
+        ],
+        "current": [
+          329,
+          329
+        ],
+        "before_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787",
+        "current_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "trim_to_capacity",
+        "before": [
+          273,
+          287
+        ],
+        "current": [
+          333,
+          347
+        ],
+        "before_sha256": "c99421f31a371b1ecf6f7143fa9d338d068985e380a97668174d9ef97db40f5d",
+        "current_sha256": "c99421f31a371b1ecf6f7143fa9d338d068985e380a97668174d9ef97db40f5d"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "trim_to_capacity#1",
+        "before": [
+          274,
+          285
+        ],
+        "current": [
+          334,
+          345
+        ],
+        "before_sha256": "15d95901fb557bf7d3a886dbb7e8a74b9609b4677694036977c57da9cd53267f",
+        "current_sha256": "15d95901fb557bf7d3a886dbb7e8a74b9609b4677694036977c57da9cd53267f"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "trim_to_capacity#2",
+        "before": [
+          286,
+          286
+        ],
+        "current": [
+          346,
+          346
+        ],
+        "before_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787",
+        "current_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "record_lookup",
+        "before": [
+          289,
+          294
+        ],
+        "current": [
+          349,
+          354
+        ],
+        "before_sha256": "bcc88071a58761ba89504a2f076ba2d846e6e0678c4fa07f74f04fbd82a44d95",
+        "current_sha256": "bcc88071a58761ba89504a2f076ba2d846e6e0678c4fa07f74f04fbd82a44d95"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "record_lookup#1",
+        "before": [
+          290,
+          293
+        ],
+        "current": [
+          350,
+          353
+        ],
+        "before_sha256": "fc542a3b1e39e29e5f98d1a34d41c01bc47bd3e64b98363c5e0a9b9bf1cbf5d5",
+        "current_sha256": "fc542a3b1e39e29e5f98d1a34d41c01bc47bd3e64b98363c5e0a9b9bf1cbf5d5"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "record_evictions",
+        "before": [
+          296,
+          311
+        ],
+        "current": [
+          357,
+          372
+        ],
+        "before_sha256": "056c0d9ac78e79652cff99cd27a22b14b9cc8557ff2bb99eec10128fb529d182",
+        "current_sha256": "056c0d9ac78e79652cff99cd27a22b14b9cc8557ff2bb99eec10128fb529d182"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "record_evictions#1",
+        "before": [
+          297,
+          304
+        ],
+        "current": [
+          358,
+          365
+        ],
+        "before_sha256": "48f535f486929da8b651322d23babfb3cedb208f0c0aa48d035b3bbc0163d71c",
+        "current_sha256": "48f535f486929da8b651322d23babfb3cedb208f0c0aa48d035b3bbc0163d71c"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "record_evictions#2",
+        "before": [
+          305,
+          310
+        ],
+        "current": [
+          366,
+          371
+        ],
+        "before_sha256": "992c28e9e683b6155b934a2d9a366530d9643b47710960d9d50a6db6e996e2bd",
+        "current_sha256": "992c28e9e683b6155b934a2d9a366530d9643b47710960d9d50a6db6e996e2bd"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "refresh_report_size",
+        "before": [
+          313,
+          316
+        ],
+        "current": [
+          374,
+          377
+        ],
+        "before_sha256": "497599e9a44a58580932e317e478c9497d4c79357135b64a62aa6c1304325b25",
+        "current_sha256": "497599e9a44a58580932e317e478c9497d4c79357135b64a62aa6c1304325b25"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "refresh_report_size#1",
+        "before": [
+          314,
+          315
+        ],
+        "current": [
+          375,
+          376
+        ],
+        "before_sha256": "e5794198ed52a15c4589ac08a42df19c664471db5c362ab7f22687cd8202512b",
+        "current_sha256": "e5794198ed52a15c4589ac08a42df19c664471db5c362ab7f22687cd8202512b"
+      },
+      {
+        "source": "S1",
+        "kind": "function",
+        "name": "refresh_report_bytes",
+        "before": [
+          318,
+          324
+        ],
+        "current": [
+          379,
+          385
+        ],
+        "before_sha256": "f7812e46401a8fb580305504a28a1721308e54aa854348b6070eb0f35fb0c87d",
+        "current_sha256": "f7812e46401a8fb580305504a28a1721308e54aa854348b6070eb0f35fb0c87d"
+      },
+      {
+        "source": "S1",
+        "kind": "semantic-function-block",
+        "name": "refresh_report_bytes#1",
+        "before": [
+          319,
+          323
+        ],
+        "current": [
+          380,
+          384
+        ],
+        "before_sha256": "6d338f6495a9c4877de70231c3ca8ea3689f86790cb69e9719c3e837785af7b8",
+        "current_sha256": "6d338f6495a9c4877de70231c3ca8ea3689f86790cb69e9719c3e837785af7b8"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "1",
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          1,
+          8
+        ],
+        "before_sha256": "5fb2ab18e3ae620701c680fa2c3c5416dc4622a2c1178c3a038db9cadf11f98c",
+        "current_sha256": "33af74b0e787e4836c57fc4b8a82e33cf3cd03d7006035c23475f9a8d65f9c2f"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "2",
+        "before": [
+          6,
+          7
+        ],
+        "current": [
+          9,
+          10
+        ],
+        "before_sha256": "a4ceb6a23a3d01f0848c15e07b5cf129d7ffc3c8b479e3cf8a9023460f9c72f8",
+        "current_sha256": "a4ceb6a23a3d01f0848c15e07b5cf129d7ffc3c8b479e3cf8a9023460f9c72f8"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "3",
+        "before": [
+          8,
+          17
+        ],
+        "current": [
+          11,
+          24
+        ],
+        "before_sha256": "5b458604800691f8d0c4092445837c503d4516f58e04488d870fbb96da1b0a8b",
+        "current_sha256": "d24b18f8b8d3a7959e3cf24a2708bc810506aa0b62a97cb7937b211e8429b52f"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "4",
+        "before": [
+          18,
+          48
+        ],
+        "current": [
+          25,
+          60
+        ],
+        "before_sha256": "39c63b3e5e986eec397a5d27b8b3a3d40a59863472ebd98eef92854050b69e9c",
+        "current_sha256": "2f2cd347fb54bec8d62d421319d3e02cb56385791b8b79040c239fb957b99d5a"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "5",
+        "before": [
+          49,
+          69
+        ],
+        "current": [
+          67,
+          87
+        ],
+        "before_sha256": "5b9cf6791cc400f47d55ddc2d55adb589d274206ab59926aefa21778d984ae23",
+        "current_sha256": "5b9cf6791cc400f47d55ddc2d55adb589d274206ab59926aefa21778d984ae23"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "6",
+        "before": [
+          70,
+          78
+        ],
+        "current": [
+          89,
+          97
+        ],
+        "before_sha256": "be10e48d0f90d49dfa9357e51fd78514152473c082fe63620ee1f59e91e5814e",
+        "current_sha256": "be10e48d0f90d49dfa9357e51fd78514152473c082fe63620ee1f59e91e5814e"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "7",
+        "before": [
+          79,
+          84
+        ],
+        "current": [
+          98,
+          103
+        ],
+        "before_sha256": "83d49c30e1c81c42c5f3b73e1726e03a58570be9eb1855c1fa4022a5e65f938b",
+        "current_sha256": "83d49c30e1c81c42c5f3b73e1726e03a58570be9eb1855c1fa4022a5e65f938b"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "8",
+        "before": [
+          85,
+          93
+        ],
+        "current": [
+          104,
+          119
+        ],
+        "before_sha256": "d82f66500db2f42b30dbe1204b283e4de025231e937b9b6f1b5cee35deb5f1e1",
+        "current_sha256": "32d7c8deca08900d5d3935303a17bbabf21798d7373c85b812a215d558e3f04f"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "9",
+        "before": [
+          94,
+          102
+        ],
+        "current": [
+          120,
+          128
+        ],
+        "before_sha256": "59513b57356fe7f0640d8db959176de96261ca81bc2df08ad31febc068de06fe",
+        "current_sha256": "59513b57356fe7f0640d8db959176de96261ca81bc2df08ad31febc068de06fe"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "10",
+        "before": [
+          103,
+          400
+        ],
+        "current": [
+          129,
+          472
+        ],
+        "before_sha256": "06ecb2bdfde03a631bb08f797017fbc9cd88d79df73fbbadca4dcd56b9fe0b5d",
+        "current_sha256": "91384ff9d30f5251ca1f785f1045da992e942d4ac4c27fb96d5521de0bbcffbb"
+      },
+      {
+        "source": "S2",
+        "kind": "continuous-declaration-partition",
+        "name": "11",
+        "before": [
+          401,
+          407
+        ],
+        "current": [
+          474,
+          480
+        ],
+        "before_sha256": "b07275aa057d5cae29cfd4c4a76fb1743c714bded00d90497949b0b63fc4feee",
+        "current_sha256": "b07275aa057d5cae29cfd4c4a76fb1743c714bded00d90497949b0b63fc4feee"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "module/imports",
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          1,
+          8
+        ],
+        "before_sha256": "5fb2ab18e3ae620701c680fa2c3c5416dc4622a2c1178c3a038db9cadf11f98c",
+        "current_sha256": "33af74b0e787e4836c57fc4b8a82e33cf3cd03d7006035c23475f9a8d65f9c2f"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY",
+        "before": [
+          6,
+          7
+        ],
+        "current": [
+          9,
+          10
+        ],
+        "before_sha256": "a4ceb6a23a3d01f0848c15e07b5cf129d7ffc3c8b479e3cf8a9023460f9c72f8",
+        "current_sha256": "a4ceb6a23a3d01f0848c15e07b5cf129d7ffc3c8b479e3cf8a9023460f9c72f8"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "TextLayoutWidthValidity",
+        "before": [
+          8,
+          16
+        ],
+        "current": [
+          11,
+          23
+        ],
+        "before_sha256": "426b2332d2c98fadeac4df87eb52bd9a5c77784d729c2e30f36187af7e894ebc",
+        "current_sha256": "982667c59d226986cbd4dfd6c940a53d364d715735b9eb13b2c615278622af7e"
+      },
+      {
+        "source": "S2",
+        "kind": "variant",
+        "name": "TextLayoutWidthValidity.Exact",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          18,
+          18
+        ],
+        "before_sha256": "64f1070993d1951ddc2d14b23196c1837650c27a9a7912933e2f39053bd9083c",
+        "current_sha256": "64f1070993d1951ddc2d14b23196c1837650c27a9a7912933e2f39053bd9083c"
+      },
+      {
+        "source": "S2",
+        "kind": "variant",
+        "name": "TextLayoutWidthValidity.Range",
+        "before": [
+          12,
+          15
+        ],
+        "current": [
+          19,
+          22
+        ],
+        "before_sha256": "29dfc238aed3f48d3705d31e006750042b96090e590c366dea5637199b92a6f0",
+        "current_sha256": "29dfc238aed3f48d3705d31e006750042b96090e590c366dea5637199b92a6f0"
+      },
+      {
+        "source": "S2",
+        "kind": "variant-payload",
+        "name": "Range.min_width_bits",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          20,
+          20
+        ],
+        "before_sha256": "0e50223139878d1eaa6b3c4c7a49f0caf0868665e1a322bb552989396d2991b0",
+        "current_sha256": "0e50223139878d1eaa6b3c4c7a49f0caf0868665e1a322bb552989396d2991b0"
+      },
+      {
+        "source": "S2",
+        "kind": "variant-payload",
+        "name": "Range.max_width_bits",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "0d18c15ec489fce0842463d24c7f95981a6b926d0e39ab47d770dfa90e4febaa",
+        "current_sha256": "0d18c15ec489fce0842463d24c7f95981a6b926d0e39ab47d770dfa90e4febaa"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "TextLayoutWidthValidity impl",
+        "before": [
+          18,
+          48
+        ],
+        "current": [
+          25,
+          60
+        ],
+        "before_sha256": "39c63b3e5e986eec397a5d27b8b3a3d40a59863472ebd98eef92854050b69e9c",
+        "current_sha256": "2f2cd347fb54bec8d62d421319d3e02cb56385791b8b79040c239fb957b99d5a"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "TextLayoutCacheReport",
+        "before": [
+          49,
+          69
+        ],
+        "current": [
+          67,
+          87
+        ],
+        "before_sha256": "5b9cf6791cc400f47d55ddc2d55adb589d274206ab59926aefa21778d984ae23",
+        "current_sha256": "5b9cf6791cc400f47d55ddc2d55adb589d274206ab59926aefa21778d984ae23"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.frame_index",
+        "before": [
+          51,
+          51
+        ],
+        "current": [
+          69,
+          69
+        ],
+        "before_sha256": "7a156eec1137581a3786bedbae1bdedfbe98a542306964b45d38c38dea0f7994",
+        "current_sha256": "7a156eec1137581a3786bedbae1bdedfbe98a542306964b45d38c38dea0f7994"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.capacity",
+        "before": [
+          52,
+          52
+        ],
+        "current": [
+          70,
+          70
+        ],
+        "before_sha256": "81e28c8c0d37d3944a2c131fc27f2111cecfb34f3b13fdbeb70d4533ec6947db",
+        "current_sha256": "81e28c8c0d37d3944a2c131fc27f2111cecfb34f3b13fdbeb70d4533ec6947db"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.entry_count",
+        "before": [
+          53,
+          53
+        ],
+        "current": [
+          71,
+          71
+        ],
+        "before_sha256": "95fc2f57ad41a103d5c63c9118b583dcd4c645439d5264df6ee79f423720d6d9",
+        "current_sha256": "95fc2f57ad41a103d5c63c9118b583dcd4c645439d5264df6ee79f423720d6d9"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.estimated_bytes",
+        "before": [
+          54,
+          54
+        ],
+        "current": [
+          72,
+          72
+        ],
+        "before_sha256": "c20a15530134596c0b0bcecafc1818783a4796dc7fcd25b8410d4a408b2bcaa5",
+        "current_sha256": "c20a15530134596c0b0bcecafc1818783a4796dc7fcd25b8410d4a408b2bcaa5"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.peak_estimated_bytes",
+        "before": [
+          55,
+          55
+        ],
+        "current": [
+          73,
+          73
+        ],
+        "before_sha256": "72395ebc84539c440a048dfebb7f3f402e6a8a65a572ec7bbc53da3f436218b8",
+        "current_sha256": "72395ebc84539c440a048dfebb7f3f402e6a8a65a572ec7bbc53da3f436218b8"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.hit_count",
+        "before": [
+          56,
+          56
+        ],
+        "current": [
+          74,
+          74
+        ],
+        "before_sha256": "aed151aa6e22d470c3c71f619221e9c8e8cd8e39d83dd6d8eed65e2abb075f0a",
+        "current_sha256": "aed151aa6e22d470c3c71f619221e9c8e8cd8e39d83dd6d8eed65e2abb075f0a"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.miss_count",
+        "before": [
+          57,
+          57
+        ],
+        "current": [
+          75,
+          75
+        ],
+        "before_sha256": "81010c9887182cb93f1f8e5d9b5c75783faf0b6b471cff3300ead6cbf1517f12",
+        "current_sha256": "81010c9887182cb93f1f8e5d9b5c75783faf0b6b471cff3300ead6cbf1517f12"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.collision_miss_count",
+        "before": [
+          58,
+          58
+        ],
+        "current": [
+          76,
+          76
+        ],
+        "before_sha256": "49ba7ffa627b01f65167a47813fd3195ec512fad381fcde75472a50593bdbead",
+        "current_sha256": "49ba7ffa627b01f65167a47813fd3195ec512fad381fcde75472a50593bdbead"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.width_miss_count",
+        "before": [
+          59,
+          59
+        ],
+        "current": [
+          77,
+          77
+        ],
+        "before_sha256": "b0af7c72ab59289aac9a378ea7872b51b3c44bdeea5fc9f16242f1488ad89a8c",
+        "current_sha256": "b0af7c72ab59289aac9a378ea7872b51b3c44bdeea5fc9f16242f1488ad89a8c"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.lookup_candidate_count",
+        "before": [
+          60,
+          60
+        ],
+        "current": [
+          78,
+          78
+        ],
+        "before_sha256": "f7f0ba359d794989fbde3f7015f45ae9526312cb8b4682c0717c9b34c852afa2",
+        "current_sha256": "f7f0ba359d794989fbde3f7015f45ae9526312cb8b4682c0717c9b34c852afa2"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.eviction_scan_count",
+        "before": [
+          61,
+          61
+        ],
+        "current": [
+          79,
+          79
+        ],
+        "before_sha256": "28ac28578526e7d77f2f106bafd8e6f5d3819b97192cc5d3159caba2298eff7b",
+        "current_sha256": "28ac28578526e7d77f2f106bafd8e6f5d3819b97192cc5d3159caba2298eff7b"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.entry_move_count",
+        "before": [
+          62,
+          62
+        ],
+        "current": [
+          80,
+          80
+        ],
+        "before_sha256": "8f8a4626c1f29b57070607af0f1c6a25d9ef52944b6755d0c02117674a895445",
+        "current_sha256": "8f8a4626c1f29b57070607af0f1c6a25d9ef52944b6755d0c02117674a895445"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.insert_count",
+        "before": [
+          63,
+          63
+        ],
+        "current": [
+          81,
+          81
+        ],
+        "before_sha256": "327f3410f28262337751d49beefc9b7b5c8c39d1285157eea92995237d5d5b0e",
+        "current_sha256": "327f3410f28262337751d49beefc9b7b5c8c39d1285157eea92995237d5d5b0e"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.update_count",
+        "before": [
+          64,
+          64
+        ],
+        "current": [
+          82,
+          82
+        ],
+        "before_sha256": "97ca26839e25a6260c2977271a1496778150573e172b2d209d2dbcddfd7ab944",
+        "current_sha256": "97ca26839e25a6260c2977271a1496778150573e172b2d209d2dbcddfd7ab944"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.evicted_count",
+        "before": [
+          65,
+          65
+        ],
+        "current": [
+          83,
+          83
+        ],
+        "before_sha256": "6be228eb039448c21a819584eaa4f1d0888243e5afce2f45d181870b38ce07d1",
+        "current_sha256": "6be228eb039448c21a819584eaa4f1d0888243e5afce2f45d181870b38ce07d1"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.trim_count",
+        "before": [
+          66,
+          66
+        ],
+        "current": [
+          84,
+          84
+        ],
+        "before_sha256": "d063a1ef295d226fae006d924a0f772fb24613904b078c85b15ac13438af17b5",
+        "current_sha256": "d063a1ef295d226fae006d924a0f772fb24613904b078c85b15ac13438af17b5"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheReport.clear_count",
+        "before": [
+          67,
+          67
+        ],
+        "current": [
+          85,
+          85
+        ],
+        "before_sha256": "591a0acdafcdd36a1270620929ff382fb6824f39612fabb9a3129ac7f0a7a8dd",
+        "current_sha256": "591a0acdafcdd36a1270620929ff382fb6824f39612fabb9a3129ac7f0a7a8dd"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "TextLayoutCacheEntry<K,V>",
+        "before": [
+          70,
+          78
+        ],
+        "current": [
+          89,
+          97
+        ],
+        "before_sha256": "be10e48d0f90d49dfa9357e51fd78514152473c082fe63620ee1f59e91e5814e",
+        "current_sha256": "be10e48d0f90d49dfa9357e51fd78514152473c082fe63620ee1f59e91e5814e"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheEntry<K,V>.key",
+        "before": [
+          72,
+          72
+        ],
+        "current": [
+          91,
+          91
+        ],
+        "before_sha256": "a1c7149c6f0ec06afdb4067e5badc3c9e85454119423775208584ffac158b9f4",
+        "current_sha256": "a1c7149c6f0ec06afdb4067e5badc3c9e85454119423775208584ffac158b9f4"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheEntry<K,V>.text",
+        "before": [
+          73,
+          73
+        ],
+        "current": [
+          92,
+          92
+        ],
+        "before_sha256": "689f4efdc72ca35c16656947f77c7e4803207a65e91a1e7571c8ec5ab042ba74",
+        "current_sha256": "689f4efdc72ca35c16656947f77c7e4803207a65e91a1e7571c8ec5ab042ba74"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheEntry<K,V>.width_validity",
+        "before": [
+          74,
+          74
+        ],
+        "current": [
+          93,
+          93
+        ],
+        "before_sha256": "e5d2a7999ff2b455d0b518a01435195a63d8ffbb9d924306ff2e05fa0a849c8a",
+        "current_sha256": "e5d2a7999ff2b455d0b518a01435195a63d8ffbb9d924306ff2e05fa0a849c8a"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheEntry<K,V>.value",
+        "before": [
+          75,
+          75
+        ],
+        "current": [
+          94,
+          94
+        ],
+        "before_sha256": "f16598371a7f54182f77b1bddbba8695dd1a47fba30cbfb27640669304686a7d",
+        "current_sha256": "f16598371a7f54182f77b1bddbba8695dd1a47fba30cbfb27640669304686a7d"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCacheEntry<K,V>.estimated_bytes",
+        "before": [
+          76,
+          76
+        ],
+        "current": [
+          95,
+          95
+        ],
+        "before_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550",
+        "current_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "IndexedTextCacheEntry<K> for TextLayoutCacheEntry<K,V>",
+        "before": [
+          79,
+          84
+        ],
+        "current": [
+          98,
+          103
+        ],
+        "before_sha256": "83d49c30e1c81c42c5f3b73e1726e03a58570be9eb1855c1fa4022a5e65f938b",
+        "current_sha256": "83d49c30e1c81c42c5f3b73e1726e03a58570be9eb1855c1fa4022a5e65f938b"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "TextLayoutCache<K,V>",
+        "before": [
+          85,
+          93
+        ],
+        "current": [
+          104,
+          119
+        ],
+        "before_sha256": "d82f66500db2f42b30dbe1204b283e4de025231e937b9b6f1b5cee35deb5f1e1",
+        "current_sha256": "32d7c8deca08900d5d3935303a17bbabf21798d7373c85b812a215d558e3f04f"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCache<K,V>.index",
+        "before": [
+          88,
+          88
+        ],
+        "current": [
+          114,
+          114
+        ],
+        "before_sha256": "6a9cdd633cc7d84495dc8768f04a27ce888acf4de9a45dd0a6a17f7c595ba61c",
+        "current_sha256": "6a9cdd633cc7d84495dc8768f04a27ce888acf4de9a45dd0a6a17f7c595ba61c"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCache<K,V>.capacity",
+        "before": [
+          89,
+          89
+        ],
+        "current": [
+          115,
+          115
+        ],
+        "before_sha256": "f1cdfb71276c4c8fa80a195b2a8e3130a7ff13ca5020a0cf1e8a93d20ccc9c21",
+        "current_sha256": "f1cdfb71276c4c8fa80a195b2a8e3130a7ff13ca5020a0cf1e8a93d20ccc9c21"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCache<K,V>.estimated_bytes",
+        "before": [
+          90,
+          90
+        ],
+        "current": [
+          116,
+          116
+        ],
+        "before_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550",
+        "current_sha256": "a60f9d5f972e0e65f2c6f88446a2bf14dae266f304a7a5a6bc7c401c41322550"
+      },
+      {
+        "source": "S2",
+        "kind": "member",
+        "name": "TextLayoutCache<K,V>.frame_report",
+        "before": [
+          91,
+          91
+        ],
+        "current": [
+          117,
+          117
+        ],
+        "before_sha256": "f826802b50140b99bacaaed650937474e62488fbd621ba51110c7f20121e35d4",
+        "current_sha256": "f826802b50140b99bacaaed650937474e62488fbd621ba51110c7f20121e35d4"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "Default for TextLayoutCache<K,V>",
+        "before": [
+          94,
+          102
+        ],
+        "current": [
+          120,
+          128
+        ],
+        "before_sha256": "59513b57356fe7f0640d8db959176de96261ca81bc2df08ad31febc068de06fe",
+        "current_sha256": "59513b57356fe7f0640d8db959176de96261ca81bc2df08ad31febc068de06fe"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "TextLayoutCache<K,V> inherent impl",
+        "before": [
+          103,
+          400
+        ],
+        "current": [
+          129,
+          472
+        ],
+        "before_sha256": "06ecb2bdfde03a631bb08f797017fbc9cd88d79df73fbbadca4dcd56b9fe0b5d",
+        "current_sha256": "91384ff9d30f5251ca1f785f1045da992e942d4ac4c27fb96d5521de0bbcffbb"
+      },
+      {
+        "source": "S2",
+        "kind": "declaration",
+        "name": "normalized_width_bits free function",
+        "before": [
+          401,
+          407
+        ],
+        "current": [
+          474,
+          480
+        ],
+        "before_sha256": "b07275aa057d5cae29cfd4c4a76fb1743c714bded00d90497949b0b63fc4feee",
+        "current_sha256": "b07275aa057d5cae29cfd4c4a76fb1743c714bded00d90497949b0b63fc4feee"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "exact",
+        "before": [
+          19,
+          21
+        ],
+        "current": [
+          27,
+          29
+        ],
+        "before_sha256": "fb2380b567c3a6552e996477c072d25764478e0c1acc12021a1387899c30645e",
+        "current_sha256": "fb2380b567c3a6552e996477c072d25764478e0c1acc12021a1387899c30645e"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "exact#1",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          28,
+          28
+        ],
+        "before_sha256": "aff9ceeba401ae9598cc09169fc4e0908a44a91c6b2cbbf202ad10cf2c845fd7",
+        "current_sha256": "aff9ceeba401ae9598cc09169fc4e0908a44a91c6b2cbbf202ad10cf2c845fd7"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "range",
+        "before": [
+          23,
+          28
+        ],
+        "current": [
+          32,
+          37
+        ],
+        "before_sha256": "fa12286802586a7a8b01a57eeaf75f8e2ab19f9cd0cba22ba3a94eef1eed27e9",
+        "current_sha256": "fa12286802586a7a8b01a57eeaf75f8e2ab19f9cd0cba22ba3a94eef1eed27e9"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "range#1",
+        "before": [
+          24,
+          27
+        ],
+        "current": [
+          33,
+          36
+        ],
+        "before_sha256": "52b9bf432d5b12648377cdceb31884ef9a80a726aa70b0305b265dd8e713a8d5",
+        "current_sha256": "52b9bf432d5b12648377cdceb31884ef9a80a726aa70b0305b265dd8e713a8d5"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "contains",
+        "before": [
+          30,
+          46
+        ],
+        "current": [
+          42,
+          58
+        ],
+        "before_sha256": "0281585fd8148c2c8bc696906cb0abc9623609a2d0a043dac8808fa986f61646",
+        "current_sha256": "0281585fd8148c2c8bc696906cb0abc9623609a2d0a043dac8808fa986f61646"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "contains#1",
+        "before": [
+          31,
+          32
+        ],
+        "current": [
+          43,
+          44
+        ],
+        "before_sha256": "0c4b272b5dfa3b1b50d9987343e1d5c5ba068c939c382b373798102a7b7de83f",
+        "current_sha256": "0c4b272b5dfa3b1b50d9987343e1d5c5ba068c939c382b373798102a7b7de83f"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "contains#2",
+        "before": [
+          33,
+          44
+        ],
+        "current": [
+          45,
+          56
+        ],
+        "before_sha256": "4b44ac3726316b08a4410e246481d5d3becb143073d40fa8fc288d82c2dbf9db",
+        "current_sha256": "4b44ac3726316b08a4410e246481d5d3becb143073d40fa8fc288d82c2dbf9db"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "cache_key",
+        "before": [
+          80,
+          82
+        ],
+        "current": [
+          99,
+          101
+        ],
+        "before_sha256": "48481a5603851d09fcc837af3b06049dc738dc65b4a036d9e1cd61d6666283d9",
+        "current_sha256": "48481a5603851d09fcc837af3b06049dc738dc65b4a036d9e1cd61d6666283d9"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "cache_key#1",
+        "before": [
+          81,
+          81
+        ],
+        "current": [
+          100,
+          100
+        ],
+        "before_sha256": "2bf526c3d7b87554c9d015a783a840ecba0657116b998d33f0c07b86b3b8ea4e",
+        "current_sha256": "2bf526c3d7b87554c9d015a783a840ecba0657116b998d33f0c07b86b3b8ea4e"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "default",
+        "before": [
+          98,
+          100
+        ],
+        "current": [
+          124,
+          126
+        ],
+        "before_sha256": "478e2c6cef2a19b8a2c2ae35f02d0728d41fa1841de1e296649b5f0658edf770",
+        "current_sha256": "478e2c6cef2a19b8a2c2ae35f02d0728d41fa1841de1e296649b5f0658edf770"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "default#1",
+        "before": [
+          99,
+          99
+        ],
+        "current": [
+          125,
+          125
+        ],
+        "before_sha256": "84c1e3195ad346201431fd35e2652dde7e6d7123e24b048731494daf71261a75",
+        "current_sha256": "84c1e3195ad346201431fd35e2652dde7e6d7123e24b048731494daf71261a75"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "new",
+        "before": [
+          107,
+          109
+        ],
+        "current": [
+          133,
+          135
+        ],
+        "before_sha256": "11e9d007ec25fec5964dd211eccef6c2110d80185b2e8333c2871dddea0901f4",
+        "current_sha256": "11e9d007ec25fec5964dd211eccef6c2110d80185b2e8333c2871dddea0901f4"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "new#1",
+        "before": [
+          108,
+          108
+        ],
+        "current": [
+          134,
+          134
+        ],
+        "before_sha256": "0f49855f7ef8b15c0f0af3058ae0bf95abc0721a6a6918eebbfcdc05f9ce9e08",
+        "current_sha256": "0f49855f7ef8b15c0f0af3058ae0bf95abc0721a6a6918eebbfcdc05f9ce9e08"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "with_capacity",
+        "before": [
+          111,
+          121
+        ],
+        "current": [
+          140,
+          150
+        ],
+        "before_sha256": "af5324e8620a2fbc1235970ddc4fcc089ee89b5333c181edc338a41d47551eee",
+        "current_sha256": "af5324e8620a2fbc1235970ddc4fcc089ee89b5333c181edc338a41d47551eee"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "with_capacity#1",
+        "before": [
+          112,
+          120
+        ],
+        "current": [
+          141,
+          149
+        ],
+        "before_sha256": "495fdb51932abc4e1fbf75b962c452cbf44e61dc1cfa654dea68ffdeab307a34",
+        "current_sha256": "495fdb51932abc4e1fbf75b962c452cbf44e61dc1cfa654dea68ffdeab307a34"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "begin_frame",
+        "before": [
+          123,
+          132
+        ],
+        "current": [
+          155,
+          164
+        ],
+        "before_sha256": "7408f44304052bbf97035783e4fce2afdef00fdc38a1a1fa4a43bce238082748",
+        "current_sha256": "7408f44304052bbf97035783e4fce2afdef00fdc38a1a1fa4a43bce238082748"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "begin_frame#1",
+        "before": [
+          124,
+          131
+        ],
+        "current": [
+          156,
+          163
+        ],
+        "before_sha256": "7c72eae2a104145d845f43a2177fdeb5297f509daa26b1bd28644bfcd4e83c9b",
+        "current_sha256": "7c72eae2a104145d845f43a2177fdeb5297f509daa26b1bd28644bfcd4e83c9b"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "finish_frame",
+        "before": [
+          134,
+          136
+        ],
+        "current": [
+          167,
+          169
+        ],
+        "before_sha256": "0788e02db944f871811a7ff522d2fe11a08e437e99ae96ce1c806908209c0046",
+        "current_sha256": "0788e02db944f871811a7ff522d2fe11a08e437e99ae96ce1c806908209c0046"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "finish_frame#1",
+        "before": [
+          135,
+          135
+        ],
+        "current": [
+          168,
+          168
+        ],
+        "before_sha256": "dfeffc0f11700d4fdf0ba947c5cfd1a0d4eedf4075ed4e463c79ea0ff14173fc",
+        "current_sha256": "dfeffc0f11700d4fdf0ba947c5cfd1a0d4eedf4075ed4e463c79ea0ff14173fc"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "clear",
+        "before": [
+          138,
+          147
+        ],
+        "current": [
+          174,
+          183
+        ],
+        "before_sha256": "0ed2313a8c3e012fd563c2ed84426b6fa258492214fa9460b714034736029223",
+        "current_sha256": "0ed2313a8c3e012fd563c2ed84426b6fa258492214fa9460b714034736029223"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "clear#1",
+        "before": [
+          139,
+          143
+        ],
+        "current": [
+          175,
+          179
+        ],
+        "before_sha256": "b6dbf3a7ed483557dfc2c2b66e1c2420522b148db83ff86f255a728fe6536995",
+        "current_sha256": "b6dbf3a7ed483557dfc2c2b66e1c2420522b148db83ff86f255a728fe6536995"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "clear#2",
+        "before": [
+          144,
+          146
+        ],
+        "current": [
+          180,
+          182
+        ],
+        "before_sha256": "ac42b3888a057a1a12a688ae70e22bc3b10b6c8dd66d5202a6f2bc9168fbe254",
+        "current_sha256": "ac42b3888a057a1a12a688ae70e22bc3b10b6c8dd66d5202a6f2bc9168fbe254"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "len",
+        "before": [
+          149,
+          151
+        ],
+        "current": [
+          185,
+          187
+        ],
+        "before_sha256": "90e570a6f3e2f997610f599372223d3e7adc29c8d4e03e93b367deb028586a25",
+        "current_sha256": "90e570a6f3e2f997610f599372223d3e7adc29c8d4e03e93b367deb028586a25"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "len#1",
+        "before": [
+          150,
+          150
+        ],
+        "current": [
+          186,
+          186
+        ],
+        "before_sha256": "1cbc46e87928c13a9a0b70c7a3242eb9394d2fbcafd9cb2cdba365f66f6db803",
+        "current_sha256": "1cbc46e87928c13a9a0b70c7a3242eb9394d2fbcafd9cb2cdba365f66f6db803"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "is_empty",
+        "before": [
+          153,
+          155
+        ],
+        "current": [
+          189,
+          191
+        ],
+        "before_sha256": "fa2f2912d7291b1491d7a34ca20f5a1aa261e0a01d19c3ab7ce8050dca9eede7",
+        "current_sha256": "fa2f2912d7291b1491d7a34ca20f5a1aa261e0a01d19c3ab7ce8050dca9eede7"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "is_empty#1",
+        "before": [
+          154,
+          154
+        ],
+        "current": [
+          190,
+          190
+        ],
+        "before_sha256": "0ec1d6ea85bd4daa5f616409e2ec317ce426d3bde8ef590a7634b3fc254994bd",
+        "current_sha256": "0ec1d6ea85bd4daa5f616409e2ec317ce426d3bde8ef590a7634b3fc254994bd"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "report",
+        "before": [
+          157,
+          162
+        ],
+        "current": [
+          194,
+          199
+        ],
+        "before_sha256": "55fbc13f9c5cb31639c38e8713d8fb25d4cf5ae0582efc5b71a1cb61d8d56642",
+        "current_sha256": "55fbc13f9c5cb31639c38e8713d8fb25d4cf5ae0582efc5b71a1cb61d8d56642"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "report#1",
+        "before": [
+          158,
+          161
+        ],
+        "current": [
+          195,
+          198
+        ],
+        "before_sha256": "ea431a2c45857274841b37059780910645ee960b4010895736da439b06a7598a",
+        "current_sha256": "ea431a2c45857274841b37059780910645ee960b4010895736da439b06a7598a"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "contains_exact",
+        "before": [
+          164,
+          176
+        ],
+        "current": [
+          204,
+          216
+        ],
+        "before_sha256": "9f528afe7eb73b9a4339920eeddbcf63b33fae3f5842342b74eec1e20d440ddd",
+        "current_sha256": "9f528afe7eb73b9a4339920eeddbcf63b33fae3f5842342b74eec1e20d440ddd"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "contains_exact#1",
+        "before": [
+          170,
+          175
+        ],
+        "current": [
+          210,
+          215
+        ],
+        "before_sha256": "24b12d98bba1cbb118350c852b36317c74ba743a33911358c8ab55eb366c6d7b",
+        "current_sha256": "24b12d98bba1cbb118350c852b36317c74ba743a33911358c8ab55eb366c6d7b"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "get",
+        "before": [
+          178,
+          181
+        ],
+        "current": [
+          219,
+          222
+        ],
+        "before_sha256": "33ef2689d0b432dbc96127835eff5ef2c2b34303d6ad81dea3098790cd13d581",
+        "current_sha256": "33ef2689d0b432dbc96127835eff5ef2c2b34303d6ad81dea3098790cd13d581"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "get#1",
+        "before": [
+          179,
+          180
+        ],
+        "current": [
+          220,
+          221
+        ],
+        "before_sha256": "062f20838e1d291586a9052957bdbad568c28e0fbf63803134b55765255ffbad",
+        "current_sha256": "062f20838e1d291586a9052957bdbad568c28e0fbf63803134b55765255ffbad"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "get_with_stored_text",
+        "before": [
+          183,
+          193
+        ],
+        "current": [
+          230,
+          240
+        ],
+        "before_sha256": "d638ab19c578dfa547cd6f1bdf1cb5726eda10d1abcdcc842b3928dbc489136b",
+        "current_sha256": "d638ab19c578dfa547cd6f1bdf1cb5726eda10d1abcdcc842b3928dbc489136b"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "get_with_stored_text#1",
+        "before": [
+          189,
+          192
+        ],
+        "current": [
+          236,
+          239
+        ],
+        "before_sha256": "2cb3ac5e53cb5074622c64780af781aa963aedc1ecb303a8b3a57db224032d03",
+        "current_sha256": "2cb3ac5e53cb5074622c64780af781aa963aedc1ecb303a8b3a57db224032d03"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "insert",
+        "before": [
+          195,
+          203
+        ],
+        "current": [
+          245,
+          253
+        ],
+        "before_sha256": "879947574663f42d6a8ad8fe4e3f053a18798df23b1f74dfa677c13a4dcf5b92",
+        "current_sha256": "879947574663f42d6a8ad8fe4e3f053a18798df23b1f74dfa677c13a4dcf5b92"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "insert#1",
+        "before": [
+          202,
+          202
+        ],
+        "current": [
+          252,
+          252
+        ],
+        "before_sha256": "d47d9f2377d37ce791fdd7eb0fc36e719f267cc1e19307ff7ab8e5b9598f5e51",
+        "current_sha256": "d47d9f2377d37ce791fdd7eb0fc36e719f267cc1e19307ff7ab8e5b9598f5e51"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "insert_with_additional_heap_bytes",
+        "before": [
+          206,
+          257
+        ],
+        "current": [
+          264,
+          315
+        ],
+        "before_sha256": "a466730003dfb77942b0f38d32e7f2d81be8f7b010bb0119626f320516c62379",
+        "current_sha256": "a466730003dfb77942b0f38d32e7f2d81be8f7b010bb0119626f320516c62379"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#1",
+        "before": [
+          214,
+          217
+        ],
+        "current": [
+          272,
+          275
+        ],
+        "before_sha256": "d48e8d4b71567a6e2275c3dd97440c768e86a15794fb4be9d5624813d8acc3cb",
+        "current_sha256": "d48e8d4b71567a6e2275c3dd97440c768e86a15794fb4be9d5624813d8acc3cb"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#2",
+        "before": [
+          218,
+          226
+        ],
+        "current": [
+          276,
+          284
+        ],
+        "before_sha256": "cb89d54f7976143348ab31b8bfaeff2c7c412d32737a06e0f03e2b235aa5f043",
+        "current_sha256": "cb89d54f7976143348ab31b8bfaeff2c7c412d32737a06e0f03e2b235aa5f043"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#3",
+        "before": [
+          227,
+          234
+        ],
+        "current": [
+          285,
+          292
+        ],
+        "before_sha256": "909046c216de2546c000585f15ebb93b83c5addf16801c057e55f92f8121c543",
+        "current_sha256": "909046c216de2546c000585f15ebb93b83c5addf16801c057e55f92f8121c543"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#4",
+        "before": [
+          235,
+          250
+        ],
+        "current": [
+          293,
+          308
+        ],
+        "before_sha256": "2f94762142afd341295a83e8651fba5431ff8740b65519fb3d925e22c366a9f8",
+        "current_sha256": "2f94762142afd341295a83e8651fba5431ff8740b65519fb3d925e22c366a9f8"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "insert_with_additional_heap_bytes#5",
+        "before": [
+          251,
+          256
+        ],
+        "current": [
+          309,
+          314
+        ],
+        "before_sha256": "84bafc4f2957fce1c9fa5002065315303c3157ab6ed23a2cb71cf9c7793496f4",
+        "current_sha256": "84bafc4f2957fce1c9fa5002065315303c3157ab6ed23a2cb71cf9c7793496f4"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "get_or_insert_with",
+        "before": [
+          259,
+          296
+        ],
+        "current": [
+          327,
+          364
+        ],
+        "before_sha256": "4a8fc7d8b91476306991187159b26ba53fa7dee99291039c9d58cc15bb3f21ea",
+        "current_sha256": "4a8fc7d8b91476306991187159b26ba53fa7dee99291039c9d58cc15bb3f21ea"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#1",
+        "before": [
+          267,
+          272
+        ],
+        "current": [
+          335,
+          340
+        ],
+        "before_sha256": "dd14bf941044a89d22a30810f4ec5ac94f092c762c5184b53e376fa4391f2352",
+        "current_sha256": "dd14bf941044a89d22a30810f4ec5ac94f092c762c5184b53e376fa4391f2352"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#2",
+        "before": [
+          273,
+          278
+        ],
+        "current": [
+          341,
+          346
+        ],
+        "before_sha256": "10f30487e613c643b740758c900f7a85a1822ec5d3ab39e6691d6a20ee3991fa",
+        "current_sha256": "10f30487e613c643b740758c900f7a85a1822ec5d3ab39e6691d6a20ee3991fa"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#3",
+        "before": [
+          279,
+          291
+        ],
+        "current": [
+          347,
+          359
+        ],
+        "before_sha256": "c34b3ca51dcd1a81e788ca2e788211923045c1f1de26237807fc2fd847088bf8",
+        "current_sha256": "c34b3ca51dcd1a81e788ca2e788211923045c1f1de26237807fc2fd847088bf8"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "get_or_insert_with#4",
+        "before": [
+          292,
+          295
+        ],
+        "current": [
+          360,
+          363
+        ],
+        "before_sha256": "cdf41852453dfc7a5bc4a9123475a4401e74357fd0a00a62e965b30e181c1997",
+        "current_sha256": "cdf41852453dfc7a5bc4a9123475a4401e74357fd0a00a62e965b30e181c1997"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "find_slot",
+        "before": [
+          298,
+          329
+        ],
+        "current": [
+          367,
+          398
+        ],
+        "before_sha256": "6701c93519b01c13f1dcd63a9457e6dea48378731a5a6de4668a6a66f720251e",
+        "current_sha256": "6701c93519b01c13f1dcd63a9457e6dea48378731a5a6de4668a6a66f720251e"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "find_slot#1",
+        "before": [
+          299,
+          311
+        ],
+        "current": [
+          368,
+          380
+        ],
+        "before_sha256": "1f7a7804f5801b95a7a52a4c443a3b644bdcdcd49deba66fe60ba0cdec7287a3",
+        "current_sha256": "1f7a7804f5801b95a7a52a4c443a3b644bdcdcd49deba66fe60ba0cdec7287a3"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "find_slot#2",
+        "before": [
+          312,
+          324
+        ],
+        "current": [
+          381,
+          393
+        ],
+        "before_sha256": "8e6a42dea19bf64150b0eabfb94674573d3e6baf7ee9d78a7b87dc34f4db4256",
+        "current_sha256": "8e6a42dea19bf64150b0eabfb94674573d3e6baf7ee9d78a7b87dc34f4db4256"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "find_slot#3",
+        "before": [
+          326,
+          328
+        ],
+        "current": [
+          395,
+          397
+        ],
+        "before_sha256": "b24e27cc1cf19a0fed3657849757c0d547ae8ae047d1020aaea00c37fd7ab7ba",
+        "current_sha256": "b24e27cc1cf19a0fed3657849757c0d547ae8ae047d1020aaea00c37fd7ab7ba"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "trim_before_insert",
+        "before": [
+          331,
+          345
+        ],
+        "current": [
+          401,
+          415
+        ],
+        "before_sha256": "02e64fa27e244570853f2879fe337551b2bba1c1b61fef238c20d712f7833787",
+        "current_sha256": "02e64fa27e244570853f2879fe337551b2bba1c1b61fef238c20d712f7833787"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "trim_before_insert#1",
+        "before": [
+          332,
+          343
+        ],
+        "current": [
+          402,
+          413
+        ],
+        "before_sha256": "c6c394419d3e71abddd57685d039616c0d272443ba8cb3b85768e36c6f77f5b8",
+        "current_sha256": "c6c394419d3e71abddd57685d039616c0d272443ba8cb3b85768e36c6f77f5b8"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "trim_before_insert#2",
+        "before": [
+          344,
+          344
+        ],
+        "current": [
+          414,
+          414
+        ],
+        "before_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787",
+        "current_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "trim_to_capacity",
+        "before": [
+          347,
+          361
+        ],
+        "current": [
+          418,
+          432
+        ],
+        "before_sha256": "c99421f31a371b1ecf6f7143fa9d338d068985e380a97668174d9ef97db40f5d",
+        "current_sha256": "c99421f31a371b1ecf6f7143fa9d338d068985e380a97668174d9ef97db40f5d"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "trim_to_capacity#1",
+        "before": [
+          348,
+          359
+        ],
+        "current": [
+          419,
+          430
+        ],
+        "before_sha256": "15d95901fb557bf7d3a886dbb7e8a74b9609b4677694036977c57da9cd53267f",
+        "current_sha256": "15d95901fb557bf7d3a886dbb7e8a74b9609b4677694036977c57da9cd53267f"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "trim_to_capacity#2",
+        "before": [
+          360,
+          360
+        ],
+        "current": [
+          431,
+          431
+        ],
+        "before_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787",
+        "current_sha256": "f7a3e08bd00cf029cb3c80bb0354fe08b54627fa370960add7f25eb76a569787"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "record_lookup",
+        "before": [
+          363,
+          368
+        ],
+        "current": [
+          434,
+          439
+        ],
+        "before_sha256": "bcc88071a58761ba89504a2f076ba2d846e6e0678c4fa07f74f04fbd82a44d95",
+        "current_sha256": "bcc88071a58761ba89504a2f076ba2d846e6e0678c4fa07f74f04fbd82a44d95"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "record_lookup#1",
+        "before": [
+          364,
+          367
+        ],
+        "current": [
+          435,
+          438
+        ],
+        "before_sha256": "fc542a3b1e39e29e5f98d1a34d41c01bc47bd3e64b98363c5e0a9b9bf1cbf5d5",
+        "current_sha256": "fc542a3b1e39e29e5f98d1a34d41c01bc47bd3e64b98363c5e0a9b9bf1cbf5d5"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "record_evictions",
+        "before": [
+          370,
+          385
+        ],
+        "current": [
+          442,
+          457
+        ],
+        "before_sha256": "056c0d9ac78e79652cff99cd27a22b14b9cc8557ff2bb99eec10128fb529d182",
+        "current_sha256": "056c0d9ac78e79652cff99cd27a22b14b9cc8557ff2bb99eec10128fb529d182"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "record_evictions#1",
+        "before": [
+          371,
+          378
+        ],
+        "current": [
+          443,
+          450
+        ],
+        "before_sha256": "48f535f486929da8b651322d23babfb3cedb208f0c0aa48d035b3bbc0163d71c",
+        "current_sha256": "48f535f486929da8b651322d23babfb3cedb208f0c0aa48d035b3bbc0163d71c"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "record_evictions#2",
+        "before": [
+          379,
+          384
+        ],
+        "current": [
+          451,
+          456
+        ],
+        "before_sha256": "992c28e9e683b6155b934a2d9a366530d9643b47710960d9d50a6db6e996e2bd",
+        "current_sha256": "992c28e9e683b6155b934a2d9a366530d9643b47710960d9d50a6db6e996e2bd"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "refresh_report_size",
+        "before": [
+          387,
+          390
+        ],
+        "current": [
+          459,
+          462
+        ],
+        "before_sha256": "497599e9a44a58580932e317e478c9497d4c79357135b64a62aa6c1304325b25",
+        "current_sha256": "497599e9a44a58580932e317e478c9497d4c79357135b64a62aa6c1304325b25"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "refresh_report_size#1",
+        "before": [
+          388,
+          389
+        ],
+        "current": [
+          460,
+          461
+        ],
+        "before_sha256": "e5794198ed52a15c4589ac08a42df19c664471db5c362ab7f22687cd8202512b",
+        "current_sha256": "e5794198ed52a15c4589ac08a42df19c664471db5c362ab7f22687cd8202512b"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "refresh_report_bytes",
+        "before": [
+          392,
+          398
+        ],
+        "current": [
+          464,
+          470
+        ],
+        "before_sha256": "f7812e46401a8fb580305504a28a1721308e54aa854348b6070eb0f35fb0c87d",
+        "current_sha256": "f7812e46401a8fb580305504a28a1721308e54aa854348b6070eb0f35fb0c87d"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "refresh_report_bytes#1",
+        "before": [
+          393,
+          397
+        ],
+        "current": [
+          465,
+          469
+        ],
+        "before_sha256": "6d338f6495a9c4877de70231c3ca8ea3689f86790cb69e9719c3e837785af7b8",
+        "current_sha256": "6d338f6495a9c4877de70231c3ca8ea3689f86790cb69e9719c3e837785af7b8"
+      },
+      {
+        "source": "S2",
+        "kind": "function",
+        "name": "normalized_width_bits",
+        "before": [
+          401,
+          407
+        ],
+        "current": [
+          474,
+          480
+        ],
+        "before_sha256": "b07275aa057d5cae29cfd4c4a76fb1743c714bded00d90497949b0b63fc4feee",
+        "current_sha256": "b07275aa057d5cae29cfd4c4a76fb1743c714bded00d90497949b0b63fc4feee"
+      },
+      {
+        "source": "S2",
+        "kind": "semantic-function-block",
+        "name": "normalized_width_bits#1",
+        "before": [
+          402,
+          406
+        ],
+        "current": [
+          475,
+          479
+        ],
+        "before_sha256": "186d73a8783f1960169f86ee1a1e510e9da2a322729fc3c56f650a8816489e25",
+        "current_sha256": "186d73a8783f1960169f86ee1a1e510e9da2a322729fc3c56f650a8816489e25"
+      }
+    ],
+    "canonical_sha256": "01b414aae7d57c673e652aafeb916be08995a5a53735ffa6a40143e995136436"
+  },
+  "insertions": [
+    {
+      "id": "S1-I01",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 101,
+      "current_byte_offset": 101,
+      "current_lines": [
+        2,
+        4
+      ],
+      "bytes": 335,
+      "LF": 3,
+      "sha256": "c113a208f1439189647289293947106c57451a3e0798ebe166b1d48c4894af83"
+    },
+    {
+      "id": "S1-I02",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 282,
+      "current_byte_offset": 617,
+      "current_lines": [
+        11,
+        16
+      ],
+      "bytes": 443,
+      "LF": 6,
+      "sha256": "332d67da083fca4711c524ceec215f07a79346c276fee2f45bf288920cbcf02a"
+    },
+    {
+      "id": "S1-I03",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 961,
+      "current_byte_offset": 1739,
+      "current_lines": [
+        37,
+        37
+      ],
+      "bytes": 106,
+      "LF": 1,
+      "sha256": "b5c94b2397f2e9bf877d407fcab97dc70aa587c8f030b337fbadcff14adca3bb"
+    },
+    {
+      "id": "S1-I04",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 1349,
+      "current_byte_offset": 2233,
+      "current_lines": [
+        53,
+        59
+      ],
+      "bytes": 421,
+      "LF": 7,
+      "sha256": "e02032719572b5f797543ffdb5e3ab152032aca45e40d383e44aa247b7804274"
+    },
+    {
+      "id": "S1-I05",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 1903,
+      "current_byte_offset": 3208,
+      "current_lines": [
+        85,
+        88
+      ],
+      "bytes": 222,
+      "LF": 4,
+      "sha256": "6feaaf4394aebffa24cf25720a6ce4413c8c27f58806a043a3a301cc229989ae"
+    },
+    {
+      "id": "S1-I06",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 2272,
+      "current_byte_offset": 3799,
+      "current_lines": [
+        101,
+        103
+      ],
+      "bytes": 202,
+      "LF": 3,
+      "sha256": "71150f3bf89044f84cdcebff6c5d062c207421842fec31fb78b154e8a05d07aa"
+    },
+    {
+      "id": "S1-I07",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 2664,
+      "current_byte_offset": 4393,
+      "current_lines": [
+        115,
+        115
+      ],
+      "bytes": 93,
+      "LF": 1,
+      "sha256": "ed54ba180f750de9924a57e1a63fb872ba7859dbef20e4d2467281d8cf4fd0c6"
+    },
+    {
+      "id": "S1-I08",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 2748,
+      "current_byte_offset": 4570,
+      "current_lines": [
+        120,
+        122
+      ],
+      "bytes": 203,
+      "LF": 3,
+      "sha256": "085b3e8b38beddb10c993e16432676fef9802f2c4c30ae30dc75bb4e060f72c5"
+    },
+    {
+      "id": "S1-I09",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 3286,
+      "current_byte_offset": 5311,
+      "current_lines": [
+        142,
+        142
+      ],
+      "bytes": 105,
+      "LF": 1,
+      "sha256": "27bc7844f914f0846fd134fd521bbeb4cfc8d0ac1901584f09abb26e52a31cee"
+    },
+    {
+      "id": "S1-I10",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 3514,
+      "current_byte_offset": 5644,
+      "current_lines": [
+        150,
+        152
+      ],
+      "bytes": 199,
+      "LF": 3,
+      "sha256": "174f4d5b176fd95ac9b442439b4999b26ac36f5c609fd228b1a104107e896789"
+    },
+    {
+      "id": "S1-I11",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 3717,
+      "current_byte_offset": 6046,
+      "current_lines": [
+        160,
+        160
+      ],
+      "bytes": 122,
+      "LF": 1,
+      "sha256": "dd111a90a787745ea6746141a20d25b55a5fbe7e264d3d1838d612518c8dad86"
+    },
+    {
+      "id": "S1-I12",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 3964,
+      "current_byte_offset": 6415,
+      "current_lines": [
+        166,
+        169
+      ],
+      "bytes": 264,
+      "LF": 4,
+      "sha256": "ea21446781ffd50ed2900aefdac859c7de45da2405243b260de1de197bbed11c"
+    },
+    {
+      "id": "S1-I13",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 4216,
+      "current_byte_offset": 6931,
+      "current_lines": [
+        177,
+        179
+      ],
+      "bytes": 234,
+      "LF": 3,
+      "sha256": "952a540a2b674ca22b3535970839471f612364f8c9e1bfd0603700fa79796a25"
+    },
+    {
+      "id": "S1-I14",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 4506,
+      "current_byte_offset": 7455,
+      "current_lines": [
+        185,
+        192
+      ],
+      "bytes": 572,
+      "LF": 8,
+      "sha256": "156c175aad5b2e83b3b4f1760f974988c83b119ca8cb42d640086dd118ad5091"
+    },
+    {
+      "id": "S1-I15",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 6287,
+      "current_byte_offset": 9808,
+      "current_lines": [
+        244,
+        252
+      ],
+      "bytes": 583,
+      "LF": 9,
+      "sha256": "a1c7720271d54d90869393d3721239551d07f0765be070bf26bcf91631af17b1"
+    },
+    {
+      "id": "S1-I16",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 7433,
+      "current_byte_offset": 11537,
+      "current_lines": [
+        289,
+        289
+      ],
+      "bytes": 131,
+      "LF": 1,
+      "sha256": "6010b76017289f78c0782b7de89688d637db68af1bd60b8d697f10280361f36c"
+    },
+    {
+      "id": "S1-I17",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 8328,
+      "current_byte_offset": 12563,
+      "current_lines": [
+        315,
+        315
+      ],
+      "bytes": 92,
+      "LF": 1,
+      "sha256": "2690962ea80bff77ab10d292d90f4037253c977acb146c5ae497511f559c1bfa"
+    },
+    {
+      "id": "S1-I18",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 9042,
+      "current_byte_offset": 13369,
+      "current_lines": [
+        332,
+        332
+      ],
+      "bytes": 71,
+      "LF": 1,
+      "sha256": "beca40ecd1c84b61830635e5af451410b8400687fc3cba713a0c63bf741432fd"
+    },
+    {
+      "id": "S1-I19",
+      "path": "zircon_runtime/src/text/cache/measure_cache.rs",
+      "before_byte_offset": 9989,
+      "current_byte_offset": 14387,
+      "current_lines": [
+        356,
+        356
+      ],
+      "bytes": 107,
+      "LF": 1,
+      "sha256": "fb949ee3032bb42f38bce5c85f9e8cab8cd361d3fd79550e2fc49de1550b8b96"
+    },
+    {
+      "id": "S2-I01",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 116,
+      "current_byte_offset": 116,
+      "current_lines": [
+        2,
+        4
+      ],
+      "bytes": 354,
+      "LF": 3,
+      "sha256": "fde74e7adc78e85abb80c8357d09ad89090c4c33a3e2cf5c62a8b91519606d68"
+    },
+    {
+      "id": "S2-I02",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 427,
+      "current_byte_offset": 781,
+      "current_lines": [
+        12,
+        15
+      ],
+      "bytes": 261,
+      "LF": 4,
+      "sha256": "867119fc795643db006e39bbfb46c4d2cfe706de9555c34cf922675fa884fc76"
+    },
+    {
+      "id": "S2-I03",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 641,
+      "current_byte_offset": 1256,
+      "current_lines": [
+        26,
+        26
+      ],
+      "bytes": 99,
+      "LF": 1,
+      "sha256": "68c6880cf96e03903abc87b4c7f5e5826d9bd703230bb357c82da2d25c815806"
+    },
+    {
+      "id": "S2-I04",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 744,
+      "current_byte_offset": 1458,
+      "current_lines": [
+        31,
+        31
+      ],
+      "bytes": 95,
+      "LF": 1,
+      "sha256": "05a024725c1903a6f9226098b23cacd7713ab053bfb61bf4fe46f7ca289b2eeb"
+    },
+    {
+      "id": "S2-I05",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 973,
+      "current_byte_offset": 1782,
+      "current_lines": [
+        39,
+        41
+      ],
+      "bytes": 225,
+      "LF": 3,
+      "sha256": "e72333133bf39c828717d2976dbba7ba0ef58a02fdb5ae2ec859535960b340c4"
+    },
+    {
+      "id": "S2-I06",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 1597,
+      "current_byte_offset": 2631,
+      "current_lines": [
+        61,
+        66
+      ],
+      "bytes": 437,
+      "LF": 6,
+      "sha256": "a3b5f83de2ba75408cd82dfd72dc34e970732ed3199b1b9802ae26a5358335de"
+    },
+    {
+      "id": "S2-I07",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 2313,
+      "current_byte_offset": 3784,
+      "current_lines": [
+        88,
+        88
+      ],
+      "bytes": 119,
+      "LF": 1,
+      "sha256": "b75ca7ba2a751cae4d9233c162fb6a0ec6e949e9e31422cd59d973f264362780"
+    },
+    {
+      "id": "S2-I08",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 2739,
+      "current_byte_offset": 4329,
+      "current_lines": [
+        105,
+        111
+      ],
+      "bytes": 442,
+      "LF": 7,
+      "sha256": "873ebf615e6b1d1cab3f3207927d011eaf5252aecfea79213f33edc27826f8a8"
+    },
+    {
+      "id": "S2-I09",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 3287,
+      "current_byte_offset": 5319,
+      "current_lines": [
+        137,
+        139
+      ],
+      "bytes": 196,
+      "LF": 3,
+      "sha256": "10ab467cd7823b134c07fae9bc00fcb55693810af75f336a15d0546031747d00"
+    },
+    {
+      "id": "S2-I10",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 3655,
+      "current_byte_offset": 5883,
+      "current_lines": [
+        152,
+        154
+      ],
+      "bytes": 199,
+      "LF": 3,
+      "sha256": "eb63e79d81871f371f7455d3b92ab97cc772cf243969e510610ebcd0e8df98ae"
+    },
+    {
+      "id": "S2-I11",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 4045,
+      "current_byte_offset": 6472,
+      "current_lines": [
+        166,
+        166
+      ],
+      "bytes": 87,
+      "LF": 1,
+      "sha256": "841e0d91e1c768d4ac1c7f192ffa01466af5e1a314c512ded6c082026c9e6855"
+    },
+    {
+      "id": "S2-I12",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 4129,
+      "current_byte_offset": 6643,
+      "current_lines": [
+        171,
+        173
+      ],
+      "bytes": 203,
+      "LF": 3,
+      "sha256": "4da1c4fa02fa75ea7ba7ec2c67cf96a47c976c12cea9a9c3a3f1aa66673dd273"
+    },
+    {
+      "id": "S2-I13",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 4667,
+      "current_byte_offset": 7384,
+      "current_lines": [
+        193,
+        193
+      ],
+      "bytes": 89,
+      "LF": 1,
+      "sha256": "3ec6d982bdd7424875b63f9b3817c039268acff9b9bba1bc30e2bdc6d3cf4321"
+    },
+    {
+      "id": "S2-I14",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 4894,
+      "current_byte_offset": 7700,
+      "current_lines": [
+        201,
+        203
+      ],
+      "bytes": 231,
+      "LF": 3,
+      "sha256": "12c41893df49a8f3697ae1b5c984dde26f6b7887e4bf5d0d74405637a3267fbd"
+    },
+    {
+      "id": "S2-I15",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 5251,
+      "current_byte_offset": 8288,
+      "current_lines": [
+        218,
+        218
+      ],
+      "bytes": 117,
+      "LF": 1,
+      "sha256": "c4d7612e94528a75cdd12e5639c74951efd16b247a7fdb089269ed4cff759361"
+    },
+    {
+      "id": "S2-I16",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 5439,
+      "current_byte_offset": 8593,
+      "current_lines": [
+        224,
+        229
+      ],
+      "bytes": 481,
+      "LF": 6,
+      "sha256": "14da6f7f71c4bec6c2d09935832a3f9dd855536bf1cddff67aaca21ae089d736"
+    },
+    {
+      "id": "S2-I17",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 5759,
+      "current_byte_offset": 9394,
+      "current_lines": [
+        242,
+        244
+      ],
+      "bytes": 225,
+      "LF": 3,
+      "sha256": "f6ed0aaec8938799e70edf303d369171fa07b1533dd8e9b46e25bde47658feba"
+    },
+    {
+      "id": "S2-I18",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 6153,
+      "current_byte_offset": 10013,
+      "current_lines": [
+        256,
+        263
+      ],
+      "bytes": 571,
+      "LF": 8,
+      "sha256": "7410b46f85fee0845adec69e4436963bc3a91f892434765cb2c01309af3ac630"
+    },
+    {
+      "id": "S2-I19",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 8053,
+      "current_byte_offset": 12484,
+      "current_lines": [
+        317,
+        326
+      ],
+      "bytes": 676,
+      "LF": 10,
+      "sha256": "e4d9addfaddf2619d26e46485b40ddd428346e6beb274f579e09775a7cce0f29"
+    },
+    {
+      "id": "S2-I20",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 9313,
+      "current_byte_offset": 14420,
+      "current_lines": [
+        366,
+        366
+      ],
+      "bytes": 129,
+      "LF": 1,
+      "sha256": "e6973f7e38ce0ea5aec2984f6aebd679a63f021e980852b68f964027e9793a64"
+    },
+    {
+      "id": "S2-I21",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 10567,
+      "current_byte_offset": 15803,
+      "current_lines": [
+        400,
+        400
+      ],
+      "bytes": 74,
+      "LF": 1,
+      "sha256": "7b7315732a77dbf3d3f4fa82bd789f9228281c22d5e860713530eb37e1b52f31"
+    },
+    {
+      "id": "S2-I22",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 11281,
+      "current_byte_offset": 16591,
+      "current_lines": [
+        417,
+        417
+      ],
+      "bytes": 80,
+      "LF": 1,
+      "sha256": "9358e23fe6ecd82825ce96a21b780796be10b6d800d2b82def14f14ef2956d2e"
+    },
+    {
+      "id": "S2-I23",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 12228,
+      "current_byte_offset": 17618,
+      "current_lines": [
+        441,
+        441
+      ],
+      "bytes": 113,
+      "LF": 1,
+      "sha256": "5c61bdc9c46f41f2571417a7b80d628a8854d145f2db3a784c1d0e974a230a18"
+    },
+    {
+      "id": "S2-I24",
+      "path": "zircon_runtime/src/text/cache/layout_cache.rs",
+      "before_byte_offset": 13352,
+      "current_byte_offset": 18855,
+      "current_lines": [
+        473,
+        473
+      ],
+      "bytes": 109,
+      "LF": 1,
+      "sha256": "c45f120dd2f5ad00e284898341460239aa451a66c5b3847beafbfaa098825c35"
+    }
+  ],
+  "root_manual_review": {
+    "complete_owned_source": "root826/316534 exit0/PID31212 full866LF native complete plus bounded memory re-emits in root828/829/830; exact final pins rechecked here",
+    "models": "root849/a33ecb exit0/PID40140 complete summary/schema/shared roles; root852/e102c7 exit0/PID not printed, source model output native-truncated at S1 functions; root858/85432b exit0/PID41964 independently recovers all23 S1 functions and all11 S2 declarations; remaining S2 functions and S1 declarations were actually visible complete in e102c7",
+    "last_context_schemas": "root867/9525ae exit0/PID41136 complete before/final/43 insertion endpoints/6context models/17test definitions/4rawreader contracts",
+    "direct_callers": "Reuse same pins from rootR091: root833/75c21f exit0/PID39448 UI selected functions/context full88LF; root834/62398d exit0/PID37548 missing566-609, horizontal wrapper and canonical reborrow; index65-240 root831 tail only. R088 core fullindex proof remains assistance, no context coverage upgrade.",
+    "raw_readers": "Same four pins independently read rootR090807/a6a347 partial locator then810/0edc9e corrected; rechecked rootR091 post and here. No aggregate source test executed.",
+    "core_assistance": "core_timer_sol gpt-6.1-sol/max full732 originalLF032bc0/PID48140,212a0f native74961->1b33f1/PID35992; final43groups134LF2b3273/PID31404 plus8ec117/PID32924 all exit0, no mustfix/newBUG/TODO"
+  },
+  "semantic_findings": [
+    "Capacity is a logical entry count clamped to at least1; index construction does not reserve that capacity. A miss trims at >= before constructing the new value; frame end trims only at > and preserves unused resident entries.",
+    "begin_frame replaces the report with externally supplied frame label and current resident/peak, retaining index/LRU. clear releases owned entries and resets current estimate while preserving prior peak and accumulating clear/eviction counters.",
+    "Full text and stable K identity select an entry. Explicit insertion updates V/estimate while retaining old K/Arc and touching LRU. contains_exact does not touch or increment query counters; only final absence records collision/width misses.",
+    "Layout insertion identity compares the complete stored validity value; reading asks that validity to contain the query width. A lazy hit keeps the old validity/value and does not invoke FnOnce.",
+    "Exact validity normalizes signed zero but otherwise preserves float bits, including nonfinite patterns. Range storage does not certify order or layout invariance; contains requires finite endpoints/query and a half-open condition.",
+    "Returned V/Arc references borrow the cache. A caller must explicitly own/clone resources to outlive that borrow or cache eviction. Generic V has no automatic Ready/geometry/font-generation authentication; UI owns those gates.",
+    "Estimated bytes include entry representation, text length and explicitly reported extra heap; they exclude container capacities, Arc header/sharing and unreported allocations. Counters are logical telemetry, not allocator/RSS or physical constant-time acceptance.",
+    "Lazy miss accounts/trims before invoking caller code, with no Result rollback or panic-recovery contract. No new BUG is inferred merely from that documented sequence."
+  ],
+  "contexts": [
+    {
+      "id": "C01",
+      "path": "zircon_runtime/src/text/cache/mod.rs",
+      "child_observed_sha256": "09f7e9f0630575eaf2c10a7a90d7c437eb0068f4bfe978f6e809e4369c4784c5",
+      "current_sha256": "09f7e9f0630575eaf2c10a7a90d7c437eb0068f4bfe978f6e809e4369c4784c5",
+      "bytes": 1284,
+      "lines": 40,
+      "formal_coverage": false,
+      "reconciliation": "same fixed pin"
+    },
+    {
+      "id": "C02",
+      "path": "zircon_runtime/src/text/cache/index.rs",
+      "child_observed_sha256": "b74a2bab18bd4b8c5094324a431d67ad542102e827974fd48f8f39d4cd0d527f",
+      "current_sha256": "b74a2bab18bd4b8c5094324a431d67ad542102e827974fd48f8f39d4cd0d527f",
+      "bytes": 16708,
+      "lines": 415,
+      "formal_coverage": false,
+      "reconciliation": "same fixed pin"
+    },
+    {
+      "id": "C03",
+      "path": "zircon_runtime/src/ui/text/measure_cache.rs",
+      "child_observed_sha256": "2f9ed0e72c5efed4522e58dd38ee530b41d82e2d18c49bd6e34b50ea215e130a",
+      "current_sha256": "2f9ed0e72c5efed4522e58dd38ee530b41d82e2d18c49bd6e34b50ea215e130a",
+      "bytes": 30857,
+      "lines": 766,
+      "formal_coverage": false,
+      "reconciliation": "same fixed pin"
+    },
+    {
+      "id": "C04",
+      "path": "zircon_runtime/src/ui/text/measure_cache/context.rs",
+      "child_observed_sha256": "139a419079b1a6ebbbd18073a00cc18d4a2380cb28c33b96d418912f6be2ec67",
+      "current_sha256": "139a419079b1a6ebbbd18073a00cc18d4a2380cb28c33b96d418912f6be2ec67",
+      "bytes": 3712,
+      "lines": 88,
+      "formal_coverage": false,
+      "reconciliation": "same fixed pin"
+    },
+    {
+      "id": "C05",
+      "path": "zircon_runtime/src/text/cache/tests/cases.rs",
+      "child_observed_sha256": "a4d255bd1b97d171d3a9c407efc91e90e85ff156480cc7049bd6da51ad9e409e",
+      "current_sha256": "181a71924f57cf53acde2a61c0f5127ca619cd32fc079cc3f89d6275df5c339d",
+      "bytes": 26960,
+      "lines": 796,
+      "formal_coverage": false,
+      "reconciliation": "C05 three exact R091 BUG-comment insertions only; no executable/test assertion change"
+    },
+    {
+      "id": "C06",
+      "path": "zircon_runtime/src/text/cache/tests/residency.rs",
+      "child_observed_sha256": "e7485b4db63bba77c55454a8decbd492c0882d90bb95e200c8eb74d0f82934a1",
+      "current_sha256": "e7485b4db63bba77c55454a8decbd492c0882d90bb95e200c8eb74d0f82934a1",
+      "bytes": 3450,
+      "lines": 78,
+      "formal_coverage": false,
+      "reconciliation": "same fixed pin"
+    }
+  ],
+  "test_context": {
+    "formal_coverage": false,
+    "owned_by": "R091",
+    "complete_function_proofs": [
+      {
+        "name": "text_measure_cache_rejects_hash_collision_without_text_match",
+        "context": "C05",
+        "lines": [
+          34,
+          48
+        ],
+        "complete_function_sha256": "074c7871985e31c981860169a580fc3aaef931a2b7572087765133e53dab654a",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 5,
+        "executed": false
+      },
+      {
+        "name": "text_measure_cache_lru_trims_only_when_capacity_is_exceeded",
+        "context": "C05",
+        "lines": [
+          51,
+          72
+        ],
+        "complete_function_sha256": "e80f39650def5a9883322db098a8920690909f7cdbdcc4b053570249c78004a2",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 6,
+        "executed": false
+      },
+      {
+        "name": "text_measure_cache_frame_end_does_not_clear_unreferenced_entries",
+        "context": "C05",
+        "lines": [
+          75,
+          88
+        ],
+        "complete_function_sha256": "03835344b2fce170b32c03d3352f70a6613b9adcffa94ef32dbb2582a808f91a",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 3,
+        "executed": false
+      },
+      {
+        "name": "text_measure_cache_get_or_insert_measures_only_on_miss",
+        "context": "C05",
+        "lines": [
+          91,
+          114
+        ],
+        "complete_function_sha256": "78cf49ea9a29b0791c85879349abec97327b7fae895a065080616026549e9662",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 7,
+        "executed": false
+      },
+      {
+        "name": "text_measure_cache_get_or_insert_keeps_misses_inside_lru_capacity",
+        "context": "C05",
+        "lines": [
+          117,
+          129
+        ],
+        "complete_function_sha256": "7186180c4856d7b45228dd7f952caf0066207c0833b76bb9cf3a691d39c9a76a",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 2,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_hits_exact_wrap_width_only",
+        "context": "C05",
+        "lines": [
+          132,
+          147
+        ],
+        "complete_function_sha256": "e80129cfef89d916284a66acc10fd2930a240f3eabc676e8b96cd7c35d87177f",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 3,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_hits_valid_width_range",
+        "context": "C05",
+        "lines": [
+          150,
+          165
+        ],
+        "complete_function_sha256": "d861702bf3767c5b089ac28b34dad6931231048acc27343ecb519ac35defa04d",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 3,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_rejects_hash_collision_without_text_match",
+        "context": "C05",
+        "lines": [
+          168,
+          182
+        ],
+        "complete_function_sha256": "ea7a8b2aa7fdb18d09dd28f70450fe4414de820bfd250ea3575adaf905908a5d",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 2,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_lru_trims_only_when_capacity_is_exceeded",
+        "context": "C05",
+        "lines": [
+          185,
+          207
+        ],
+        "complete_function_sha256": "e6686955b00af422f63427509cf3e0c2d71940756c36d611f79370f0c084c08a",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 6,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_frame_end_does_not_clear_unreferenced_entries",
+        "context": "C05",
+        "lines": [
+          210,
+          224
+        ],
+        "complete_function_sha256": "c11d2442b7d21c0d91640c42d7f00f7b8a899240be4ff102e9ee375f04582f90",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 3,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_get_or_insert_lays_out_only_on_miss",
+        "context": "C05",
+        "lines": [
+          227,
+          252
+        ],
+        "complete_function_sha256": "e10099f33238e8252371d29a1747ee2e08a4c8b9a9dedf749ad73ac67d1d71cd",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 7,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_get_or_insert_keeps_misses_inside_lru_capacity",
+        "context": "C05",
+        "lines": [
+          255,
+          268
+        ],
+        "complete_function_sha256": "070f8d6591bf1862e9747d2fe3872d1e686120fc64c55c112c66bd338d020e44",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 2,
+        "executed": false
+      },
+      {
+        "name": "text_cache_indexes_keep_hot_lookup_and_eviction_work_constant_for_exact_updates",
+        "context": "C05",
+        "lines": [
+          339,
+          360
+        ],
+        "complete_function_sha256": "85849762cf18ed9c6441c1669c4ffd4f03aa153c10ab031b3d4eb98fdd41afc2",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 6,
+        "executed": false
+      },
+      {
+        "name": "text_cache_indexes_keep_hot_lookup_and_eviction_work_constant",
+        "context": "C05",
+        "lines": [
+          363,
+          463
+        ],
+        "complete_function_sha256": "f9c1f117c1fb4f0b9f4f3f50bdaa1efa1e6d45e534044ee6cbe87a045a5db361",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 35,
+        "executed": false
+      },
+      {
+        "name": "persistent_cache_hits_expose_stored_text_for_allocation_free_frame_reuse",
+        "context": "C05",
+        "lines": [
+          466,
+          489
+        ],
+        "complete_function_sha256": "f6fd605e1bb6a35969cd5b334e7640673ecbe78451d6cec43622035866f99b03",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 4,
+        "executed": false
+      },
+      {
+        "name": "text_measure_cache_reports_resident_bytes_across_update_eviction_and_clear",
+        "context": "C06",
+        "lines": [
+          8,
+          41
+        ],
+        "complete_function_sha256": "5bdf1fac315cf8175f6391bf714d0f3b579f3c96423753de9081084c82e90e1b",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 7,
+        "executed": false
+      },
+      {
+        "name": "text_layout_cache_reports_resident_bytes_across_update_eviction_and_clear",
+        "context": "C06",
+        "lines": [
+          45,
+          78
+        ],
+        "complete_function_sha256": "3c0df40ca4753778ddd54f59163a104d188c25045203d1bf7f7b85ba6228f542",
+        "current_bytes_equal_child_context_bytes": true,
+        "assert_macro_sites": 7,
+        "executed": false
+      }
+    ],
+    "assertion_counts": {
+      "C05": 94,
+      "C06": 14
+    },
+    "complete_macro_input_reuse": {
+      "record": "docs/plans/source-comments/reviews/R091-post-validation.json",
+      "sha256": "6f477b5f9cdb6e32110e5ea0e5912ee87769f56881ad9c70bbdc2749e57ab943",
+      "full_macro_inputs_previously_proved": 161,
+      "basis": "C05 exact inverse removes only3new BUG comment lines; all17 selected complete functions remain exact bytes at these spans. C06 same final pin. Existing full macro proofs are reused, not re-executed."
+    },
+    "limits": "94 shared cases assertions include mixed cache operations; not108 isolated assertions for exact2. Fixed counters/Arc identity/hand-estimates do not measure physical allocator/performance."
+  },
+  "raw_consumers": {
+    "readers": [
+      {
+        "id": "G1",
+        "path": "tools/tests/test_frameworks_05_text_boundary.py",
+        "sha256": "8f0198200241c9d5a46b02871a5d73629936804511b7f46fc089fb5d563df473",
+        "bytes": 36104,
+        "lines": 848,
+        "read_ranges": [
+          [
+            1,
+            63
+          ],
+          [
+            631,
+            681
+          ]
+        ]
+      },
+      {
+        "id": "G2",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+        "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+        "bytes": 3875,
+        "lines": 115,
+        "read_ranges": [
+          [
+            1,
+            115
+          ]
+        ]
+      },
+      {
+        "id": "G3",
+        "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+        "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+        "bytes": 2095,
+        "lines": 53,
+        "read_ranges": [
+          [
+            1,
+            53
+          ]
+        ]
+      },
+      {
+        "id": "G4",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+        "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+        "bytes": 3501,
+        "lines": 108,
+        "read_ranges": [
+          [
+            1,
+            65
+          ]
+        ]
+      }
+    ],
+    "owned_operands_in_sources": true,
+    "aggregate_tests_executed": false,
+    "preexisting_issue_preserved": "CR-RUNTIME-TESTS-ABS-0008",
+    "limits": "Local operand and brace/cfg contribution proof only; full-source classifiers and preceding framework assertions were not executed; no universal no-reader claim."
+  },
+  "validation": {
+    "commands": [
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 41,
+        "stdout_sha256": "64268544905d5170639b0857b91a06e7bcb9d565d820b4852564e0763fe33883",
+        "stderr": "",
+        "stdout": "ee18dfd3dda74ea8d12b19036d55fab5143bff7b\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "ls-files",
+          "--stage",
+          "--",
+          "zircon_runtime/src/text/cache/measure_cache.rs",
+          "zircon_runtime/src/text/cache/layout_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 193,
+        "stdout_sha256": "bbef1a58966147b49c72dc7bf8068d54f7a0b6173574a0e225116519edfdc38e",
+        "stderr": "",
+        "stdout": "100644 2818fd81765f41c6b52383039f0658d08159c904 0\tzircon_runtime/src/text/cache/layout_cache.rs\n100644 8708a63369b010e5940dc060ef831b37247504bf 0\tzircon_runtime/src/text/cache/measure_cache.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/cache/measure_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 11112,
+        "stdout_sha256": "679e2850d3a7db903925fff5e7abe23c0b928afa6e4a476c9dc02348b53c27a0",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/cache/layout_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 13491,
+        "stdout_sha256": "1b40868e9942af86298b7cb884904aede9d21a4e7131ba0a09fb864b7c234581",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/text/cache/measure_cache.rs",
+          "zircon_runtime/src/text/cache/layout_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/cache/layout_cache.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/cache/measure_cache.rs.\nThe file will have its original line endings in your working directory\n",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--numstat",
+          "--",
+          "zircon_runtime/src/text/cache/measure_cache.rs",
+          "zircon_runtime/src/text/cache/layout_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 103,
+        "stdout_sha256": "c50e954a30ca1a9c0cc81a30716b3d2c61f596f314903d88d73835020ad32529",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/cache/layout_cache.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/cache/measure_cache.rs.\nThe file will have its original line endings in your working directory\n",
+        "stdout": "73\t0\tzircon_runtime/src/text/cache/layout_cache.rs\n61\t0\tzircon_runtime/src/text/cache/measure_cache.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/text/cache/measure_cache.rs",
+          "zircon_runtime/src/text/cache/layout_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "HEAD",
+          "--path",
+          "zircon_runtime/src/text/cache/measure_cache.rs",
+          "--path",
+          "zircon_runtime/src/text/cache/layout_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 844,
+        "stdout_sha256": "1de71056fd5d03d65c52c756656212898d65d69c01b58b7e5f54ed44d35745cf",
+        "stderr": "",
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"5384219907f4bc5df8cad98e22127ba5766ce9b2e15c7273e4cceeb3de32af25\",\r\n    \"base\": \"ee18dfd3dda74ea8d12b19036d55fab5143bff7b\",\r\n    \"files\": [\r\n      \"zircon_runtime/src/text/cache/layout_cache.rs\",\r\n      \"zircon_runtime/src/text/cache/measure_cache.rs\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"zircon_runtime/src/text/cache/measure_cache.rs\",\r\n      \"zircon_runtime/src/text/cache/layout_cache.rs\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n"
+      }
+    ],
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "5384219907f4bc5df8cad98e22127ba5766ce9b2e15c7273e4cceeb3de32af25",
+        "base": "ee18dfd3dda74ea8d12b19036d55fab5143bff7b",
+        "files": [
+          "zircon_runtime/src/text/cache/layout_cache.rs",
+          "zircon_runtime/src/text/cache/measure_cache.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/text/cache/measure_cache.rs",
+          "zircon_runtime/src/text/cache/layout_cache.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "guard_script_sha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+    "config_sha256": "f54913846b1bbc8e203eddc734e9ba85a10069cc5cd743d3bcf0a3f9d4d07868",
+    "rustfmt": {
+      "reused": true,
+      "receipt": "child10/f4ecfe native41211->11/49fb94 exit0/PID46064 exact2 --check --edition2021 skip_children=true",
+      "final_pins_match_here": true,
+      "compiler_or_Cargo_run": false
+    },
+    "head_observed": "ee18dfd3dda74ea8d12b19036d55fab5143bff7b",
+    "index": {
+      "bytes": 7480318,
+      "sha256": "bae14c05229d494f7af0268c2f2587d2a627e1b36c6a162a8ee68c796ba27583"
+    },
+    "index_lock": {
+      "exists": false,
+      "touched": false,
+      "ownership_or_release_inferred": false
+    }
+  },
+  "external_drift_boundary": {
+    "notice": ".jenkins/records/source-comments-20261014-01a13a81-reviewed-source-drift-20261017.md",
+    "sha256": "f22e2dd4b796089f659245eced7d05f5f76436b46a4c18e61d4ee41c2d3e2961",
+    "42other_reviewed_sources_invalidated": true,
+    "this_exact2_pins_match_grant_plus_insertions": true,
+    "historical_unknowns_closed": false
+  },
+  "artifact_lifecycle": {
+    "helpers": 0,
+    "temporary_files": 0,
+    "source_copies": 0,
+    "builds": 0,
+    "generated_fixtures": 0,
+    "released_bytes": 0,
+    "retained": "Only canonical sources/fixed child and planned rootmain/post/handoff with necessary failure evidence"
+  },
+  "writer": {
+    "pid": 46956,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R092-post-validation.json"
+    ],
+    "source_writes": [],
+    "terminal_binding": "Actual terminal supplied outside immutable payload; no predicted exit/PID beyond this actual process."
+  }
+}
