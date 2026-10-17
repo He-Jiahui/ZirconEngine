@@ -8,6 +8,23 @@ use syn::{Data, DeriveInput, Fields};
 use crate::attrs::{parse_field_attrs, parse_script_type_attrs};
 use crate::tokens::{path_tokens, script_host_type_ref_tokens};
 
+/// 从派生输入生成反射注册描述和脚本投影的两个 trait 方法。
+///
+/// ## 参数
+///
+/// `input` 拥有 Rust 类型 AST 及其 `zircon_script` 属性。类型名称默认 Rust 标识符，类型身份键默认该名称；值种类默认 Null，原型默认 Struct 或 Enum，值构造标志默认 false。
+///
+/// ## 返回
+///
+/// 成功返回 `ZirconScriptType` 实现的 token；泛型参数、union、未知属性、语法错误或空白不规范的身份键返回 `syn::Error`，由公开入口转成编译诊断。
+///
+/// ## 约束与生命周期
+///
+/// 结构字段按声明顺序生成，`skip` 同时排除注册和投影；枚举仅生成 Enum 形状。字段 type-ref 的缺省部分从 `ScriptHostFromArgument` 读取，两个覆盖值均给出时直接构造指定描述。生成的注册描述使用 Value 角色、公共脚本可见性及 None 序列化策略；其构造是元数据操作，实例读写与序列化适配器需由其它层提供。类型路径错误在生成的注册方法被调用时返回；类型 descriptor 的组合还会校验注册字段与投影的一致性。每个生成方法重新构造拥有字符串和字段列表的数据。
+///
+/// ## 参考
+///
+/// 参阅 `field_tokens`、Runtime 的 `ZirconScriptType::script_host_type_descriptor` 与 Interface 的 `ReflectTypePath::new`、`ReflectTypeRegistration::new`。
 pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<TokenStream2> {
     let ident = input.ident;
     if !input.generics.params.is_empty() {
@@ -68,8 +85,9 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
                 ::zircon_runtime::core::framework::script::__reflect::ReflectTypeRegistration,
                 ::zircon_runtime::core::framework::script::__reflect::ReflectError,
             > {
+                // 完整路径与短名都使用脚本公开名称，保持路径末段与注册描述一致。
                 let type_path = ::zircon_runtime::core::framework::script::__reflect::ReflectTypePath::new(
-                    concat!(module_path!(), "::", stringify!(#ident)),
+                    concat!(module_path!(), "::", #type_name),
                     #type_name,
                 )?;
                 Ok(::zircon_runtime::core::framework::script::__reflect::ReflectTypeRegistration::new(
@@ -97,6 +115,23 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
 }
 
 // 每个字段只解析一次属性，再同时生成反射字段与宿主投影；skip 会同时排除两侧。
+/// 一次扫描结构字段，同时生成反射字段注册与脚本字段投影的 token 列表。
+///
+/// ## 参数
+///
+/// `fields` 借用结构字段 AST；`type_identity` 是生成稳定字段 ID 的类型身份键。字段显示名默认 Rust 字段名，元组字段使用原声明索引；字段身份键默认显示名。
+///
+/// ## 返回
+///
+/// 返回按非 skip 字段声明顺序排列的两个拥有 token 向量；属性解析或字段身份键校验失败时返回 `syn::Error`。
+///
+/// ## 约束与生命周期
+///
+/// 默认身份键随显示名变化；持久化消费者要保持 ID 时需保留显式 identity。type-ref token 在两份生成代码之间复用，每个运行期方法仍会独立求取自己的类型元数据。注册列表保存名称、类型名、alias 和文档；投影列表保存名称和值种类，由 descriptor 组合时建立一致性关系。AST 借用只用于本次宏展开。
+///
+/// ## 参考
+///
+/// 参阅 Interface 的 `ReflectFieldId::from_stable_keys`、`ReflectFieldInfo::new` 及 Runtime 的 `ScriptHostTypeDescriptor::from_reflect_registration`。
 fn field_tokens(
     fields: &Fields,
     type_identity: &str,
