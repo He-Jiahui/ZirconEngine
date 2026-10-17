@@ -88,3 +88,7 @@ explicit evidence below says otherwise. No build outputs are created here.
   readers now conservatively declare their retained World access. Add a complete
   compile-fail example for safe implementations. Source inventory and diff checks
   pass; compiled ECS/doctest acceptance is pending the guarded Rust lane.
+- L1: Correct the Cargo hook denial to `tools/dev/local-cargo.ps1`; document
+  its Bash-only, fail-open text matching and known bypasses in the hook and
+  current operator guide. It is explicitly advisory. A focused import/decision
+  check passes without creating state; wrapper existence and diff checks pass.
