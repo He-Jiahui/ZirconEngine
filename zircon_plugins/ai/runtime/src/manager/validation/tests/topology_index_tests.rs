@@ -115,7 +115,7 @@ fn dense_behavior_topology_index_release_benchmark_evidence() {
     );
     let metrics = metrics(&legacy_samples, &optimized_samples);
     println!(
-        "PERF_RESULT plugins15_dense_behavior_topology_index nodes={BENCHMARK_NODE_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_hash_container_allocations_per_iteration=5 optimized_hash_container_allocations_per_iteration=1 legacy_dense_state_allocations_per_iteration=0 optimized_dense_state_allocations_per_iteration=2 legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
+        "PERF_RESULT plugins15_dense_behavior_topology_index nodes={BENCHMARK_NODE_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_hash_container_allocations_per_iteration_expected=5 optimized_hash_container_allocations_per_iteration_expected=1 legacy_dense_state_allocations_per_iteration_expected=0 optimized_dense_state_allocations_per_iteration_expected=2 legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
         metrics.legacy_p50,
         metrics.legacy_p95,
         metrics.optimized_p50,
@@ -171,7 +171,7 @@ fn indexed_registered_subtree_targets_release_benchmark_evidence() {
     let optimized_hash_operations =
         BENCHMARK_REGISTERED_TREE_COUNT + BENCHMARK_SUBTREE_TARGET_COUNT;
     println!(
-        "PERF_RESULT plugins15_indexed_registered_subtree_targets registered_trees={BENCHMARK_REGISTERED_TREE_COUNT} subtree_targets={BENCHMARK_SUBTREE_TARGET_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_key_comparisons_per_iteration={legacy_key_comparisons} optimized_hash_operations_per_iteration={optimized_hash_operations} legacy_index_allocations_per_iteration=0 optimized_index_allocations_per_iteration=1 legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
+        "PERF_RESULT plugins15_indexed_registered_subtree_targets registered_trees={BENCHMARK_REGISTERED_TREE_COUNT} subtree_targets={BENCHMARK_SUBTREE_TARGET_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_key_comparisons_per_iteration={legacy_key_comparisons} optimized_hash_operations_per_iteration={optimized_hash_operations} legacy_index_allocations_per_iteration_expected=0 optimized_index_allocations_per_iteration_expected=1 legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
         metrics.legacy_p50,
         metrics.legacy_p95,
         metrics.optimized_p50,

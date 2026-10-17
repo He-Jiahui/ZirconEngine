@@ -174,7 +174,7 @@ fn terrain_import_planning_release_gate_avoids_duplicate_extension_allocations()
         legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
 
     println!(
-        "PERF_RESULT plugins08_terrain_typed_import sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even requests_per_sample={REQUESTS_PER_SAMPLE} legacy_extension_allocations_per_request=2 optimized_extension_allocations_per_request=1 legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={REQUIRED_IMPROVEMENT_PERCENT}",
+        "PERF_RESULT plugins08_terrain_typed_import sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even requests_per_sample={REQUESTS_PER_SAMPLE} legacy_extension_allocations_per_request_expected=2 optimized_extension_allocations_per_request_expected=1 legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={REQUIRED_IMPROVEMENT_PERCENT}",
         durations_csv(&legacy_samples),
         durations_csv(&optimized_samples),
     );

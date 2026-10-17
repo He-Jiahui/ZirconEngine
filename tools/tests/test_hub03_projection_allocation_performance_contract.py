@@ -46,6 +46,8 @@ class HubProjectionAllocationPerformanceContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.coming_soon = COMING_SOON.read_text(encoding="utf-8")
         cls.catalog = CATALOG.read_text(encoding="utf-8")
+        cls.coming_soon_evidence = (COMING_SOON.parent / "tests/coming_soon.rs").read_text(encoding="utf-8")
+        cls.catalog_evidence = (CATALOG.parent / "tests/catalog.rs").read_text(encoding="utf-8")
 
     def test_coming_soon_projection_borrows_static_copy(self) -> None:
         self.assertIn("use std::borrow::Cow;", self.coming_soon)
@@ -72,7 +74,10 @@ class HubProjectionAllocationPerformanceContractTests(unittest.TestCase):
         category = function_body(self.catalog, "catalog_category_key")
         self.assertNotIn("to_ascii_lowercase", maturity)
         self.assertNotIn("to_ascii_lowercase", category)
-        self.assertIn("contains_ascii_case_insensitive", maturity)
+        self.assertIn("PluginMaturity::parse(maturity).tone()", maturity)
+        maturity_parser = function_body(self.catalog, "parse")
+        self.assertNotIn("to_ascii_lowercase", maturity_parser)
+        self.assertIn('eq_ignore_ascii_case("stable")', maturity_parser)
         self.assertIn("contains_ascii_case_insensitive", category)
         helper = function_body(self.catalog, "contains_ascii_case_insensitive")
         self.assertIn(".windows(needle.len())", helper)
@@ -81,34 +86,34 @@ class HubProjectionAllocationPerformanceContractTests(unittest.TestCase):
     def test_release_evidence_tracks_both_allocation_hotpaths(self) -> None:
         self.assertIn(
             "hub03_coming_soon_projection_release_benchmark_evidence",
-            self.coming_soon,
+            self.coming_soon_evidence,
         )
         self.assertIn(
             "PERF_RESULT hub03_coming_soon_projection",
-            self.coming_soon,
+            self.coming_soon_evidence,
         )
-        self.assertIn("legacy_string_allocations=105", self.coming_soon)
-        self.assertIn("optimized_string_allocations=15", self.coming_soon)
-        self.assertIn("legacy_raw_ns={}", self.coming_soon)
+        self.assertIn("legacy_string_allocations_expected=105", self.coming_soon_evidence)
+        self.assertIn("optimized_string_allocations_expected=15", self.coming_soon_evidence)
+        self.assertIn("legacy_raw_ns={}", self.coming_soon_evidence)
         self.assertIn(
             "optimized_p95.saturating_mul(100)"
             " <= legacy_p95.saturating_mul(80)",
-            self.coming_soon,
+            self.coming_soon_evidence,
         )
         self.assertIn(
             "hub03_catalog_classifiers_release_benchmark_evidence",
-            self.catalog,
+            self.catalog_evidence,
         )
         self.assertIn(
             "PERF_RESULT hub03_catalog_classifiers",
-            self.catalog,
+            self.catalog_evidence,
         )
-        self.assertIn("optimized_heap_allocations_per_call=0", self.catalog)
-        self.assertIn("legacy_raw_ns={}", self.catalog)
+        self.assertIn("optimized_heap_allocations_per_call_expected=0", self.catalog_evidence)
+        self.assertIn("legacy_raw_ns={}", self.catalog_evidence)
         self.assertIn(
             "optimized_p95.saturating_mul(100)"
             " <= legacy_p95.saturating_mul(80)",
-            self.catalog,
+            self.catalog_evidence,
         )
 
 

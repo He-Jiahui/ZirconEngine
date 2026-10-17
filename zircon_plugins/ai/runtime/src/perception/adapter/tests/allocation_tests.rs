@@ -100,7 +100,7 @@ fn lazy_empty_hearing_enqueue_release_benchmark_evidence() {
     );
     let metrics = metrics(&legacy_samples, &optimized_samples);
     println!(
-        "PERF_RESULT plugins15_lazy_empty_hearing_enqueue receivers={BENCHMARK_RECEIVER_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_receiver_snapshot_allocations_per_iteration=1 optimized_receiver_snapshot_allocations_per_iteration=0 legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
+        "PERF_RESULT plugins15_lazy_empty_hearing_enqueue receivers={BENCHMARK_RECEIVER_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_receiver_snapshot_allocations_per_iteration_expected=1 optimized_receiver_snapshot_allocations_per_iteration_expected=0 legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
         metrics.legacy_p50,
         metrics.legacy_p95,
         metrics.optimized_p50,
@@ -183,7 +183,7 @@ fn reusable_hearing_receiver_index_release_benchmark_evidence() {
     );
     let metrics = metrics(&legacy_samples, &optimized_samples);
     println!(
-        "PERF_RESULT plugins15_reusable_hearing_receiver_index receivers={BENCHMARK_RECEIVER_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_index_allocations_per_iteration=1 optimized_index_allocations_per_iteration=0 legacy_lookup_structure=btree optimized_lookup_structure=hash legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
+        "PERF_RESULT plugins15_reusable_hearing_receiver_index receivers={BENCHMARK_RECEIVER_COUNT} iterations={BENCHMARK_ITERATIONS} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_index_allocations_per_iteration_expected=1 optimized_index_allocations_per_iteration_expected=0 legacy_lookup_structure=btree optimized_lookup_structure=hash legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_ns={} optimized_ns={}",
         metrics.legacy_p50,
         metrics.legacy_p95,
         metrics.optimized_p50,

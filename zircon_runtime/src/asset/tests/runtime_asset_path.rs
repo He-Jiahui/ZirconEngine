@@ -329,7 +329,7 @@ fn benchmark_single_dev_root_candidate_construction() {
         "iterator-backed candidate construction must improve P95 by at least 15%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
     );
     println!(
-        "PERF_RESULT task=plugins07_iterator_runtime_asset_roots sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank candidate_builds_per_sample={CANDIDATE_BUILDS_PER_SAMPLE} candidates_per_build=2 legacy_allocations_per_build=5 optimized_allocations_per_build=3 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=plugins07_iterator_runtime_asset_roots sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank candidate_builds_per_sample={CANDIDATE_BUILDS_PER_SAMPLE} candidates_per_build=2 legacy_allocations_per_build_expected=5 optimized_allocations_per_build_expected=3 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
         raw_samples(&legacy_raw),
         raw_samples(&optimized_raw)
     );

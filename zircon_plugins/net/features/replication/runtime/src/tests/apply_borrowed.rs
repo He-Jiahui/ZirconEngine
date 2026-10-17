@@ -76,7 +76,7 @@ fn borrowed_interpolation_index_release_benchmark_evidence() {
     let lookups_per_sample = BENCHMARK_KEY_COUNT * BENCHMARK_LOOKUP_REPEATS;
 
     println!(
-        "PERF_RESULT task=plugins10_borrowed_interpolation_index keys={BENCHMARK_KEY_COUNT} lookups_per_sample={lookups_per_sample} sample_pairs={BENCHMARK_SAMPLE_COUNT} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_query_string_allocations_per_sample={} optimized_query_string_allocations_per_sample=0 threshold_percent=15 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={legacy_ns} optimized_raw_ns={optimized_ns}",
+        "PERF_RESULT task=plugins10_borrowed_interpolation_index keys={BENCHMARK_KEY_COUNT} lookups_per_sample={lookups_per_sample} sample_pairs={BENCHMARK_SAMPLE_COUNT} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_query_string_allocations_per_sample={} optimized_query_string_allocations_per_sample_expected=0 threshold_percent=15 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={legacy_ns} optimized_raw_ns={optimized_ns}",
         lookups_per_sample * 2,
     );
     assert!(

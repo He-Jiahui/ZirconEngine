@@ -97,3 +97,9 @@ explicit evidence below says otherwise. No build outputs are created here.
   scene paths; keep project/fingerprint validation. Existing normal-host evidence
   retains its read-only startup environment opt-in. Explicit forwarding and
   no-mutation source checks pass; editor compilation/capture is pending.
+- L3: Label literal allocation counts as `_expected` across 73 affected
+  fixtures, and tab-layout formula bytes as `_estimated_bytes`. Timing and actual
+  allocator counters remain unchanged. Update the owning Python contracts and
+  add a repository guard against unlabeled constant allocation evidence. Repair
+  stale moved-fixture reads in those contracts. 14 focused tests pass; static
+  comparison confirms timing fields are unchanged. No performance run is claimed.

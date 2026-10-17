@@ -47,7 +47,7 @@ fn benchmark_borrowed_dfd_error_arguments() {
         "borrowed DFD error arguments must improve P95 by at least 15%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
     );
     println!(
-        "PERF_RESULT task=plugins07_borrowed_dfd_error_arguments sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank errors_per_sample={ERRORS_PER_SAMPLE} legacy_allocations_per_error=2 optimized_allocations_per_error=1 legacy_detail_allocations_per_sample={ERRORS_PER_SAMPLE} optimized_detail_allocations_per_sample=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=plugins07_borrowed_dfd_error_arguments sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank errors_per_sample={ERRORS_PER_SAMPLE} legacy_allocations_per_error_expected=2 optimized_allocations_per_error_expected=1 legacy_detail_allocations_per_sample={ERRORS_PER_SAMPLE} optimized_detail_allocations_per_sample_expected=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
         raw_samples(&legacy_raw),
         raw_samples(&optimized_raw)
     );

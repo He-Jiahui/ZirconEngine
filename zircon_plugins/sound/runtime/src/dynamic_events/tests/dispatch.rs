@@ -79,7 +79,7 @@ fn preordered_handler_dispatch_release_benchmark_evidence() {
     let optimized_p95 = percentile(&optimized_samples, 95);
 
     println!(
-        "PERF_RESULT plugins11_preordered_dynamic_event_handlers events={} registered_handlers={} event_ids={} matching_handlers_per_event={} deliveries={} samples={} iterations_per_sample={} sample_order=alternating legacy_handler_sorts={} optimized_handler_sorts=0 legacy_per_event_matching_vec_allocations={} optimized_per_event_matching_vec_allocations=0 optimized_handler_index_buckets={} optimized_handler_index_rebuilds_per_dispatch=0 legacy_handler_match_comparisons={} optimized_handler_index_entries={} optimized_event_lookups={} legacy_invocation_clones={} optimized_invocation_clones={} legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={}",
+        "PERF_RESULT plugins11_preordered_dynamic_event_handlers events={} registered_handlers={} event_ids={} matching_handlers_per_event={} deliveries={} samples={} iterations_per_sample={} sample_order=alternating legacy_handler_sorts={} optimized_handler_sorts=0 legacy_per_event_matching_vec_allocations={} optimized_per_event_matching_vec_allocations_expected=0 optimized_handler_index_buckets={} optimized_handler_index_rebuilds_per_dispatch=0 legacy_handler_match_comparisons={} optimized_handler_index_entries={} optimized_event_lookups={} legacy_invocation_clones={} optimized_invocation_clones={} legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={}",
         BENCHMARK_EVENT_COUNT,
         BENCHMARK_HANDLER_COUNT,
         BENCHMARK_EVENT_ID_COUNT,

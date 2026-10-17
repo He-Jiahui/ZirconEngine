@@ -60,7 +60,7 @@ fn benchmark_importer_runtime_manifest_builder_move_projection() {
         "move-backed importer manifest assembly must improve P95 by at least 20%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
     );
     println!(
-        "PERF_RESULT task=plugins07_move_importer_manifest_builder sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank manifest_builds_per_sample={MANIFEST_BUILDS_PER_SAMPLE} capabilities_per_builder={CAPABILITIES_PER_BUILDER} importers_per_builder={IMPORTERS_PER_BUILDER} legacy_builder_field_clone_allocations_per_build=37 optimized_builder_field_clone_allocations_per_build=1 legacy_capability_clones_per_build=32 optimized_capability_clones_per_build=0 threshold_percent=20 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=plugins07_move_importer_manifest_builder sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank manifest_builds_per_sample={MANIFEST_BUILDS_PER_SAMPLE} capabilities_per_builder={CAPABILITIES_PER_BUILDER} importers_per_builder={IMPORTERS_PER_BUILDER} legacy_builder_field_clone_allocations_per_build_expected=37 optimized_builder_field_clone_allocations_per_build_expected=1 legacy_capability_clones_per_build=32 optimized_capability_clones_per_build=0 threshold_percent=20 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
         raw_samples(&legacy_raw),
         raw_samples(&optimized_raw)
     );

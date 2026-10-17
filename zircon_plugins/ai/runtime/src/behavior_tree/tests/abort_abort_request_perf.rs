@@ -92,7 +92,7 @@ fn reusable_abort_request_scratch_release_benchmark_evidence() {
     let optimized_ns = benchmark_samples_csv(&optimized_samples);
 
     println!(
-        "PERF_RESULT plugins15_reusable_abort_request_scratch requests={REUSE_BENCHMARK_REQUEST_COUNT} iterations_per_sample={REUSE_BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank priorities=unique legacy_request_vec_allocations_per_sample={REUSE_BENCHMARK_ITERATIONS} optimized_request_vec_allocations_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
+        "PERF_RESULT plugins15_reusable_abort_request_scratch requests={REUSE_BENCHMARK_REQUEST_COUNT} iterations_per_sample={REUSE_BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank priorities=unique legacy_request_vec_allocations_per_sample={REUSE_BENCHMARK_ITERATIONS} optimized_request_vec_allocations_per_sample_expected=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
     );
     assert!(
         optimized_p95 * 5 <= legacy_p95 * 4,

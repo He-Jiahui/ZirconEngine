@@ -216,7 +216,7 @@ fn print_failure_benchmark(marker: &str, legacy_samples: &[u128], optimized_samp
         / legacy_p95_ns.max(1);
 
     println!(
-        "PERF_RESULT {marker} source_bytes={} checks_per_sample={} sample_pairs={} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_source_string_allocations_per_sample={} optimized_source_string_allocations_per_sample=0 legacy_source_bytes_copied_per_sample={} optimized_source_bytes_copied_per_sample=0 legacy_p95_ns={} optimized_p95_ns={} improvement_percent={} threshold_percent={} legacy_ns={} optimized_ns={}",
+        "PERF_RESULT {marker} source_bytes={} checks_per_sample={} sample_pairs={} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_source_string_allocations_per_sample={} optimized_source_string_allocations_per_sample_expected=0 legacy_source_bytes_copied_per_sample={} optimized_source_bytes_copied_per_sample=0 legacy_p95_ns={} optimized_p95_ns={} improvement_percent={} threshold_percent={} legacy_ns={} optimized_ns={}",
         BENCHMARK_SOURCE_BYTES,
         BENCHMARK_CHECKS,
         BENCHMARK_SAMPLE_PAIRS,
